@@ -1,5 +1,6 @@
 import { calculatePredictionPoints } from "../src/lib/scoring";
 import { parseCsv } from "../src/lib/csv";
+import { normalizeGroupCode } from "../src/lib/groups";
 import { readFileSync } from "node:fs";
 
 let pass = 0;
@@ -37,6 +38,15 @@ const rows = parseCsv(csv);
 check("sample header parsed", rows[0]?.[0] === "match_number" && rows[0]?.length === 7);
 check("sample has 10 data rows", rows.length === 11);
 check("row 1 = match #1 MEX/RSA UTC", rows[1]?.[2] === "MEX" && rows[1]?.[4] === "2026-06-11T19:00:00Z");
+
+console.log("== group code normalization ==");
+check("CUP-48291 -> CUP-48291", normalizeGroupCode("CUP-48291") === "CUP-48291");
+check("cup48291 -> CUP-48291", normalizeGroupCode("cup48291") === "CUP-48291");
+check("CUP 48291 -> CUP-48291", normalizeGroupCode("CUP 48291") === "CUP-48291");
+check("48291 -> CUP-48291", normalizeGroupCode("48291") === "CUP-48291");
+check("leading zeros 00042 -> CUP-00042", normalizeGroupCode("cup-00042") === "CUP-00042");
+check("too short -> null", normalizeGroupCode("123") === null);
+check("too long -> null", normalizeGroupCode("123456") === null);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

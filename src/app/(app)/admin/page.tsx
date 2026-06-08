@@ -38,6 +38,7 @@ export default async function AdminHome() {
       <div className="mb-6 flex flex-wrap gap-2">
         <Link href="/admin/matches" className="btn-ghost">إدارة المباريات والنتائج</Link>
         <Link href="/admin/predictions" className="btn-ghost">عرض التوقعات</Link>
+        <Link href="/admin/groups" className="btn-ghost">إدارة المجموعات</Link>
         <Link href="/admin/users" className="btn-ghost">إدارة المستخدمين</Link>
         <a href="/api/admin/export?type=leaderboard" className="btn-ghost">تصدير المتصدرين CSV</a>
         <a href="/api/admin/export?type=predictions" className="btn-ghost">تصدير التوقعات CSV</a>

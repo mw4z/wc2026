@@ -48,6 +48,11 @@ enum AuditAction {
   RECALCULATE
 }
 
+enum GroupRole {
+  LEADER
+  MEMBER
+}
+
 // ----------------------------------------------------------------------------
 // Core models
 // ----------------------------------------------------------------------------
@@ -69,6 +74,8 @@ model User {
   predictions        Prediction[]
   predictionAuditLog PredictionAuditLog[]
   matchResultAudits  MatchResultAuditLog[] @relation("AdminAudits")
+  ledGroups          Group[]               @relation("GroupLeader")
+  groupMemberships   GroupMember[]
 
   @@index([role])
   @@index([isActive])
@@ -220,4 +227,40 @@ model LeaderboardEntry {
 
   @@index([rank])
   @@index([totalPoints])
+}
+
+// ----------------------------------------------------------------------------
+// Groups (Phase D). Predictions stay GLOBAL; a group leaderboard is just the
+// global LeaderboardEntry filtered to the group's members.
+// ----------------------------------------------------------------------------
+
+model Group {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique // normalized "CUP-XXXXX"
+  leaderId  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  leader  User          @relation("GroupLeader", fields: [leaderId], references: [id])
+  members GroupMember[]
+
+  @@index([code])
+  @@index([isActive])
+}
+
+model GroupMember {
+  id       String    @id @default(cuid())
+  groupId  String
+  userId   String
+  role     GroupRole @default(MEMBER)
+  joinedAt DateTime  @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId])
+  @@index([groupId])
 }

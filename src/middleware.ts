@@ -4,7 +4,7 @@ import { jwtVerify } from "jose";
 const COOKIE = "wc26_session";
 
 // Routes that require any authenticated user.
-const PROTECTED = ["/dashboard", "/matches", "/leaderboard", "/profile", "/admin"];
+const PROTECTED = ["/dashboard", "/matches", "/groups", "/leaderboard", "/profile", "/admin"];
 // Routes that additionally require ADMIN.
 const ADMIN_ONLY = ["/admin"];
 
@@ -46,5 +46,5 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   // Apply to app routes only (skip static assets & API — API does its own checks).
-  matcher: ["/dashboard/:path*", "/matches/:path*", "/leaderboard/:path*", "/profile/:path*", "/admin/:path*"],
+  matcher: ["/dashboard/:path*", "/matches/:path*", "/groups/:path*", "/leaderboard/:path*", "/profile/:path*", "/admin/:path*"],
 };

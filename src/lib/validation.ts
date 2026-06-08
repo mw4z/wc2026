@@ -41,6 +41,18 @@ export const stageEnum = z.enum([
   "FINAL",
 ]);
 
+export const groupCreateSchema = z.object({
+  name: z.string().trim().min(2, "اسم المجموعة قصير جدًا").max(60),
+});
+
+export const groupJoinSchema = z.object({
+  code: z.string().trim().min(1, "أدخل كود المجموعة").max(40),
+});
+
+export const groupRenameSchema = z.object({
+  name: z.string().trim().min(2, "اسم المجموعة قصير جدًا").max(60),
+});
+
 export const matchUpsertSchema = z.object({
   matchNumber: z.coerce.number().int().positive(),
   stage: stageEnum,

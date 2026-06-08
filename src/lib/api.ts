@@ -4,6 +4,7 @@ import { AuthError } from "./auth";
 import { PredictionError } from "./predictions";
 import { MatchError } from "./matches";
 import { LoginError } from "./users";
+import { GroupError } from "./groups";
 
 /** Map known error types to JSON responses. Keeps route handlers thin. */
 export function errorResponse(e: unknown): NextResponse {
@@ -17,7 +18,8 @@ export function errorResponse(e: unknown): NextResponse {
     e instanceof AuthError ||
     e instanceof PredictionError ||
     e instanceof MatchError ||
-    e instanceof LoginError
+    e instanceof LoginError ||
+    e instanceof GroupError
   ) {
     const status = "status" in e ? e.status : 400;
     const code = "code" in e ? (e as { code?: string }).code : undefined;
