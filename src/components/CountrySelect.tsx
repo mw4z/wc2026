@@ -12,9 +12,12 @@ export function isoToFlag(iso: string): string {
 export function CountrySelect({
   value,
   onChange,
+  compact = false,
 }: {
   value: string;
   onChange: (iso: string) => void;
+  /** Show only flag + dial code (for inline use next to a phone input). */
+  compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -38,22 +41,33 @@ export function CountrySelect({
   }
 
   return (
-    <div className="relative">
+    <div className={`relative ${compact ? "shrink-0" : ""}`}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="input flex items-center justify-between gap-2 text-right"
+        className={`input flex items-center justify-between gap-2 text-right ${compact ? "w-auto whitespace-nowrap" : ""}`}
       >
-        <span className="flex items-center gap-2">
-          <span className="text-lg">{isoToFlag(selected.iso)}</span>
-          <span>{selected.name}</span>
-          <span className="text-slate-400" dir="ltr">+{selected.calling}</span>
-        </span>
+        {compact ? (
+          <span className="flex items-center gap-1.5">
+            <span className="text-lg">{isoToFlag(selected.iso)}</span>
+            <span className="font-display tnum" dir="ltr">+{selected.calling}</span>
+          </span>
+        ) : (
+          <span className="flex items-center gap-2">
+            <span className="text-lg">{isoToFlag(selected.iso)}</span>
+            <span>{selected.name}</span>
+            <span className="text-slate-400" dir="ltr">+{selected.calling}</span>
+          </span>
+        )}
         <span className="text-slate-500">▾</span>
       </button>
 
       {open && (
-        <div className="absolute z-30 mt-1 max-h-72 w-full overflow-auto rounded-xl border border-white/15 bg-navy-800 shadow-card">
+        <div
+          className={`absolute right-0 z-30 mt-1 max-h-72 overflow-auto rounded-xl border border-white/15 bg-navy-800 shadow-card ${
+            compact ? "w-72 max-w-[80vw]" : "w-full"
+          }`}
+        >
           <div className="sticky top-0 bg-navy-800 p-2">
             <input
               autoFocus

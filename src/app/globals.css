@@ -56,7 +56,7 @@
   /* ---- Status pills ------------------------------------------------------ */
   .pill {
     @apply inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider;
-    font-family: var(--font-display), var(--font-sans), sans-serif;
+    font-family: var(--font-sans), system-ui, sans-serif;
   }
   .pill-live {
     @apply text-navy-950;
@@ -128,7 +128,7 @@
   /* ---- Section heading (broadcast eyebrow) ------------------------------- */
   .eyebrow {
     @apply inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest2 text-slate-400;
-    font-family: var(--font-display), var(--font-sans), sans-serif;
+    font-family: var(--font-sans), system-ui, sans-serif;
   }
   .eyebrow::before {
     content: "";
@@ -146,7 +146,7 @@
     @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold;
   }
   .hero-title {
-    font-family: var(--font-display), var(--font-sans), sans-serif;
+    font-family: var(--font-sans), system-ui, sans-serif;
     background: linear-gradient(90deg, #ffffff, #9ec3ff 55%, var(--accent));
     -webkit-background-clip: text;
     background-clip: text;

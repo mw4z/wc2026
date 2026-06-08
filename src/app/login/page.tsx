@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { UI } from "@/lib/constants";
 import { DEFAULT_COUNTRY } from "@/lib/countries";
 import { CountrySelect } from "@/components/CountrySelect";
-import { LogoMark } from "@/components/Logo";
+import { BrandMark } from "@/components/Logo";
 
 export default function LoginPage() {
   return (
@@ -77,7 +77,7 @@ function LoginForm() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5">
       <div className="mb-8 text-center">
-        <LogoMark className="mx-auto mb-4 h-16 w-16 drop-shadow-[0_8px_30px_rgba(43,123,255,0.45)]" />
+        <BrandMark className="mx-auto mb-4 h-16 w-16 drop-shadow-[0_8px_30px_rgba(43,123,255,0.45)]" />
         <span className="font-display text-[11px] font-bold uppercase tracking-widest2 text-accent-400">
           World Cup 26
         </span>
@@ -97,21 +97,20 @@ function LoginForm() {
           />
         </div>
         <div>
-          <label className="label">رمز الدولة</label>
-          <CountrySelect value={country} onChange={setCountry} />
-        </div>
-        <div>
           <label className="label">{UI.phone}</label>
-          <input
-            className="input"
-            type="tel"
-            inputMode="tel"
-            dir="ltr"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="05XXXXXXXX"
-            required
-          />
+          <div className="flex gap-2">
+            <CountrySelect value={country} onChange={setCountry} compact />
+            <input
+              className="input flex-1"
+              type="tel"
+              inputMode="tel"
+              dir="ltr"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="5XXXXXXXX"
+              required
+            />
+          </div>
         </div>
         <div>
           <label className="label">المجموعة</label>

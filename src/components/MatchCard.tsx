@@ -99,7 +99,7 @@ export function MatchCard({
       <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-2.5">
         <Link
           href={`/matches/${match.id}`}
-          className="font-display text-xs font-bold uppercase tracking-wider text-slate-400 transition hover:text-accent-400"
+          className="text-xs font-bold text-slate-400 transition hover:text-accent-400"
         >
           #{match.matchNumber} · {STAGE_LABEL_AR[match.stage]}
         </Link>

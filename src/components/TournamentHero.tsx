@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { LogoMark } from "./Logo";
+import { MascotArt } from "./MascotArt";
 import { BallIcon } from "./icons";
 
 /**
@@ -37,8 +38,10 @@ export function TournamentHero({
       />
       {/* leading color shard */}
       <div className="absolute -left-12 -top-6 h-[160%] w-28 -skew-x-12 bg-gradient-to-b from-accent-500/50 via-[#7c5cff]/30 to-lime-500/40 blur-[1px]" />
-      {/* emblem watermark */}
-      <LogoMark className="pointer-events-none absolute -left-6 bottom-[-1.5rem] h-40 w-40 opacity-[0.13]" />
+      {/* emblem watermark (vector) */}
+      <LogoMark className="pointer-events-none absolute -left-6 bottom-[-1.5rem] h-40 w-40 opacity-[0.10]" />
+      {/* official mascot art — appears only if /public/art/mascot.png exists */}
+      <MascotArt className="pointer-events-none absolute bottom-0 left-2 h-24 w-auto object-contain drop-shadow-2xl sm:h-32" />
 
       <div className="relative px-5 py-6 sm:px-7 sm:py-8">
         <span className="eyebrow">{kicker}</span>
