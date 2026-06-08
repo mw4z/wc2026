@@ -10,6 +10,7 @@
  *
  * Relies on deterministic seed IDs: mtch_1 (open, future) and mtch_101 (past).
  */
+export {}; // module scope (avoid global collision with other script files)
 const BASE = (process.argv[2] || process.env.BASE_URL || "").replace(/\/$/, "");
 if (!BASE) {
   console.error("Provide the deployed URL: npx tsx scripts/e2e.ts https://app.vercel.app");
