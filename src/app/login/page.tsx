@@ -20,7 +20,6 @@ function LoginForm() {
 
   const [name, setName] = useState("");
   const [employeeId, setEmployeeId] = useState("");
-  const [department, setDepartment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -32,7 +31,7 @@ function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, employeeId, department }),
+        body: JSON.stringify({ name, employeeId }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -77,16 +76,6 @@ function LoginForm() {
             required
           />
         </div>
-        <div>
-          <label className="label">الإدارة (اختياري)</label>
-          <input
-            className="input"
-            value={department}
-            onChange={(e) => setDepartment(e.target.value)}
-            placeholder="مثال: التسويق"
-          />
-        </div>
-
         {error && (
           <p className="rounded-lg bg-danger/15 px-3 py-2 text-sm text-red-300">{error}</p>
         )}
