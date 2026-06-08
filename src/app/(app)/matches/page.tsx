@@ -72,7 +72,7 @@ export default async function MatchesPage() {
 type MatchWithTeams = Prisma.MatchGetPayload<{ include: { homeTeam: true; awayTeam: true } }>;
 
 // Serialize for the client component (Dates → ISO strings).
-function serializeMatch(m: MatchWithTeams) {
+export function serializeMatch(m: MatchWithTeams) {
   return {
     id: m.id,
     matchNumber: m.matchNumber,
@@ -91,7 +91,7 @@ function serializeMatch(m: MatchWithTeams) {
       : null,
   };
 }
-function serializePrediction(p?: { predictedHomeScore: number; predictedAwayScore: number; predictedWinnerTeamId: string | null; pointsAwarded: number | null }) {
+export function serializePrediction(p?: { predictedHomeScore: number; predictedAwayScore: number; predictedWinnerTeamId: string | null; pointsAwarded: number | null }) {
   if (!p) return null;
   return {
     predictedHomeScore: p.predictedHomeScore,

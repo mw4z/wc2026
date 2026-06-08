@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UI } from "@/lib/constants";
+import { TournamentHero, HeroStat } from "@/components/TournamentHero";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ export default async function ProfilePage() {
   const entry = await prisma.leaderboardEntry.findUnique({ where: { userId: user.id } });
 
   const stat = (label: string, value: string | number) => (
-    <div className="card p-4 text-center">
+    <div className="card card-accent p-4 text-center">
       <div className="text-2xl font-extrabold text-gold-400">{value}</div>
       <div className="text-xs text-slate-400">{label}</div>
     </div>
@@ -17,7 +18,15 @@ export default async function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-6 text-2xl font-extrabold">{UI.profile}</h1>
+      <TournamentHero
+        title={user.name}
+        subtitle={user.role === "ADMIN" ? "مدير المسابقة" : "مشارك في توقعات كأس العالم 2026"}
+        icon={user.role === "ADMIN" ? "🛡️" : "⚽"}
+      >
+        <HeroStat label={UI.rank} value={entry?.rank ? `#${entry.rank}` : "—"} />
+        <HeroStat label="نقطة" value={entry?.totalPoints ?? 0} />
+        <HeroStat label="توقع" value={entry?.totalPredictions ?? 0} />
+      </TournamentHero>
 
       <div className="card mb-6 p-5">
         <Row label={UI.name} value={user.name} />

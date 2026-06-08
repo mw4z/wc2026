@@ -131,7 +131,7 @@ Pure function `calculatePredictionPoints` in `src/lib/scoring.ts`:
 - [x] Admin: dashboard, matches/results, users, settings, exports
 - [ ] Full 104-match schedule CSV (currently opening fixtures only)
 - [ ] Flag SVGs under `/public/flags`
-- [ ] Match detail page `/matches/[id]` with post-lock % distribution UI
+- [x] Match detail page `/matches/[id]` with post-lock % distribution UI
 - [ ] Tests for `scoring.ts` and `lockPredictionGuard`
 - [ ] Entra ID auth swap (post-MVP)
 

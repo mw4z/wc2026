@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { getGroupForMember, getGroupLeaderboard, GroupError } from "@/lib/groups";
 import { UI } from "@/lib/constants";
 import { CopyCode } from "@/components/groups/CopyCode";
+import { TournamentHero, HeroStat } from "@/components/TournamentHero";
 
 export const dynamic = "force-dynamic";
 
@@ -26,23 +27,24 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
 
   return (
     <div>
-      <div className="card card-accent mb-6 p-6">
+      <TournamentHero
+        title={group.name}
+        subtitle={isLeader ? `${UI.groupLeader} · نافِس زملاءك داخل مجموعتك` : "نافِس زملاءك داخل مجموعتك"}
+        icon="🏅"
+      >
+        <HeroStat label="عضو" value={board.length} />
+        <HeroStat label={UI.groupRanking} value={myRow ? `#${myRow.rank}` : "—"} />
+        <HeroStat label="نقطة" value={myRow?.totalPoints ?? 0} />
+      </TournamentHero>
+
+      <div className="card card-accent mb-6 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-extrabold">{group.name}</h1>
-            {isLeader && <span className="badge mt-1 bg-gold-500/20 text-gold-300">{UI.groupLeader}</span>}
-          </div>
           <CopyCode code={group.code} />
-        </div>
-        <div className="mt-4 flex flex-wrap gap-6 text-sm">
-          <div><span className="text-slate-400">الأعضاء: </span><b>{board.length}</b></div>
-          <div><span className="text-slate-400">{UI.groupRanking}: </span><b className="text-gold-400">{myRow ? `#${myRow.rank}` : "—"}</b></div>
-          <div><span className="text-slate-400">نقاطك: </span><b>{myRow?.totalPoints ?? 0}</b></div>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link href={`/groups/${id}/leaderboard`} className="btn-ghost text-sm">{UI.groupRanking}</Link>
-          <Link href={`/groups/${id}/members`} className="btn-ghost text-sm">{UI.groupMembers}</Link>
-          <Link href="/matches" className="btn-ghost text-sm">{UI.upcomingMatches}</Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/groups/${id}/leaderboard`} className="btn-ghost text-sm">{UI.groupRanking}</Link>
+            <Link href={`/groups/${id}/members`} className="btn-ghost text-sm">{UI.groupMembers}</Link>
+            <Link href="/matches" className="btn-ghost text-sm">{UI.upcomingMatches}</Link>
+          </div>
         </div>
       </div>
 

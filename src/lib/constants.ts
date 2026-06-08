@@ -71,6 +71,17 @@ export const UI = {
   yourPrediction: "توقعك",
   locksIn: "يُغلق خلال",
   vs: "×",
+  // Match detail page
+  matchDetails: "تفاصيل المباراة",
+  backToMatches: "العودة إلى المباريات",
+  predictionDistribution: "توزيع توقعات المشاركين",
+  distributionAfterLock: "تظهر هذه الإحصائية بعد إغلاق التوقع",
+  noPredictionsYet: "لم يتوقّع أحد هذه المباراة",
+  predictionsCount: "عدد التوقعات",
+  outcomeHomeWin: "فوز المضيف",
+  outcomeDraw: "تعادل",
+  outcomeAwayWin: "فوز الضيف",
+  finalResult: "النتيجة النهائية",
   // Groups (Phase D)
   groups: "المجموعات",
   joinGroup: "انضم إلى مجموعة",

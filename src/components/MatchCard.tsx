@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { SerializedMatch, SerializedPrediction } from "@/app/(app)/matches/page";
 import { STAGE_LABEL_AR, STATUS_LABEL_AR, UI } from "@/lib/constants";
 
@@ -50,6 +51,11 @@ export function MatchCard({
   const locked = match.status !== "SCHEDULED" || ms <= 0;
   const teamsKnown = !!match.homeTeam && !!match.awayTeam;
 
+  // Finished result (visual cue only — derived from the recorded score).
+  const finished = match.homeScore != null && match.awayScore != null;
+  const homeWin = finished && match.homeScore! > match.awayScore!;
+  const awayWin = finished && match.awayScore! > match.homeScore!;
+
   const [home, setHome] = useState(prediction?.predictedHomeScore?.toString() ?? "");
   const [away, setAway] = useState(prediction?.predictedAwayScore?.toString() ?? "");
   const [winner, setWinner] = useState(prediction?.predictedWinnerTeamId ?? "");
@@ -90,24 +96,29 @@ export function MatchCard({
   return (
     <div className="card card-accent overflow-hidden p-4 transition duration-200 hover:-translate-y-0.5 hover:border-white/20">
       <div className="mb-4 flex items-center justify-between text-xs">
-        <span className="rounded-md bg-white/5 px-2 py-1 font-semibold text-slate-300">
+        <Link
+          href={`/matches/${match.id}`}
+          className="rounded-md bg-white/5 px-2 py-1 font-semibold text-slate-300 transition hover:bg-white/10 hover:text-gold-300"
+        >
           #{match.matchNumber} · {STAGE_LABEL_AR[match.stage]}
-        </span>
+        </Link>
         <StatusBadge status={match.status} locked={locked} />
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        <TeamSide name={match.homeTeam?.nameAr ?? "يُحدد"} flag={match.homeTeam?.flagUrl} />
+        <TeamSide name={match.homeTeam?.nameAr ?? "يُحدد"} flag={match.homeTeam?.flagUrl} win={homeWin} />
         <div className="flex min-w-[64px] flex-col items-center">
-          {match.homeScore != null && match.awayScore != null ? (
+          {finished ? (
             <div className="rounded-xl bg-navy-950/60 px-3 py-1 text-3xl font-black tabular-nums text-gold-400">
               {match.homeScore}-{match.awayScore}
             </div>
           ) : (
-            <div className="text-lg font-black text-slate-500">{UI.vs}</div>
+            <div className="grid h-9 w-9 place-items-center rounded-full bg-white/5 text-lg" aria-label={UI.vs}>
+              ⚽
+            </div>
           )}
         </div>
-        <TeamSide name={match.awayTeam?.nameAr ?? "يُحدد"} flag={match.awayTeam?.flagUrl} />
+        <TeamSide name={match.awayTeam?.nameAr ?? "يُحدد"} flag={match.awayTeam?.flagUrl} win={awayWin} />
       </div>
 
       <div className="mt-3 space-y-0.5 text-center text-xs text-slate-400">
@@ -222,18 +233,21 @@ function StatusBadge({ status, locked }: { status: SerializedMatch["status"]; lo
   return <span className={`badge ${colors[effective]}`}>{STATUS_LABEL_AR[effective]}</span>;
 }
 
-function TeamSide({ name, flag }: { name: string; flag?: string | null }) {
+function TeamSide({ name, flag, win }: { name: string; flag?: string | null; win?: boolean }) {
   return (
     <div className="flex flex-1 flex-col items-center gap-2 text-center">
       {flag ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={flag} alt="" className="flag h-14 w-14" />
+        <img src={flag} alt="" className={`flag h-14 w-14 ${win ? "ring-gold-400" : ""}`} />
       ) : (
         <div className="grid h-14 w-14 place-items-center rounded-full bg-navy-700 text-base text-slate-400 ring-2 ring-white/15">
           ؟
         </div>
       )}
-      <span className="text-sm font-bold leading-tight">{name}</span>
+      <span className={`text-sm font-bold leading-tight ${win ? "text-gold-300" : ""}`}>
+        {win && "🏆 "}
+        {name}
+      </span>
     </div>
   );
 }
