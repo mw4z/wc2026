@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { UI } from "@/lib/constants";
+import { useUI } from "./I18nProvider";
 import { LogoutIcon } from "./icons";
 
 export function LogoutButton() {
+  const UI = useUI();
   const router = useRouter();
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });

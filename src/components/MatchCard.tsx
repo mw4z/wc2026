@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { SerializedMatch, SerializedPrediction } from "@/app/(app)/matches/page";
-import { STAGE_LABEL_AR, STATUS_LABEL_AR, UI } from "@/lib/constants";
+import { useUI } from "./I18nProvider";
 import { ClockIcon, CheckIcon, LockIcon } from "./icons";
 
 const KNOCKOUT = new Set([
@@ -43,6 +43,7 @@ export function MatchCard({
   match: SerializedMatch;
   prediction: SerializedPrediction;
 }) {
+  const UI = useUI();
   const router = useRouter();
   const ms = useCountdown(match.kickoffAt);
   const isKnockout = KNOCKOUT.has(match.stage);
@@ -78,16 +79,16 @@ export function MatchCard({
       });
       const data = await res.json();
       if (!res.ok) {
-        setMsg({ type: "err", text: data.error || "تعذّر الحفظ" });
+        setMsg({ type: "err", text: data.error || UI.saveFailed });
         if (data.code === "KICKOFF_REACHED" || data.code === "MATCH_NOT_OPEN") {
           router.refresh();
         }
         return;
       }
-      setMsg({ type: "ok", text: "تم حفظ توقعك" });
+      setMsg({ type: "ok", text: UI.predictionSaved });
       router.refresh();
     } catch {
-      setMsg({ type: "err", text: "تعذّر الاتصال بالخادم" });
+      setMsg({ type: "err", text: UI.connError });
     } finally {
       setSaving(false);
     }
@@ -101,14 +102,14 @@ export function MatchCard({
           href={`/matches/${match.id}`}
           className="text-xs font-bold text-slate-400 transition hover:text-accent-400"
         >
-          #{match.matchNumber} · {STAGE_LABEL_AR[match.stage]}
+          #{match.matchNumber} · {UI.stages[match.stage]}
         </Link>
         <StatusPill status={match.status} locked={locked} finished={finished} />
       </div>
 
       {/* scoreline */}
       <div className="flex items-center justify-between gap-2 px-4 py-5">
-        <TeamSide name={match.homeTeam?.nameAr ?? "يُحدد"} flag={match.homeTeam?.flagUrl} win={homeWin} />
+        <TeamSide name={match.homeTeam?.nameAr ?? UI.tbd} flag={match.homeTeam?.flagUrl} win={homeWin} />
         <div className="flex min-w-[72px] flex-col items-center">
           {finished ? (
             <div className="flex items-center gap-2 font-display text-4xl font-extrabold tnum leading-none">
@@ -122,7 +123,7 @@ export function MatchCard({
             </span>
           )}
         </div>
-        <TeamSide name={match.awayTeam?.nameAr ?? "يُحدد"} flag={match.awayTeam?.flagUrl} win={awayWin} />
+        <TeamSide name={match.awayTeam?.nameAr ?? UI.tbd} flag={match.awayTeam?.flagUrl} win={awayWin} />
       </div>
 
       {/* meta */}
@@ -144,7 +145,7 @@ export function MatchCard({
       {/* prediction area */}
       <div className="mt-3 border-t border-white/[0.06] p-4">
         {!teamsKnown ? (
-          <p className="text-center text-sm text-slate-500">لم يتم تحديد الفريقين بعد</p>
+          <p className="text-center text-sm text-slate-500">{UI.teamsTbd}</p>
         ) : locked ? (
           <LockedView prediction={prediction} isKnockout={isKnockout} match={match} />
         ) : (
@@ -211,10 +212,11 @@ function LockedView({
   isKnockout: boolean;
   match: SerializedMatch;
 }) {
+  const UI = useUI();
   if (!prediction) {
     return (
       <p className="text-center text-sm text-slate-500">
-        {UI.predictionClosed} — لم تتوقع
+        {UI.predictionClosed} — {UI.notPredicted}
       </p>
     );
   }
@@ -231,14 +233,14 @@ function LockedView({
         <div className="font-display text-lg font-bold tnum text-white">
           {prediction.predictedHomeScore} : {prediction.predictedAwayScore}
         </div>
-        {winnerName && <div className="text-xs text-slate-400">المتأهل: {winnerName}</div>}
+        {winnerName && <div className="text-xs text-slate-400">{UI.qualifierLabel} {winnerName}</div>}
       </div>
       {prediction.pointsAwarded != null && (
         <div className="rounded-lg bg-gold-500/15 px-3 py-1.5 text-center">
           <div className="font-display text-lg font-extrabold tnum text-gold-400">
             +{prediction.pointsAwarded}
           </div>
-          <div className="text-[10px] text-gold-400/80">نقطة</div>
+          <div className="text-[10px] text-gold-400/80">{UI.point}</div>
         </div>
       )}
     </div>
@@ -254,6 +256,7 @@ function StatusPill({
   locked: boolean;
   finished: boolean;
 }) {
+  const UI = useUI();
   const effective = finished
     ? "FINISHED"
     : status === "SCHEDULED" && locked
@@ -264,7 +267,7 @@ function StatusPill({
     return (
       <span className="pill pill-live animate-live">
         <span className="pill-dot" />
-        {STATUS_LABEL_AR.LIVE}
+        {UI.statuses.LIVE}
       </span>
     );
   }
@@ -275,7 +278,7 @@ function StatusPill({
     SCORED: "pill-done",
     CANCELLED: "pill-done",
   };
-  return <span className={`pill ${cls[effective] ?? "pill-done"}`}>{STATUS_LABEL_AR[effective]}</span>;
+  return <span className={`pill ${cls[effective] ?? "pill-done"}`}>{UI.statuses[effective]}</span>;
 }
 
 function TeamSide({ name, flag, win }: { name: string; flag?: string | null; win?: boolean }) {

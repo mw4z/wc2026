@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { UI } from "@/lib/constants";
+import { useUI } from "@/components/I18nProvider";
 
 export default function NewGroupPage() {
+  const UI = useUI();
   const router = useRouter();
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -22,13 +23,13 @@ export default function NewGroupPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "تعذّر إنشاء المجموعة");
+        setError(data.error || UI.createGroupFailed);
         return;
       }
       router.push(`/groups/${data.group.id}`);
       router.refresh();
     } catch {
-      setError("تعذّر الاتصال بالخادم");
+      setError(UI.connError);
     } finally {
       setLoading(false);
     }
@@ -44,7 +45,7 @@ export default function NewGroupPage() {
             className="input"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="مثال: فريق التسويق"
+            placeholder={UI.newGroupPlaceholder}
             required
           />
         </div>
@@ -52,7 +53,7 @@ export default function NewGroupPage() {
         <button className="btn-gold w-full" disabled={loading || name.trim().length < 2}>
           {loading ? "..." : UI.createGroup}
         </button>
-        <p className="text-center text-xs text-slate-500">سيتم توليد كود دعوة تلقائيًا، وتصبح أنت قائد المجموعة.</p>
+        <p className="text-center text-xs text-slate-500">{UI.newGroupNote}</p>
       </form>
     </div>
   );

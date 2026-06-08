@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getGroupForMember, getGroupMembers, GroupError } from "@/lib/groups";
-import { UI } from "@/lib/constants";
+import { getUI } from "@/lib/locale";
 import { GroupMembersClient } from "@/components/groups/GroupMembersClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function GroupMembersPage({ params }: { params: Promise<{ id: string }> }) {
+  const UI = await getUI();
   const user = await requireUser();
   const { id } = await params;
   const isAdmin = user.role === "ADMIN";

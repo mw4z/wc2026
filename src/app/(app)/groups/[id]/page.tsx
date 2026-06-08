@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getGroupForMember, getGroupLeaderboard, GroupError } from "@/lib/groups";
-import { UI } from "@/lib/constants";
+import { getUI } from "@/lib/locale";
 import { CopyCode } from "@/components/groups/CopyCode";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
 import { UsersIcon } from "@/components/icons";
@@ -9,6 +9,7 @@ import { UsersIcon } from "@/components/icons";
 export const dynamic = "force-dynamic";
 
 export default async function GroupDashboard({ params }: { params: Promise<{ id: string }> }) {
+  const UI = await getUI();
   const user = await requireUser();
   const { id } = await params;
   const isAdmin = user.role === "ADMIN";
@@ -30,12 +31,12 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
     <div>
       <TournamentHero
         title={group.name}
-        subtitle={isLeader ? `${UI.groupLeader} · نافِس زملاءك داخل مجموعتك` : "نافِس زملاءك داخل مجموعتك"}
+        subtitle={isLeader ? `${UI.groupLeader} · ${UI.groupsSubtitle}` : UI.groupsSubtitle}
         icon={<UsersIcon />}
       >
-        <HeroStat label="عضو" value={board.length} />
+        <HeroStat label={UI.members} value={board.length} />
         <HeroStat label={UI.groupRanking} value={myRow ? `#${myRow.rank}` : "—"} />
-        <HeroStat label="نقطة" value={myRow?.totalPoints ?? 0} />
+        <HeroStat label={UI.point} value={myRow?.totalPoints ?? 0} />
       </TournamentHero>
 
       <div className="card card-accent mb-6 p-5">
@@ -44,12 +45,12 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
           <div className="flex flex-wrap gap-2">
             <Link href={`/groups/${id}/leaderboard`} className="btn-ghost text-sm">{UI.groupRanking}</Link>
             <Link href={`/groups/${id}/members`} className="btn-ghost text-sm">{UI.groupMembers}</Link>
-            <Link href="/matches" className="btn-ghost text-sm">{UI.upcomingMatches}</Link>
+            <Link href="/matches" className="btn-ghost text-sm">{UI.matches}</Link>
           </div>
         </div>
       </div>
 
-      <h2 className="mb-3 text-lg font-bold text-gold-400">أعلى 5 في المجموعة</h2>
+      <h2 className="mb-3 text-lg font-bold text-gold-400">{UI.topFive}</h2>
       <div className="card overflow-x-auto">
         <table className="w-full text-right text-sm">
           <thead className="border-b border-white/10 text-xs text-slate-400">
@@ -72,7 +73,7 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
               </tr>
             ))}
             {board.length === 0 && (
-              <tr><td colSpan={3} className="p-6 text-center text-slate-500">لا يوجد أعضاء بعد.</td></tr>
+              <tr><td colSpan={3} className="p-6 text-center text-slate-500">{UI.noMembersYet}</td></tr>
             )}
           </tbody>
         </table>

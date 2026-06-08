@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getGroupForMember, getGroupLeaderboard, GroupError } from "@/lib/groups";
-import { UI } from "@/lib/constants";
+import { getUI } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
 
 export default async function GroupLeaderboardPage({ params }: { params: Promise<{ id: string }> }) {
+  const UI = await getUI();
   const user = await requireUser();
   const { id } = await params;
   const isAdmin = user.role === "ADMIN";
@@ -32,8 +33,8 @@ export default async function GroupLeaderboardPage({ params }: { params: Promise
               <th className="p-3">{UI.name}</th>
               <th className="hidden p-3 sm:table-cell">{UI.department}</th>
               <th className="p-3">{UI.totalPoints}</th>
-              <th className="hidden p-3 md:table-cell">دقيقة</th>
-              <th className="hidden p-3 md:table-cell">نتيجة صحيحة</th>
+              <th className="hidden p-3 md:table-cell">{UI.colExact}</th>
+              <th className="hidden p-3 md:table-cell">{UI.colCorrect}</th>
             </tr>
           </thead>
           <tbody>
@@ -52,7 +53,7 @@ export default async function GroupLeaderboardPage({ params }: { params: Promise
               </tr>
             ))}
             {board.length === 0 && (
-              <tr><td colSpan={6} className="p-6 text-center text-slate-500">لا يوجد أعضاء بعد.</td></tr>
+              <tr><td colSpan={6} className="p-6 text-center text-slate-500">{UI.noMembersYet}</td></tr>
             )}
           </tbody>
         </table>

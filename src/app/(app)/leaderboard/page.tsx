@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getLeaderboard } from "@/lib/leaderboard";
 import { requireUser } from "@/lib/auth";
-import { UI } from "@/lib/constants";
+import { getUI } from "@/lib/locale";
 import { formatDateTimeAr } from "@/lib/time";
 import { TournamentHero, HeroStat, EmptyState } from "@/components/TournamentHero";
 import { TrophyIcon } from "@/components/icons";
@@ -9,6 +9,7 @@ import { TrophyIcon } from "@/components/icons";
 export const dynamic = "force-dynamic";
 
 export default async function LeaderboardPage() {
+  const UI = await getUI();
   const me = await requireUser();
   const rows = await getLeaderboard();
   const updatedAt = rows[0]?.updatedAt;
@@ -16,19 +17,15 @@ export default async function LeaderboardPage() {
 
   return (
     <div>
-      <TournamentHero
-        title={UI.leaderboard}
-        subtitle="ترتيب المتنافسين على صدارة توقعات كأس العالم 2026."
-        icon={<TrophyIcon />}
-      >
+      <TournamentHero title={UI.leaderboard} subtitle={UI.leaderboardSubtitle} icon={<TrophyIcon />}>
         <HeroStat label={UI.rank} value={myRow ? `#${myRow.rank}` : "—"} />
-        <HeroStat label="نقطة" value={myRow?.totalPoints ?? 0} />
-        <HeroStat label="مشارك" value={rows.length} />
+        <HeroStat label={UI.point} value={myRow?.totalPoints ?? 0} />
+        <HeroStat label={UI.participant} value={rows.length} />
       </TournamentHero>
 
       {updatedAt && (
         <p className="mb-4 text-left text-xs text-slate-500">
-          آخر تحديث: {formatDateTimeAr(updatedAt)}
+          {UI.lastUpdated} {formatDateTimeAr(updatedAt)}
         </p>
       )}
 
@@ -53,7 +50,7 @@ export default async function LeaderboardPage() {
                 >
                   {r.totalPoints}
                 </div>
-                <div className="text-[10px] uppercase tracking-wider text-slate-500">نقطة</div>
+                <div className="text-[10px] text-slate-500">{UI.point}</div>
               </div>
             ) : (
               <div key={i} />
@@ -63,26 +60,22 @@ export default async function LeaderboardPage() {
       )}
 
       {rows.length === 0 ? (
-        <EmptyState
-          icon={<TrophyIcon />}
-          title="لا توجد نتائج بعد"
-          hint="ابدأ بتوقع المباريات لتظهر على لوحة المتصدرين."
-        >
+        <EmptyState icon={<TrophyIcon />} title={UI.noResultsTitle} hint={UI.noResultsHint}>
           <Link href="/matches" className="btn-primary">{UI.matches}</Link>
         </EmptyState>
       ) : (
         <div className="card overflow-x-auto">
           <table className="w-full text-right text-sm">
-            <thead className="border-b border-white/10 text-[11px] uppercase tracking-wider text-slate-400">
+            <thead className="border-b border-white/10 text-[11px] text-slate-400">
               <tr>
                 <th className="p-3 font-bold">{UI.rank}</th>
                 <th className="p-3 font-bold">{UI.name}</th>
                 <th className="hidden p-3 font-bold sm:table-cell">{UI.department}</th>
                 <th className="p-3 font-bold">{UI.totalPoints}</th>
-                <th className="hidden p-3 font-bold md:table-cell">دقيقة</th>
-                <th className="hidden p-3 font-bold md:table-cell">نتيجة صحيحة</th>
-                <th className="hidden p-3 font-bold lg:table-cell">متأهل</th>
-                <th className="hidden p-3 font-bold lg:table-cell">الدقة</th>
+                <th className="hidden p-3 font-bold md:table-cell">{UI.colExact}</th>
+                <th className="hidden p-3 font-bold md:table-cell">{UI.colCorrect}</th>
+                <th className="hidden p-3 font-bold lg:table-cell">{UI.colQualifier}</th>
+                <th className="hidden p-3 font-bold lg:table-cell">{UI.colAccuracy}</th>
               </tr>
             </thead>
             <tbody>

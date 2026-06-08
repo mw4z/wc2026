@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
-import { UI } from "@/lib/constants";
+import { dirFor } from "@/lib/i18n";
+import { getLocale, getUI } from "@/lib/locale";
+import { I18nProvider } from "@/components/I18nProvider";
 
 // Display / numerals (Latin): broadcast-grade grotesque with heavy weights.
 const display = Archivo({
@@ -18,10 +20,10 @@ const sans = IBM_Plex_Sans_Arabic({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: UI.appName,
-  description: "لعبة التوقعات الداخلية لكأس العالم 2026",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const ui = await getUI();
+  return { title: ui.appName, description: ui.appName };
+}
 
 export const viewport: Viewport = {
   themeColor: "#070b15",
@@ -29,10 +31,13 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale();
   return (
-    <html lang="ar" dir="rtl" className={`${display.variable} ${sans.variable}`}>
-      <body className="min-h-screen">{children}</body>
+    <html lang={locale} dir={dirFor(locale)} className={`${display.variable} ${sans.variable}`}>
+      <body className="min-h-screen">
+        <I18nProvider locale={locale}>{children}</I18nProvider>
+      </body>
     </html>
   );
 }

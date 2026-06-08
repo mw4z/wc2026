@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useUI } from "../I18nProvider";
 
 export function AdminGroupToggle({ groupId, isActive }: { groupId: string; isActive: boolean }) {
+  const UI = useUI();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
@@ -16,7 +18,7 @@ export function AdminGroupToggle({ groupId, isActive }: { groupId: string; isAct
         body: JSON.stringify({ isActive: !isActive }),
       });
       if (res.ok) router.refresh();
-      else alert((await res.json()).error || "تعذّر التنفيذ");
+      else alert((await res.json()).error || UI.actionFailed);
     } finally {
       setBusy(false);
     }
@@ -24,7 +26,7 @@ export function AdminGroupToggle({ groupId, isActive }: { groupId: string; isAct
 
   return (
     <button onClick={toggle} disabled={busy} className="btn-ghost text-sm">
-      {isActive ? "تعطيل المجموعة" : "تفعيل المجموعة"}
+      {isActive ? UI.disableGroup : UI.enableGroup}
     </button>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { UI } from "@/lib/constants";
+import { useUI } from "../I18nProvider";
 
 export function CopyCode({ code }: { code: string }) {
+  const UI = useUI();
   const [copied, setCopied] = useState(false);
   async function copy() {
     try {

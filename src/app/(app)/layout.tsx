@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Logo } from "@/components/Logo";
 import { AppNav } from "@/components/AppNav";
 import { LogoutButton } from "@/components/LogoutButton";
+import { LangToggle } from "@/components/LangToggle";
 import { GroupNudge } from "@/components/GroupNudge";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -25,6 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="min-w-0 flex-1">
             <AppNav isAdmin={user.role === "ADMIN"} />
           </div>
+          <LangToggle />
           <LogoutButton />
         </div>
       </header>

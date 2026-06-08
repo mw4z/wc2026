@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { UI } from "@/lib/constants";
+import { useUI } from "../I18nProvider";
 import { CopyCode } from "./CopyCode";
 
 interface Member {
@@ -29,6 +29,7 @@ export function GroupMembersClient({
   code: string;
   members: Member[];
 }) {
+  const UI = useUI();
   const router = useRouter();
   const [name, setName] = useState(groupName);
   const [busy, setBusy] = useState(false);
@@ -45,7 +46,7 @@ export function GroupMembersClient({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setMsg(data.error || "تعذّر تنفيذ العملية");
+        setMsg(data.error || UI.actionFailed);
         return false;
       }
       return true;
@@ -72,7 +73,7 @@ export function GroupMembersClient({
                 {UI.regenerateCode}
               </button>
             </div>
-            <p className="mt-1 text-xs text-slate-500">تجديد الكود يُلغي الكود القديم فورًا.</p>
+            <p className="mt-1 text-xs text-slate-500">{UI.regenerateNote}</p>
           </div>
           <div>
             <label className="label">{UI.groupName}</label>
@@ -98,7 +99,7 @@ export function GroupMembersClient({
             <tr>
               <th className="p-3">{UI.name}</th>
               <th className="hidden p-3 sm:table-cell">{UI.department}</th>
-              <th className="p-3">الدور</th>
+              <th className="p-3">{UI.roleColumn}</th>
               {isLeader && <th className="p-3"></th>}
             </tr>
           </thead>
@@ -107,7 +108,7 @@ export function GroupMembersClient({
               <tr key={m.userId} className="border-b border-white/5">
                 <td className="p-3 font-semibold">{m.name}</td>
                 <td className="hidden p-3 text-slate-400 sm:table-cell">{m.department ?? "—"}</td>
-                <td className="p-3">{m.role === "LEADER" ? UI.groupLeader : "عضو"}</td>
+                <td className="p-3">{m.role === "LEADER" ? UI.groupLeader : UI.memberRole}</td>
                 {isLeader && (
                   <td className="p-3">
                     {m.userId !== leaderId && (

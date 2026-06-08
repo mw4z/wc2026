@@ -1,4 +1,4 @@
-import { UI } from "@/lib/constants";
+import { getUI } from "@/lib/locale";
 import { ChartIcon, CheckIcon } from "./icons";
 
 type Stats = {
@@ -16,7 +16,7 @@ type Outcome = "HOME" | "DRAW" | "AWAY";
  * refuses to return anything until the match has locked (no pre-lock leakage).
  * `actual` highlights the outcome that really happened once a result is in.
  */
-export function PredictionDistribution({
+export async function PredictionDistribution({
   stats,
   homeName,
   awayName,
@@ -27,6 +27,7 @@ export function PredictionDistribution({
   awayName: string;
   actual?: Outcome | null;
 }) {
+  const UI = await getUI();
   const rows: { key: Outcome; label: string; pct: number }[] = [
     { key: "HOME", label: `${UI.outcomeHomeWin} (${homeName})`, pct: stats.homeWinPct },
     { key: "DRAW", label: UI.outcomeDraw, pct: stats.drawPct },

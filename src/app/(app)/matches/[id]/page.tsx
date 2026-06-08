@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { lockDueMatches } from "@/lib/matches";
 import { getPredictionStatsAfterLock } from "@/lib/predictions";
 import { isKickoffReached, formatDateTimeAr } from "@/lib/time";
-import { UI, STAGE_LABEL_AR } from "@/lib/constants";
+import { getUI } from "@/lib/locale";
 import { MatchCard } from "@/components/MatchCard";
 import { PredictionDistribution } from "@/components/PredictionDistribution";
 import { TournamentHero } from "@/components/TournamentHero";
@@ -14,6 +14,7 @@ import { serializeMatch, serializePrediction } from "../page";
 export const dynamic = "force-dynamic";
 
 export default async function MatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const UI = await getUI();
   const user = await requireUser();
   const { id } = await params;
   await lockDueMatches(); // keep status badge accurate on load
@@ -29,7 +30,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
         <Link href="/matches" className="mb-4 inline-block text-sm text-gold-400 hover:underline">
           → {UI.backToMatches}
         </Link>
-        <p className="card p-6 text-center text-amber-200">المباراة غير موجودة</p>
+        <p className="card p-6 text-center text-amber-200">{UI.matchNotFound}</p>
       </div>
     );
   }
@@ -50,8 +51,8 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
     actual = match.homeScore > match.awayScore ? "HOME" : match.homeScore < match.awayScore ? "AWAY" : "DRAW";
   }
 
-  const homeName = match.homeTeam?.nameAr ?? "يُحدد";
-  const awayName = match.awayTeam?.nameAr ?? "يُحدد";
+  const homeName = match.homeTeam?.nameAr ?? UI.tbd;
+  const awayName = match.awayTeam?.nameAr ?? UI.tbd;
 
   return (
     <div className="mx-auto max-w-lg">
@@ -65,7 +66,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 
       <TournamentHero
         title={`${homeName} ${UI.vs} ${awayName}`}
-        subtitle={`#${match.matchNumber} · ${STAGE_LABEL_AR[match.stage]}${match.stadium ? ` · ${match.stadium}` : ""}`}
+        subtitle={`#${match.matchNumber} · ${UI.stages[match.stage]}${match.stadium ? ` · ${match.stadium}` : ""}`}
         icon={<BallIcon />}
       />
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { UI } from "@/lib/constants";
+import { useUI } from "./I18nProvider";
 import { UsersIcon, PlusIcon } from "./icons";
 
 const DISMISS_KEY = "wc26_group_nudge_dismissed";
@@ -10,6 +10,7 @@ const DISMISS_KEY = "wc26_group_nudge_dismissed";
 // Shown once per session when the signed-in user belongs to no group: a gentle
 // invitation to join or create one. Sign-in itself never requires a group.
 export function GroupNudge({ hasGroup }: { hasGroup: boolean }) {
+  const UI = useUI();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -39,11 +40,8 @@ export function GroupNudge({ hasGroup }: { hasGroup: boolean }) {
         <span className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-accent-500/15 text-3xl text-accent-400 ring-1 ring-accent-500/25">
           <UsersIcon />
         </span>
-        <h2 className="text-lg font-bold text-white">نافِس زملاءك في مجموعة</h2>
-        <p className="mt-2 text-sm text-slate-400">
-          أنشئ مجموعة خاصة أو انضم بكود لمتابعة ترتيبك بين زملائك على لوحة خاصة بكم.
-          توقعاتك ونقاطك تبقى كما هي — المجموعة مجرد لوحة تنافس إضافية.
-        </p>
+        <h2 className="text-lg font-bold text-white">{UI.nudgeTitle}</h2>
+        <p className="mt-2 text-sm text-slate-400">{UI.nudgeBody}</p>
 
         <div className="mt-5 flex flex-col gap-2">
           <Link href="/groups/new" onClick={dismiss} className="btn-primary w-full">
@@ -54,7 +52,7 @@ export function GroupNudge({ hasGroup }: { hasGroup: boolean }) {
             {UI.joinGroup}
           </Link>
           <button type="button" onClick={dismiss} className="mt-1 text-sm text-slate-400 hover:text-slate-200">
-            لاحقًا
+            {UI.later}
           </button>
         </div>
       </div>

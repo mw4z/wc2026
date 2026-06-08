@@ -44,7 +44,7 @@ export function TournamentHero({
       <MascotArt className="pointer-events-none absolute bottom-0 left-2 h-24 w-auto object-contain drop-shadow-2xl sm:h-32" />
 
       <div className="relative px-5 py-6 sm:px-7 sm:py-8">
-        <span className="eyebrow">{kicker}</span>
+        <span className="eyebrow font-display uppercase tracking-widest2">{kicker}</span>
         <div className="mt-2 flex items-start gap-3">
           {icon && (
             <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/10 text-xl text-accent-400 ring-1 ring-white/15">

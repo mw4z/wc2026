@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { UI } from "@/lib/constants";
+import { useUI } from "@/components/I18nProvider";
 
 export default function JoinGroupPage() {
+  const UI = useUI();
   const router = useRouter();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +29,7 @@ export default function JoinGroupPage() {
       router.push(`/groups/${data.groupId}`);
       router.refresh();
     } catch {
-      setError("تعذّر الاتصال بالخادم");
+      setError(UI.connError);
     } finally {
       setLoading(false);
     }
@@ -49,9 +50,7 @@ export default function JoinGroupPage() {
             autoCapitalize="characters"
             required
           />
-          <p className="mt-1 text-xs text-slate-500">
-            يمكنك إدخال الكود بأي صيغة: CUP-12345 أو cup12345 أو 12345
-          </p>
+          <p className="mt-1 text-xs text-slate-500">{UI.joinCodeFormats}</p>
         </div>
         {error && <p className="rounded-lg bg-danger/15 px-3 py-2 text-sm text-red-300">{error}</p>}
         <button className="btn-gold w-full" disabled={loading || !code.trim()}>

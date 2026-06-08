@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { lockDueMatches } from "@/lib/matches";
 import { isSameDayInTz } from "@/lib/time";
-import { UI, SAMPLE_DATA } from "@/lib/constants";
+import { SAMPLE_DATA } from "@/lib/constants";
+import { getUI } from "@/lib/locale";
 import { MatchCard } from "@/components/MatchCard";
 import { TournamentHero, EmptyState } from "@/components/TournamentHero";
 import { BallIcon } from "@/components/icons";
@@ -11,6 +12,7 @@ import { BallIcon } from "@/components/icons";
 export const dynamic = "force-dynamic";
 
 export default async function MatchesPage() {
+  const UI = await getUI();
   const user = await requireUser();
   await lockDueMatches(); // keep status badges accurate on load
 
@@ -59,14 +61,8 @@ export default async function MatchesPage() {
           {UI.sampleNotice}
         </div>
       )}
-      <TournamentHero
-        title={UI.appName}
-        subtitle="توقّع نتائج مباريات كأس العالم 2026 ونافس زملاءك على الصدارة."
-        icon={<BallIcon />}
-      />
-      {matches.length === 0 && (
-        <EmptyState title="لا توجد مباريات بعد" hint="سيتم عرض المباريات هنا فور توفّر الجدول." />
-      )}
+      <TournamentHero title={UI.appName} subtitle={UI.matchesHeroSubtitle} icon={<BallIcon />} />
+      {matches.length === 0 && <EmptyState title={UI.noMatchesTitle} hint={UI.noMatchesHint} />}
       {section(UI.todayMatches, today)}
       {section(UI.upcomingMatches, upcoming)}
       {section(UI.finishedMatches, finished)}

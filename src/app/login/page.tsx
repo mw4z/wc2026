@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { UI } from "@/lib/constants";
+import { useUI } from "@/components/I18nProvider";
 import { DEFAULT_COUNTRY } from "@/lib/countries";
 import { CountrySelect } from "@/components/CountrySelect";
 import { BrandMark } from "@/components/Logo";
@@ -16,6 +16,7 @@ export default function LoginPage() {
 }
 
 function LoginForm() {
+  const UI = useUI();
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") || "/matches";
@@ -47,7 +48,7 @@ function LoginForm() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "تعذّر تسجيل الدخول");
+        setError(data.error || UI.loginFailed);
         return;
       }
       // Joined a group at sign-in → go straight to it.
@@ -64,7 +65,7 @@ function LoginForm() {
       router.push(next);
       router.refresh();
     } catch {
-      setError("تعذّر الاتصال بالخادم");
+      setError(UI.connError);
     } finally {
       setLoading(false);
     }
@@ -75,10 +76,10 @@ function LoginForm() {
       <div className="mb-8 text-center">
         <BrandMark className="mx-auto mb-4 h-16 w-16 drop-shadow-[0_8px_30px_rgba(43,123,255,0.45)]" />
         <span className="font-display text-[11px] font-bold uppercase tracking-widest2 text-accent-400">
-          World Cup 26
+          {UI.worldCup26}
         </span>
         <h1 className="hero-title mt-1 text-3xl font-extrabold leading-tight">{UI.appName}</h1>
-        <p className="mt-2 text-sm text-slate-400">سجّل دخولك للمشاركة في التوقعات</p>
+        <p className="mt-2 text-sm text-slate-400">{UI.loginSubtitle}</p>
       </div>
 
       <form onSubmit={onSubmit} className="card card-accent space-y-4 p-6">
@@ -88,7 +89,7 @@ function LoginForm() {
             className="input"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="اسمك الكامل"
+            placeholder={UI.fullNamePlaceholder}
             required
           />
         </div>
@@ -110,11 +111,9 @@ function LoginForm() {
         </div>
         <div>
           <label className="label">
-            المجموعة <span className="font-normal normal-case text-slate-500">(اختياري)</span>
+            {UI.group} <span className="font-normal text-slate-500">{UI.groupOptional}</span>
           </label>
-          <p className="mb-2 text-xs text-slate-500">
-            انضم بكود أو أنشئ مجموعة الآن — أو تجاوز هذه الخطوة وافعلها لاحقًا من داخل التطبيق.
-          </p>
+          <p className="mb-2 text-xs text-slate-500">{UI.groupLoginHint}</p>
           <div className="mb-2 grid grid-cols-2 gap-1 rounded-xl border border-white/[0.12] bg-navy-800/60 p-1">
             <button
               type="button"
@@ -146,9 +145,7 @@ function LoginForm() {
                 inputMode="text"
                 autoCapitalize="characters"
               />
-              <p className="mt-1 text-xs text-slate-500">
-                أدخل كود المجموعة (بأي صيغة: CUP-12345 أو 12345) للانضمام عند الدخول.
-              </p>
+              <p className="mt-1 text-xs text-slate-500">{UI.joinCodeHint}</p>
             </>
           ) : (
             <>
@@ -158,9 +155,7 @@ function LoginForm() {
                 onChange={(e) => setNewGroupName(e.target.value)}
                 placeholder={UI.groupName}
               />
-              <p className="mt-1 text-xs text-slate-500">
-                سيتم إنشاء مجموعة جديدة وستكون أنت قائدها، وتحصل على كود لدعوة زملائك.
-              </p>
+              <p className="mt-1 text-xs text-slate-500">{UI.createGroupHint}</p>
             </>
           )}
         </div>
@@ -176,8 +171,8 @@ function LoginForm() {
           {loading ? "..." : UI.login}
         </button>
         <div className="space-y-1 text-center text-xs text-slate-500">
-          <p>استخدم نفس رقم الجوال لاحقًا للعودة إلى حسابك وتوقعاتك.</p>
-          <p>لن يظهر رقم الجوال في لوحة الترتيب أو للمشاركين.</p>
+          <p>{UI.loginFooter1}</p>
+          <p>{UI.loginFooter2}</p>
         </div>
       </form>
     </main>

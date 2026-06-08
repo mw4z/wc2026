@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { COUNTRIES, type Country } from "@/lib/countries";
+import { useUI } from "./I18nProvider";
 
 export function isoToFlag(iso: string): string {
   return [...iso.toUpperCase()]
@@ -19,6 +20,7 @@ export function CountrySelect({
   /** Show only flag + dial code (for inline use next to a phone input). */
   compact?: boolean;
 }) {
+  const UI = useUI();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
 
@@ -73,7 +75,7 @@ export function CountrySelect({
               autoFocus
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="ابحث عن الدولة..."
+              placeholder={UI.searchCountry}
               className="input"
             />
           </div>
@@ -90,7 +92,7 @@ export function CountrySelect({
             </button>
           ))}
           {filtered.length === 0 && (
-            <p className="p-3 text-center text-sm text-slate-500">لا توجد نتائج</p>
+            <p className="p-3 text-center text-sm text-slate-500">{UI.noCountryResults}</p>
           )}
         </div>
       )}

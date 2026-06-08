@@ -55,7 +55,7 @@
 
   /* ---- Status pills ------------------------------------------------------ */
   .pill {
-    @apply inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider;
+    @apply inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-bold;
     font-family: var(--font-sans), system-ui, sans-serif;
   }
   .pill-live {
@@ -117,7 +117,7 @@
     box-shadow: 0 0 0 3px rgba(43, 123, 255, 0.22);
   }
   .label {
-    @apply mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400;
+    @apply mb-1.5 block text-xs font-bold text-slate-400;
   }
 
   /* ---- Flags ------------------------------------------------------------- */
@@ -127,7 +127,7 @@
 
   /* ---- Section heading (broadcast eyebrow) ------------------------------- */
   .eyebrow {
-    @apply inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest2 text-slate-400;
+    @apply inline-flex items-center gap-2 text-sm font-bold text-slate-300;
     font-family: var(--font-sans), system-ui, sans-serif;
   }
   .eyebrow::before {
