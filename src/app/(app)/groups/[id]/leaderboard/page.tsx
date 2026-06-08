@@ -38,11 +38,15 @@ export default async function GroupLeaderboardPage({ params }: { params: Promise
           </thead>
           <tbody>
             {board.map((r) => (
-              <tr key={r.userId} className={`border-b border-white/5 ${r.userId === user.id ? "bg-gold-500/15 ring-1 ring-inset ring-gold-500/40" : ""}`}>
-                <td className="p-3 font-bold">{r.rank <= 3 ? ["🥇", "🥈", "🥉"][r.rank - 1] : r.rank}</td>
-                <td className="p-3 font-semibold">{r.name}</td>
+              <tr key={r.userId} className={`border-b border-white/5 ${r.userId === user.id ? "bg-accent-500/10 ring-1 ring-inset ring-accent-500/40" : ""}`}>
+                <td className="p-3">
+                  <span className={`font-display font-bold tnum ${r.rank === 1 ? "text-gold-400" : "text-slate-300"}`}>
+                    {r.rank}
+                  </span>
+                </td>
+                <td className="p-3 font-semibold text-white">{r.name}</td>
                 <td className="hidden p-3 text-slate-400 sm:table-cell">{r.department ?? "—"}</td>
-                <td className="p-3 font-extrabold text-gold-400">{r.totalPoints}</td>
+                <td className="p-3 font-display font-extrabold tnum text-gold-400">{r.totalPoints}</td>
                 <td className="hidden p-3 md:table-cell">{r.exactScores}</td>
                 <td className="hidden p-3 md:table-cell">{r.correctOutcomes}</td>
               </tr>

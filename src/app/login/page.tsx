@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { UI } from "@/lib/constants";
 import { DEFAULT_COUNTRY } from "@/lib/countries";
 import { CountrySelect } from "@/components/CountrySelect";
+import { LogoMark } from "@/components/Logo";
 
 export default function LoginPage() {
   return (
@@ -76,10 +77,11 @@ function LoginForm() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5">
       <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 grid h-20 w-20 place-items-center rounded-2xl bg-gradient-to-br from-gold-400 to-gold-600 text-5xl shadow-[0_10px_40px_rgba(233,185,73,0.45)]">
-          🏆
-        </div>
-        <h1 className="hero-title text-3xl font-black leading-tight">{UI.appName}</h1>
+        <LogoMark className="mx-auto mb-4 h-16 w-16 drop-shadow-[0_8px_30px_rgba(43,123,255,0.45)]" />
+        <span className="font-display text-[11px] font-bold uppercase tracking-widest2 text-accent-400">
+          World Cup 26
+        </span>
+        <h1 className="hero-title mt-1 text-3xl font-extrabold leading-tight">{UI.appName}</h1>
         <p className="mt-2 text-sm text-slate-400">سجّل دخولك للمشاركة في التوقعات</p>
       </div>
 
@@ -118,7 +120,7 @@ function LoginForm() {
               type="button"
               onClick={() => setGroupMode("join")}
               className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
-                groupMode === "join" ? "bg-gold-500/20 text-gold-300" : "text-slate-400 hover:text-slate-200"
+                groupMode === "join" ? "bg-accent-500/15 text-accent-400" : "text-slate-400 hover:text-slate-200"
               }`}
             >
               {UI.joinGroup}
@@ -127,7 +129,7 @@ function LoginForm() {
               type="button"
               onClick={() => setGroupMode("create")}
               className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
-                groupMode === "create" ? "bg-gold-500/20 text-gold-300" : "text-slate-400 hover:text-slate-200"
+                groupMode === "create" ? "bg-accent-500/15 text-accent-400" : "text-slate-400 hover:text-slate-200"
               }`}
             >
               {UI.createGroup}
@@ -170,7 +172,7 @@ function LoginForm() {
         )}
 
         <button
-          className="btn-gold w-full"
+          className="btn-primary w-full"
           disabled={loading || name.trim().length < 2 || !phone.trim() || !groupReady}
         >
           {loading ? "..." : UI.login}

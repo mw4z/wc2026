@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { UI } from "@/lib/constants";
+import { LogoutIcon } from "./icons";
 
 export function LogoutButton() {
   const router = useRouter();
@@ -11,8 +12,13 @@ export function LogoutButton() {
     router.refresh();
   }
   return (
-    <button onClick={logout} className="rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-navy-800">
-      {UI.logout}
+    <button
+      onClick={logout}
+      aria-label={UI.logout}
+      className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-slate-400 transition hover:bg-white/5 hover:text-white"
+    >
+      <LogoutIcon className="text-base" />
+      <span className="hidden sm:inline">{UI.logout}</span>
     </button>
   );
 }

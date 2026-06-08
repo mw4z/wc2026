@@ -5,15 +5,28 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Tournament dark-navy + gold palette
+        // Deep broadcast navy — near-black with a cool undertone.
         navy: {
-          950: "#0a0f1f",
-          900: "#0d1426",
-          800: "#121b33",
-          700: "#1a2745",
-          600: "#243358",
-          500: "#324470",
+          950: "#070b15",
+          900: "#0b1120",
+          800: "#0f1830",
+          700: "#16223f",
+          600: "#1f2f54",
+          500: "#2c3f6e",
         },
+        // Primary broadcast accent: electric blue.
+        accent: {
+          400: "#4d8dff",
+          500: "#2b7bff",
+          600: "#175fe0",
+        },
+        // Energy accent: lime (used sparingly for live/highlights).
+        lime: {
+          400: "#caff3f",
+          500: "#aef000",
+          600: "#8fc800",
+        },
+        // Premium accent: gold.
         gold: {
           400: "#f5d061",
           500: "#e9b949",
@@ -24,11 +37,15 @@ const config: Config = {
         danger: "#ef4444",
       },
       fontFamily: {
-        // Cairo for Arabic UI; falls back to system Arabic fonts.
-        sans: ["var(--font-cairo)", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "var(--font-sans)", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        card: "0 4px 24px rgba(0,0,0,0.35)",
+        card: "0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 30px rgba(0,0,0,0.45)",
+        glow: "0 0 0 1px rgba(43,123,255,0.4), 0 8px 30px rgba(43,123,255,0.25)",
+      },
+      letterSpacing: {
+        widest2: "0.2em",
       },
     },
   },

@@ -1,98 +1,92 @@
-// Presentational tournament identity (no client JS). Original art only.
-// Layered: WC2026-style multicolor gradient + stadium skyline + optional mascot.
+import type { ReactNode } from "react";
+import { LogoMark } from "./Logo";
+import { BallIcon } from "./icons";
+
+/**
+ * Broadcast-style banner: deep navy panel, a cool accent glow, diagonal
+ * line texture, a leading color shard, and a faded WC26 emblem watermark.
+ * Original art only — no mascot, no emoji.
+ */
 export function TournamentHero({
   title,
   subtitle,
-  icon = "🏆",
-  showMascot = true,
-  compact = false,
+  kicker = "World Cup 26",
+  icon,
   children,
 }: {
   title: string;
   subtitle?: string;
-  /** Emoji/badge shown above the title. */
-  icon?: string;
-  showMascot?: boolean;
-  /** Slimmer banner for secondary pages. */
-  compact?: boolean;
-  /** Stat chips / actions rendered under the subtitle. */
-  children?: React.ReactNode;
+  kicker?: string;
+  icon?: ReactNode;
+  children?: ReactNode;
 }) {
   return (
-    <div className="relative mb-6 overflow-hidden rounded-2xl border border-white/10 shadow-card">
-      {/* colorful WC2026-style gradient */}
+    <section className="reveal relative mb-6 overflow-hidden rounded-2xl border border-white/10 shadow-card">
+      {/* base + accent glow */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(120deg, #d6336c 0%, #7c5cff 32%, #1f4fff 55%, #16c79a 78%, #e9b949 100%)",
-          opacity: 0.9,
+            "radial-gradient(130% 130% at 100% 0%, rgba(43,123,255,0.38), transparent 55%), linear-gradient(135deg, #0a1124 0%, #0e1c39 60%, #0a1430 100%)",
         }}
       />
-      <div className="absolute inset-0 bg-navy-950/45" />
-      {/* stadium skyline */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/art/stadium.svg"
-        alt=""
-        className={`absolute inset-x-0 bottom-0 w-full object-cover opacity-90 ${compact ? "h-20" : "h-28"}`}
-      />
-
+      {/* diagonal line texture */}
       <div
-        className={`relative flex items-center justify-between gap-4 px-5 sm:px-8 ${
-          compact ? "py-5 sm:py-6" : "py-7 sm:py-9"
-        }`}
-      >
-        <div className="min-w-0">
-          {icon && <div className={compact ? "mb-1 text-2xl" : "mb-1 text-3xl"}>{icon}</div>}
-          <h1
-            className={`font-black leading-tight text-white drop-shadow ${
-              compact ? "text-xl sm:text-2xl" : "text-2xl sm:text-3xl"
-            }`}
-          >
-            {title}
-          </h1>
-          {subtitle && <p className="mt-1 max-w-md text-sm text-white/85">{subtitle}</p>}
-          {children && <div className="mt-3 flex flex-wrap items-center gap-2">{children}</div>}
+        className="absolute inset-0 opacity-[0.10]"
+        style={{ backgroundImage: "repeating-linear-gradient(115deg, #fff 0 1px, transparent 1px 15px)" }}
+      />
+      {/* leading color shard */}
+      <div className="absolute -left-12 -top-6 h-[160%] w-28 -skew-x-12 bg-gradient-to-b from-accent-500/50 via-[#7c5cff]/30 to-lime-500/40 blur-[1px]" />
+      {/* emblem watermark */}
+      <LogoMark className="pointer-events-none absolute -left-6 bottom-[-1.5rem] h-40 w-40 opacity-[0.13]" />
+
+      <div className="relative px-5 py-6 sm:px-7 sm:py-8">
+        <span className="eyebrow">{kicker}</span>
+        <div className="mt-2 flex items-start gap-3">
+          {icon && (
+            <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/10 text-xl text-accent-400 ring-1 ring-white/15">
+              {icon}
+            </span>
+          )}
+          <div className="min-w-0">
+            <h1 className="text-2xl font-extrabold leading-tight text-white sm:text-3xl">{title}</h1>
+            {subtitle && <p className="mt-1 max-w-xl text-sm text-slate-300">{subtitle}</p>}
+          </div>
         </div>
-        {showMascot && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src="/art/mascot.svg"
-            alt=""
-            className={`w-auto shrink-0 drop-shadow-lg ${compact ? "h-20 sm:h-24" : "h-28 sm:h-32"}`}
-          />
-        )}
+        {children && <div className="mt-4 flex flex-wrap items-center gap-2">{children}</div>}
       </div>
-    </div>
+    </section>
   );
 }
 
-/** A frosted stat chip for use inside a TournamentHero. */
-export function HeroStat({ label, value }: { label: string; value: React.ReactNode }) {
+/** Frosted broadcast stat chip for use inside a TournamentHero. */
+export function HeroStat({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <span className="inline-flex items-baseline gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm text-white backdrop-blur-sm">
-      <b className="font-extrabold tabular-nums">{value}</b>
-      <span className="text-white/75">{label}</span>
+    <span className="inline-flex items-baseline gap-1.5 rounded-lg border border-white/15 bg-white/[0.06] px-3 py-1.5 backdrop-blur-sm">
+      <b className="font-display tnum text-base text-white">{value}</b>
+      <span className="text-xs text-white/70">{label}</span>
     </span>
   );
 }
 
-// Friendly empty-state with the mascot.
+/** Friendly empty-state with a crafted icon (no mascot/emoji). */
 export function EmptyState({
   title,
   hint,
+  icon,
   children,
 }: {
   title: string;
   hint?: string;
-  children?: React.ReactNode;
+  icon?: ReactNode;
+  children?: ReactNode;
 }) {
   return (
-    <div className="card card-accent flex flex-col items-center p-8 text-center">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/art/mascot.svg" alt="" className="mb-3 h-24 w-auto" />
-      <h2 className="text-lg font-bold">{title}</h2>
+    <div className="card edge-accent flex flex-col items-center p-10 text-center">
+      <span className="mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-accent-500/15 text-3xl text-accent-400 ring-1 ring-accent-500/25">
+        {icon ?? <BallIcon />}
+      </span>
+      <h2 className="text-lg font-bold text-white">{title}</h2>
       {hint && <p className="mt-1 max-w-sm text-sm text-slate-400">{hint}</p>}
       {children && <div className="mt-5 flex flex-wrap justify-center gap-3">{children}</div>}
     </div>

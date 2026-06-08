@@ -6,6 +6,7 @@ import { isSameDayInTz } from "@/lib/time";
 import { UI, SAMPLE_DATA } from "@/lib/constants";
 import { MatchCard } from "@/components/MatchCard";
 import { TournamentHero, EmptyState } from "@/components/TournamentHero";
+import { BallIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,10 @@ export default async function MatchesPage() {
   const section = (title: string, list: typeof matches) =>
     list.length > 0 && (
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-bold text-gold-400">{title}</h2>
+        <div className="mb-3 flex items-baseline justify-between">
+          <span className="eyebrow">{title}</span>
+          <span className="font-display text-xs text-slate-500">{list.length}</span>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2">
           {list.map((m) => (
             <MatchCard
@@ -58,6 +62,7 @@ export default async function MatchesPage() {
       <TournamentHero
         title={UI.appName}
         subtitle="توقّع نتائج مباريات كأس العالم 2026 ونافس زملاءك على الصدارة."
+        icon={<BallIcon />}
       />
       {matches.length === 0 && (
         <EmptyState title="لا توجد مباريات بعد" hint="سيتم عرض المباريات هنا فور توفّر الجدول." />

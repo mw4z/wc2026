@@ -8,6 +8,7 @@ import { UI, STAGE_LABEL_AR } from "@/lib/constants";
 import { MatchCard } from "@/components/MatchCard";
 import { PredictionDistribution } from "@/components/PredictionDistribution";
 import { TournamentHero } from "@/components/TournamentHero";
+import { BallIcon, ArrowIcon } from "@/components/icons";
 import { serializeMatch, serializePrediction } from "../page";
 
 export const dynamic = "force-dynamic";
@@ -54,15 +55,18 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div className="mx-auto max-w-lg">
-      <Link href="/matches" className="mb-3 inline-block text-sm text-gold-400 hover:underline">
-        → {UI.backToMatches}
+      <Link
+        href="/matches"
+        className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-accent-400 transition hover:text-accent-500"
+      >
+        <ArrowIcon className="text-base rtl:-scale-x-100" />
+        {UI.backToMatches}
       </Link>
 
       <TournamentHero
         title={`${homeName} ${UI.vs} ${awayName}`}
         subtitle={`#${match.matchNumber} · ${STAGE_LABEL_AR[match.stage]}${match.stadium ? ` · ${match.stadium}` : ""}`}
-        icon="⚽"
-        compact
+        icon={<BallIcon />}
       />
 
       <MatchCard

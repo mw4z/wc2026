@@ -4,6 +4,7 @@ import { getGroupForMember, getGroupLeaderboard, GroupError } from "@/lib/groups
 import { UI } from "@/lib/constants";
 import { CopyCode } from "@/components/groups/CopyCode";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
+import { UsersIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
       <TournamentHero
         title={group.name}
         subtitle={isLeader ? `${UI.groupLeader} · نافِس زملاءك داخل مجموعتك` : "نافِس زملاءك داخل مجموعتك"}
-        icon="🏅"
+        icon={<UsersIcon />}
       >
         <HeroStat label="عضو" value={board.length} />
         <HeroStat label={UI.groupRanking} value={myRow ? `#${myRow.rank}` : "—"} />
@@ -61,7 +62,11 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
           <tbody>
             {top5.map((r) => (
               <tr key={r.userId} className={`border-b border-white/5 ${r.userId === user.id ? "bg-gold-500/15" : ""}`}>
-                <td className="p-3 font-bold">{r.rank <= 3 ? ["🥇", "🥈", "🥉"][r.rank - 1] : r.rank}</td>
+                <td className="p-3">
+                  <span className={`font-display font-bold tnum ${r.rank === 1 ? "text-gold-400" : "text-slate-300"}`}>
+                    {r.rank}
+                  </span>
+                </td>
                 <td className="p-3 font-semibold">{r.name}</td>
                 <td className="p-3 font-extrabold text-gold-400">{r.totalPoints}</td>
               </tr>

@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UI } from "@/lib/constants";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
+import { UserIcon, ShieldIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export default async function ProfilePage() {
       <TournamentHero
         title={user.name}
         subtitle={user.role === "ADMIN" ? "مدير المسابقة" : "مشارك في توقعات كأس العالم 2026"}
-        icon={user.role === "ADMIN" ? "🛡️" : "⚽"}
+        icon={user.role === "ADMIN" ? <ShieldIcon /> : <UserIcon />}
       >
         <HeroStat label={UI.rank} value={entry?.rank ? `#${entry.rank}` : "—"} />
         <HeroStat label="نقطة" value={entry?.totalPoints ?? 0} />

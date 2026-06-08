@@ -49,7 +49,7 @@ export function ResultForm({
         }),
       });
       const data = await res.json();
-      setMsg({ ok: res.ok, text: res.ok ? "تم حفظ النتيجة واحتساب النقاط ✔" : data.error });
+      setMsg({ ok: res.ok, text: res.ok ? "تم حفظ النتيجة واحتساب النقاط" : data.error });
       if (res.ok) router.refresh();
     } finally {
       setBusy(false);

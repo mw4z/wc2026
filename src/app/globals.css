@@ -4,85 +4,186 @@
 
 :root {
   color-scheme: dark;
-  --grad-1: #e9b949; /* gold */
-  --grad-2: #16c79a; /* teal */
-  --grad-3: #d6336c; /* magenta */
+  --bg: #070b15;
+  --surface: #0e1629;
+  --surface-2: #121d36;
+  --line: rgba(255, 255, 255, 0.08);
+  --accent: #2b7bff;
+  --lime: #aef000;
+  --gold: #e9b949;
 }
 
-body {
-  @apply bg-navy-950 text-slate-100 antialiased;
-  /* Layered tournament backdrop: football/confetti wallpaper + vivid WC2026
-     multicolor glows (gold/teal/magenta/violet) over a deep navy base. */
-  background-color: #070b16;
-  background-image:
-    url("/art/pattern.svg"),
-    radial-gradient(1000px 560px at 50% -140px, rgba(233, 185, 73, 0.20), transparent 70%),
-    radial-gradient(820px 560px at 100% 0%, rgba(22, 199, 154, 0.16), transparent 62%),
-    radial-gradient(820px 560px at 0% 8%, rgba(214, 51, 108, 0.16), transparent 62%),
-    radial-gradient(760px 520px at 50% 110%, rgba(124, 92, 255, 0.14), transparent 60%);
-  background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat;
-  background-attachment: fixed;
+@layer base {
+  body {
+    @apply bg-navy-950 text-slate-100 antialiased;
+    font-family: var(--font-sans), system-ui, sans-serif;
+    /* Broadcast backdrop: deep navy + a single cool stadium-light glow at the
+       top, a faint pitch-grid texture, and a low vignette. No rainbow soup. */
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(120% 80% at 50% -10%, rgba(43, 123, 255, 0.16), transparent 55%),
+      radial-gradient(80% 60% at 100% 0%, rgba(174, 240, 0, 0.06), transparent 50%),
+      linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+    background-position: 0 0, 0 0, center top, center top;
+    background-attachment: fixed;
+  }
+
+  /* Latin numerals/headings get the display face + tabular figures. */
+  .font-display {
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+    font-feature-settings: "tnum" 1;
+  }
 }
 
 @layer components {
+  /* ---- Surfaces ---------------------------------------------------------- */
   .card {
-    @apply relative rounded-2xl border border-white/10 bg-navy-900/70 shadow-card backdrop-blur-md;
-    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
+    @apply relative rounded-xl border bg-[color:var(--surface)] shadow-card;
+    border-color: var(--line);
   }
-  /* Card with a colored gradient accent bar along the top edge. */
-  .card-accent::before {
+  /* Sharp accent edge on the leading (right, RTL) side — broadcast lower-third. */
+  .edge-accent {
+    @apply relative overflow-hidden;
+  }
+  .edge-accent::before {
     content: "";
-    @apply absolute inset-x-0 top-0 h-1 rounded-t-2xl;
-    background: linear-gradient(90deg, var(--grad-1), var(--grad-2), var(--grad-3));
+    @apply absolute inset-y-0 right-0 w-1;
+    background: linear-gradient(180deg, var(--accent), #7c5cff 60%, var(--lime));
   }
 
+  /* ---- Status pills ------------------------------------------------------ */
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider;
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+  }
+  .pill-live {
+    @apply text-navy-950;
+    background: var(--lime);
+  }
+  .pill-scheduled {
+    @apply bg-accent-500/15 text-accent-400;
+  }
+  .pill-locked {
+    @apply bg-warn/15 text-amber-300;
+  }
+  .pill-done {
+    @apply bg-white/[0.08] text-slate-300;
+  }
+  .pill-dot {
+    @apply h-1.5 w-1.5 rounded-full bg-current;
+  }
+
+  /* ---- Buttons ----------------------------------------------------------- */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 font-bold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-45;
+  }
+  .btn-primary {
+    @apply btn text-white;
+    background: linear-gradient(180deg, #3b86ff, var(--accent));
+    box-shadow: 0 6px 18px rgba(43, 123, 255, 0.32);
+  }
+  .btn-primary:hover:not(:disabled) {
+    box-shadow: 0 8px 24px rgba(43, 123, 255, 0.5);
+    transform: translateY(-1px);
   }
   .btn-gold {
     @apply btn text-navy-950;
-    background: linear-gradient(135deg, #f7d978, #e9b949 55%, #caa12f);
-    box-shadow: 0 6px 20px rgba(233, 185, 73, 0.28);
+    background: linear-gradient(180deg, #f7d978, var(--gold));
+    box-shadow: 0 6px 18px rgba(233, 185, 73, 0.28);
   }
-  .btn-gold:hover {
-    box-shadow: 0 8px 26px rgba(233, 185, 73, 0.45);
+  .btn-gold:hover:not(:disabled) {
+    box-shadow: 0 8px 24px rgba(233, 185, 73, 0.45);
     transform: translateY(-1px);
   }
   .btn-ghost {
-    @apply btn border border-white/[0.15] bg-white/5 text-slate-200 hover:border-gold-500/60 hover:bg-white/10;
+    @apply btn border text-slate-200;
+    border-color: var(--line);
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    border-color: rgba(43, 123, 255, 0.55);
+    background: rgba(255, 255, 255, 0.08);
   }
 
-  .badge {
-    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold;
-  }
-
+  /* ---- Forms ------------------------------------------------------------- */
   .input {
-    @apply w-full rounded-xl border border-white/[0.12] bg-navy-800/80 px-3 py-2.5 text-slate-100 outline-none transition focus:border-gold-500 focus:ring-2 focus:ring-gold-500/25;
+    @apply w-full rounded-lg border bg-navy-900/80 px-3 py-2.5 text-slate-100 outline-none transition;
+    border-color: var(--line);
+  }
+  .input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(43, 123, 255, 0.22);
   }
   .label {
-    @apply mb-1.5 block text-sm font-semibold text-slate-300;
+    @apply mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400;
   }
 
-  /* Animated gradient headline. */
+  /* ---- Flags ------------------------------------------------------------- */
+  .flag {
+    @apply overflow-hidden rounded-md object-cover ring-1 ring-white/15;
+  }
+
+  /* ---- Section heading (broadcast eyebrow) ------------------------------- */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest2 text-slate-400;
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+  }
+  .eyebrow::before {
+    content: "";
+    @apply h-3 w-1 rounded-sm;
+    background: linear-gradient(180deg, var(--accent), var(--lime));
+  }
+
+  /* ---- Legacy aliases (kept so untouched pages stay themed) -------------- */
+  .card-accent::before {
+    content: "";
+    @apply absolute inset-x-0 top-0 h-1 rounded-t-xl;
+    background: linear-gradient(90deg, var(--accent), #7c5cff 55%, var(--lime));
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold;
+  }
   .hero-title {
-    background: linear-gradient(90deg, #f7d978, #16c79a, #d6336c, #f7d978);
-    background-size: 300% 100%;
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+    background: linear-gradient(90deg, #ffffff, #9ec3ff 55%, var(--accent));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    animation: hero-pan 8s ease infinite;
-  }
-  .flag {
-    @apply overflow-hidden rounded-full object-cover ring-2 ring-white/20;
   }
 }
 
-@keyframes hero-pan {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+@layer utilities {
+  .tnum {
+    font-feature-settings: "tnum" 1;
+    font-variant-numeric: tabular-nums;
+  }
 }
 
-/* Subtle scrollbar to match the dark theme. */
+/* Live pulse for in-play pills. */
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.animate-live .pill-dot {
+  animation: live-pulse 1.1s ease-in-out infinite;
+}
+
+/* Staggered page-load reveal. */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.reveal {
+  animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Themed scrollbar. */
 *::-webkit-scrollbar { width: 10px; height: 10px; }
 *::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 9999px; }
 *::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .animate-live .pill-dot { animation: none; }
+}

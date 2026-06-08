@@ -1,4 +1,5 @@
 import { UI } from "@/lib/constants";
+import { ChartIcon, CheckIcon } from "./icons";
 
 type Stats = {
   total: number;
@@ -33,11 +34,13 @@ export function PredictionDistribution({
   ];
 
   return (
-    <section className="card p-5">
+    <section className="card edge-accent p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-bold text-gold-400">{UI.predictionDistribution}</h2>
+        <span className="eyebrow">
+          <ChartIcon className="text-sm" /> {UI.predictionDistribution}
+        </span>
         <span className="text-xs text-slate-400">
-          {UI.predictionsCount}: <b className="text-slate-200">{stats.total}</b>
+          {UI.predictionsCount}: <b className="font-display tnum text-slate-200">{stats.total}</b>
         </span>
       </div>
 
@@ -50,16 +53,23 @@ export function PredictionDistribution({
             return (
               <div key={r.key}>
                 <div className="mb-1 flex items-center justify-between text-sm">
-                  <span className={hit ? "font-bold text-gold-300" : "text-slate-300"}>
+                  <span
+                    className={`inline-flex items-center gap-1 ${hit ? "font-bold text-gold-300" : "text-slate-300"}`}
+                  >
                     {r.label}
-                    {hit && " ✔"}
+                    {hit && <CheckIcon className="text-sm text-gold-400" />}
                   </span>
-                  <span className="font-mono font-bold tabular-nums text-slate-200">{r.pct}%</span>
+                  <span className="font-display font-bold tnum text-slate-200">{r.pct}%</span>
                 </div>
-                <div className="h-2.5 overflow-hidden rounded-full bg-navy-700">
+                <div className="h-2.5 overflow-hidden rounded-full bg-white/[0.06]">
                   <div
-                    className={`h-full rounded-full ${hit ? "bg-gold-400" : "bg-gold-500/50"}`}
-                    style={{ width: `${r.pct}%` }}
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${r.pct}%`,
+                      background: hit
+                        ? "linear-gradient(90deg, var(--gold), #f7d978)"
+                        : "linear-gradient(90deg, var(--accent), #7c5cff)",
+                    }}
                   />
                 </div>
               </div>

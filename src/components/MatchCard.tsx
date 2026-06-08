@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { SerializedMatch, SerializedPrediction } from "@/app/(app)/matches/page";
 import { STAGE_LABEL_AR, STATUS_LABEL_AR, UI } from "@/lib/constants";
+import { ClockIcon, CheckIcon, LockIcon } from "./icons";
 
 const KNOCKOUT = new Set([
   "ROUND_OF_32",
@@ -32,7 +33,7 @@ function fmtCountdown(ms: number) {
   const m = Math.floor((s % 3600) / 60);
   const sec = s % 60;
   const pad = (n: number) => String(n).padStart(2, "0");
-  return d > 0 ? `${d}ي ${pad(h)}:${pad(m)}:${pad(sec)}` : `${pad(h)}:${pad(m)}:${pad(sec)}`;
+  return d > 0 ? `${d}ي ${pad(h)}:${pad(m)}` : `${pad(h)}:${pad(m)}:${pad(sec)}`;
 }
 
 export function MatchCard({
@@ -51,7 +52,6 @@ export function MatchCard({
   const locked = match.status !== "SCHEDULED" || ms <= 0;
   const teamsKnown = !!match.homeTeam && !!match.awayTeam;
 
-  // Finished result (visual cue only — derived from the recorded score).
   const finished = match.homeScore != null && match.awayScore != null;
   const homeWin = finished && match.homeScore! > match.awayScore!;
   const awayWin = finished && match.awayScore! > match.homeScore!;
@@ -84,7 +84,7 @@ export function MatchCard({
         }
         return;
       }
-      setMsg({ type: "ok", text: "تم حفظ توقعك ✔" });
+      setMsg({ type: "ok", text: "تم حفظ توقعك" });
       router.refresh();
     } catch {
       setMsg({ type: "err", text: "تعذّر الاتصال بالخادم" });
@@ -94,55 +94,68 @@ export function MatchCard({
   }
 
   return (
-    <div className="card card-accent overflow-hidden p-4 transition duration-200 hover:-translate-y-0.5 hover:border-white/20">
-      <div className="mb-4 flex items-center justify-between text-xs">
+    <div className="card edge-accent reveal transition duration-200 hover:border-white/20">
+      {/* top strip */}
+      <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-2.5">
         <Link
           href={`/matches/${match.id}`}
-          className="rounded-md bg-white/5 px-2 py-1 font-semibold text-slate-300 transition hover:bg-white/10 hover:text-gold-300"
+          className="font-display text-xs font-bold uppercase tracking-wider text-slate-400 transition hover:text-accent-400"
         >
           #{match.matchNumber} · {STAGE_LABEL_AR[match.stage]}
         </Link>
-        <StatusBadge status={match.status} locked={locked} />
+        <StatusPill status={match.status} locked={locked} finished={finished} />
       </div>
 
-      <div className="flex items-center justify-between gap-2">
+      {/* scoreline */}
+      <div className="flex items-center justify-between gap-2 px-4 py-5">
         <TeamSide name={match.homeTeam?.nameAr ?? "يُحدد"} flag={match.homeTeam?.flagUrl} win={homeWin} />
-        <div className="flex min-w-[64px] flex-col items-center">
+        <div className="flex min-w-[72px] flex-col items-center">
           {finished ? (
-            <div className="rounded-xl bg-navy-950/60 px-3 py-1 text-3xl font-black tabular-nums text-gold-400">
-              {match.homeScore}-{match.awayScore}
+            <div className="flex items-center gap-2 font-display text-4xl font-extrabold tnum leading-none">
+              <span className={homeWin ? "text-gold-400" : "text-white"}>{match.homeScore}</span>
+              <span className="text-slate-600">:</span>
+              <span className={awayWin ? "text-gold-400" : "text-white"}>{match.awayScore}</span>
             </div>
           ) : (
-            <div className="grid h-9 w-9 place-items-center rounded-full bg-white/5 text-lg" aria-label={UI.vs}>
-              ⚽
-            </div>
+            <span className="font-display text-sm font-bold uppercase tracking-widest2 text-slate-500">
+              {UI.vs}
+            </span>
           )}
         </div>
         <TeamSide name={match.awayTeam?.nameAr ?? "يُحدد"} flag={match.awayTeam?.flagUrl} win={awayWin} />
       </div>
 
-      <div className="mt-3 space-y-0.5 text-center text-xs text-slate-400">
-        {match.stadium && <div>{match.stadium}{match.city ? ` · ${match.city}` : ""}</div>}
+      {/* meta */}
+      <div className="flex flex-wrap items-center justify-center gap-2 px-4 pb-1 text-center text-xs text-slate-400">
+        {match.stadium && (
+          <span>
+            {match.stadium}
+            {match.city ? ` · ${match.city}` : ""}
+          </span>
+        )}
         {!locked && teamsKnown && (
-          <div className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-gold-500/30 bg-gold-500/10 px-3 py-1 text-gold-300">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold-400" />
-            {UI.locksIn} <span className="font-mono font-bold tabular-nums">{fmtCountdown(ms)}</span>
-          </div>
+          <span className="pill pill-scheduled">
+            <ClockIcon className="text-[13px]" />
+            <span className="tnum">{fmtCountdown(ms)}</span>
+          </span>
         )}
       </div>
 
-      {/* Prediction area */}
-      <div className="mt-4 border-t border-navy-700 pt-4">
+      {/* prediction area */}
+      <div className="mt-3 border-t border-white/[0.06] p-4">
         {!teamsKnown ? (
           <p className="text-center text-sm text-slate-500">لم يتم تحديد الفريقين بعد</p>
         ) : locked ? (
           <LockedView prediction={prediction} isKnockout={isKnockout} match={match} />
         ) : (
           <div className="space-y-3">
-            <p className="text-center text-xs text-slate-400">{UI.closesAtKickoff}</p>
+            <p className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">
+              <LockIcon className="text-sm" />
+              {UI.closesAtKickoff}
+            </p>
             <div className="flex items-center justify-center gap-3">
               <ScoreInput value={home} onChange={setHome} label={match.homeTeam!.nameAr} />
-              <span className="text-slate-500">:</span>
+              <span className="font-display text-xl text-slate-600">:</span>
               <ScoreInput value={away} onChange={setAway} label={match.awayTeam!.nameAr} />
             </div>
 
@@ -155,10 +168,10 @@ export function MatchCard({
                       key={t.id}
                       type="button"
                       onClick={() => setWinner(t.id)}
-                      className={`flex-1 rounded-lg border px-2 py-1.5 text-sm ${
+                      className={`flex-1 rounded-lg border px-2 py-2 text-sm font-semibold transition ${
                         winner === t.id
-                          ? "border-gold-500 bg-gold-500/15 text-gold-300"
-                          : "border-navy-600 text-slate-300"
+                          ? "border-accent-500 bg-accent-500/15 text-accent-400"
+                          : "border-white/10 text-slate-300 hover:border-white/25"
                       }`}
                     >
                       {t.nameAr}
@@ -169,16 +182,17 @@ export function MatchCard({
             )}
 
             {msg && (
-              <p className={`text-center text-sm ${msg.type === "ok" ? "text-ok" : "text-red-300"}`}>
+              <p
+                className={`flex items-center justify-center gap-1.5 text-center text-sm ${
+                  msg.type === "ok" ? "text-lime-400" : "text-red-300"
+                }`}
+              >
+                {msg.type === "ok" && <CheckIcon className="text-base" />}
                 {msg.text}
               </p>
             )}
 
-            <button
-              onClick={save}
-              disabled={saving || home === "" || away === ""}
-              className="btn-gold w-full"
-            >
+            <button onClick={save} disabled={saving || home === "" || away === ""} className="btn-primary w-full">
               {saving ? "..." : UI.submitPrediction}
             </button>
           </div>
@@ -198,7 +212,11 @@ function LockedView({
   match: SerializedMatch;
 }) {
   if (!prediction) {
-    return <p className="text-center text-sm text-slate-500">{UI.predictionClosed} — لم تتوقع</p>;
+    return (
+      <p className="text-center text-sm text-slate-500">
+        {UI.predictionClosed} — لم تتوقع
+      </p>
+    );
   }
   const winnerName =
     isKnockout && prediction.predictedWinnerTeamId
@@ -207,30 +225,57 @@ function LockedView({
         : match.awayTeam?.nameAr
       : null;
   return (
-    <div className="text-center text-sm">
-      <div className="text-slate-400">{UI.yourPrediction}</div>
-      <div className="text-lg font-bold">
-        {prediction.predictedHomeScore} : {prediction.predictedAwayScore}
+    <div className="flex items-center justify-between gap-3">
+      <div>
+        <div className="text-xs text-slate-400">{UI.yourPrediction}</div>
+        <div className="font-display text-lg font-bold tnum text-white">
+          {prediction.predictedHomeScore} : {prediction.predictedAwayScore}
+        </div>
+        {winnerName && <div className="text-xs text-slate-400">المتأهل: {winnerName}</div>}
       </div>
-      {winnerName && <div className="text-slate-400">المتأهل: {winnerName}</div>}
       {prediction.pointsAwarded != null && (
-        <div className="mt-1 font-bold text-gold-400">+{prediction.pointsAwarded} نقطة</div>
+        <div className="rounded-lg bg-gold-500/15 px-3 py-1.5 text-center">
+          <div className="font-display text-lg font-extrabold tnum text-gold-400">
+            +{prediction.pointsAwarded}
+          </div>
+          <div className="text-[10px] text-gold-400/80">نقطة</div>
+        </div>
       )}
     </div>
   );
 }
 
-function StatusBadge({ status, locked }: { status: SerializedMatch["status"]; locked: boolean }) {
-  const colors: Record<string, string> = {
-    SCHEDULED: "bg-ok/20 text-green-300",
-    LOCKED: "bg-warn/20 text-amber-300",
-    LIVE: "bg-danger/20 text-red-300",
-    FINISHED: "bg-navy-600 text-slate-300",
-    SCORED: "bg-gold-500/20 text-gold-300",
-    CANCELLED: "bg-navy-600 text-slate-400",
+function StatusPill({
+  status,
+  locked,
+  finished,
+}: {
+  status: SerializedMatch["status"];
+  locked: boolean;
+  finished: boolean;
+}) {
+  const effective = finished
+    ? "FINISHED"
+    : status === "SCHEDULED" && locked
+      ? "LOCKED"
+      : status;
+
+  if (effective === "LIVE") {
+    return (
+      <span className="pill pill-live animate-live">
+        <span className="pill-dot" />
+        {STATUS_LABEL_AR.LIVE}
+      </span>
+    );
+  }
+  const cls: Record<string, string> = {
+    SCHEDULED: "pill-scheduled",
+    LOCKED: "pill-locked",
+    FINISHED: "pill-done",
+    SCORED: "pill-done",
+    CANCELLED: "pill-done",
   };
-  const effective = status === "SCHEDULED" && locked ? "LOCKED" : status;
-  return <span className={`badge ${colors[effective]}`}>{STATUS_LABEL_AR[effective]}</span>;
+  return <span className={`pill ${cls[effective] ?? "pill-done"}`}>{STATUS_LABEL_AR[effective]}</span>;
 }
 
 function TeamSide({ name, flag, win }: { name: string; flag?: string | null; win?: boolean }) {
@@ -238,14 +283,13 @@ function TeamSide({ name, flag, win }: { name: string; flag?: string | null; win
     <div className="flex flex-1 flex-col items-center gap-2 text-center">
       {flag ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={flag} alt="" className={`flag h-14 w-14 ${win ? "ring-gold-400" : ""}`} />
+        <img src={flag} alt="" className={`flag h-12 w-12 ${win ? "ring-2 ring-gold-400" : ""}`} />
       ) : (
-        <div className="grid h-14 w-14 place-items-center rounded-full bg-navy-700 text-base text-slate-400 ring-2 ring-white/15">
+        <div className="grid h-12 w-12 place-items-center rounded-md bg-navy-700 text-sm text-slate-400 ring-1 ring-white/15">
           ؟
         </div>
       )}
-      <span className={`text-sm font-bold leading-tight ${win ? "text-gold-300" : ""}`}>
-        {win && "🏆 "}
+      <span className={`text-sm font-bold leading-tight ${win ? "text-gold-300" : "text-slate-100"}`}>
         {name}
       </span>
     </div>
@@ -270,7 +314,7 @@ function ScoreInput({
       aria-label={label}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="input w-16 text-center text-xl font-bold"
+      className="input font-display w-16 text-center text-2xl font-extrabold tnum"
     />
   );
 }
