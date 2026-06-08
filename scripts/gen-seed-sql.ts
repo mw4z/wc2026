@@ -11,7 +11,7 @@
  * Prisma reads back as UTC) — same instant as the CSV's ...Z value.
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { TEAMS } from "../prisma/seed-data";
+import { TEAMS, flagUrlForIso } from "../prisma/seed-data";
 
 const q = (s: string) => "'" + s.replace(/'/g, "''") + "'";
 const teamId = (code: string) => "team_" + code.toLowerCase();
@@ -27,9 +27,9 @@ lines.push("");
 lines.push("-- Teams (48) + TBD placeholder");
 for (const t of TEAMS) {
   lines.push(
-    `INSERT INTO "Team" ("id","code","nameEn","nameAr","groupName","createdAt","updatedAt") VALUES (` +
-      `${q(teamId(t.code))}, ${q(t.code)}, ${q(t.nameEn)}, ${q(t.nameAr)}, ${q(t.group)}, now(), now()) ` +
-      `ON CONFLICT ("code") DO UPDATE SET "nameEn"=EXCLUDED."nameEn", "nameAr"=EXCLUDED."nameAr", "groupName"=EXCLUDED."groupName";`,
+    `INSERT INTO "Team" ("id","code","nameEn","nameAr","groupName","flagUrl","createdAt","updatedAt") VALUES (` +
+      `${q(teamId(t.code))}, ${q(t.code)}, ${q(t.nameEn)}, ${q(t.nameAr)}, ${q(t.group)}, ${q(flagUrlForIso(t.iso))}, now(), now()) ` +
+      `ON CONFLICT ("code") DO UPDATE SET "nameEn"=EXCLUDED."nameEn", "nameAr"=EXCLUDED."nameAr", "groupName"=EXCLUDED."groupName", "flagUrl"=EXCLUDED."flagUrl";`,
   );
 }
 lines.push(

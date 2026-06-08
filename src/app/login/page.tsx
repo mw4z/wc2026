@@ -50,12 +50,22 @@ function LoginForm() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5">
       <div className="mb-8 text-center">
-        <div className="mb-2 text-4xl">🏆</div>
-        <h1 className="text-2xl font-extrabold text-gold-400">{UI.appName}</h1>
-        <p className="mt-1 text-sm text-slate-400">سجّل دخولك للمشاركة في التوقعات</p>
+        <div className="mx-auto mb-4 grid h-20 w-20 place-items-center rounded-2xl bg-gradient-to-br from-gold-400 to-gold-600 text-5xl shadow-[0_10px_40px_rgba(233,185,73,0.45)]">
+          🏆
+        </div>
+        <h1 className="hero-title text-3xl font-black leading-tight">{UI.appName}</h1>
+        <p className="mt-2 text-sm text-slate-400">سجّل دخولك للمشاركة في التوقعات</p>
+        {/* Host nations 2026 */}
+        <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-500">
+          {["ca", "mx", "us"].map((c) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img key={c} src={`/flags/${c}.svg`} alt="" className="flag h-5 w-5" />
+          ))}
+          <span>كندا · المكسيك · الولايات المتحدة</span>
+        </div>
       </div>
 
-      <form onSubmit={onSubmit} className="card space-y-4 p-6">
+      <form onSubmit={onSubmit} className="card card-accent space-y-4 p-6">
         <div>
           <label className="label">الاسم</label>
           <input

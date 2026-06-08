@@ -12,12 +12,35 @@ export default async function LeaderboardPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-end justify-between">
-        <h1 className="text-2xl font-extrabold">{UI.leaderboard}</h1>
+      <div className="mb-5 flex items-end justify-between">
+        <h1 className="hero-title text-3xl font-black">{UI.leaderboard}</h1>
         {updatedAt && (
           <span className="text-xs text-slate-500">آخر تحديث: {formatDateTimeAr(updatedAt)}</span>
         )}
       </div>
+
+      {/* Podium — top 3 */}
+      {rows.length > 0 && (
+        <div className="mb-6 grid grid-cols-3 gap-3">
+          {[rows[1], rows[0], rows[2]].map((r, i) =>
+            r ? (
+              <div
+                key={r.id}
+                className={`card flex flex-col items-center p-4 text-center ${
+                  i === 1 ? "ring-2 ring-gold-500/50" : ""
+                } ${i === 1 ? "-mt-3" : "mt-2"}`}
+              >
+                <div className="text-3xl">{["🥈", "🥇", "🥉"][i]}</div>
+                <div className="mt-1 truncate text-sm font-bold">{r.name}</div>
+                <div className="text-2xl font-black text-gold-400">{r.totalPoints}</div>
+                <div className="text-[10px] text-slate-500">نقطة</div>
+              </div>
+            ) : (
+              <div key={i} />
+            ),
+          )}
+        </div>
+      )}
 
       {rows.length === 0 ? (
         <p className="card p-6 text-center text-slate-400">لا توجد نتائج بعد.</p>
@@ -40,8 +63,8 @@ export default async function LeaderboardPage() {
               {rows.map((r) => (
                 <tr
                   key={r.id}
-                  className={`border-b border-navy-800 ${
-                    r.userId === me.id ? "bg-gold-500/10" : ""
+                  className={`border-b border-white/5 transition hover:bg-white/5 ${
+                    r.userId === me.id ? "bg-gold-500/15 ring-1 ring-inset ring-gold-500/40" : ""
                   }`}
                 >
                   <td className="p-3 font-bold">

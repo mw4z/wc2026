@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { lockDueMatches } from "@/lib/matches";
 import { isSameDayInTz } from "@/lib/time";
-import { UI } from "@/lib/constants";
+import { UI, SAMPLE_DATA } from "@/lib/constants";
 import { MatchCard } from "@/components/MatchCard";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +49,11 @@ export default async function MatchesPage() {
 
   return (
     <div>
+      {SAMPLE_DATA && (
+        <div className="mb-5 rounded-xl border border-warn/40 bg-warn/10 px-4 py-2.5 text-center text-sm text-amber-200">
+          {UI.sampleNotice}
+        </div>
+      )}
       <h1 className="mb-6 text-2xl font-extrabold">{UI.matches}</h1>
       {matches.length === 0 && (
         <p className="card p-6 text-center text-slate-400">لا توجد مباريات بعد.</p>

@@ -1,21 +1,16 @@
 import { PrismaClient } from "@prisma/client";
-import { TEAMS } from "./seed-data";
+import { TEAMS, flagUrlForIso } from "./seed-data";
 
 const prisma = new PrismaClient();
 
 async function main() {
   // Teams (idempotent upsert by code).
   for (const t of TEAMS) {
+    const flagUrl = flagUrlForIso(t.iso);
     await prisma.team.upsert({
       where: { code: t.code },
-      update: { nameEn: t.nameEn, nameAr: t.nameAr, groupName: t.group },
-      create: {
-        code: t.code,
-        nameEn: t.nameEn,
-        nameAr: t.nameAr,
-        groupName: t.group,
-        // flagUrl left null for MVP; add SVGs under /public/flags/<code>.svg later.
-      },
+      update: { nameEn: t.nameEn, nameAr: t.nameAr, groupName: t.group, flagUrl },
+      create: { code: t.code, nameEn: t.nameEn, nameAr: t.nameAr, groupName: t.group, flagUrl },
     });
   }
 

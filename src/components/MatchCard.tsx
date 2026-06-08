@@ -88,9 +88,9 @@ export function MatchCard({
   }
 
   return (
-    <div className="card p-4">
-      <div className="mb-3 flex items-center justify-between text-xs text-slate-400">
-        <span>
+    <div className="card card-accent overflow-hidden p-4 transition duration-200 hover:-translate-y-0.5 hover:border-white/20">
+      <div className="mb-4 flex items-center justify-between text-xs">
+        <span className="rounded-md bg-white/5 px-2 py-1 font-semibold text-slate-300">
           #{match.matchNumber} · {STAGE_LABEL_AR[match.stage]}
         </span>
         <StatusBadge status={match.status} locked={locked} />
@@ -98,13 +98,13 @@ export function MatchCard({
 
       <div className="flex items-center justify-between gap-2">
         <TeamSide name={match.homeTeam?.nameAr ?? "يُحدد"} flag={match.homeTeam?.flagUrl} />
-        <div className="text-center">
+        <div className="flex min-w-[64px] flex-col items-center">
           {match.homeScore != null && match.awayScore != null ? (
-            <div className="text-2xl font-extrabold text-gold-400">
-              {match.homeScore} : {match.awayScore}
+            <div className="rounded-xl bg-navy-950/60 px-3 py-1 text-3xl font-black tabular-nums text-gold-400">
+              {match.homeScore}-{match.awayScore}
             </div>
           ) : (
-            <div className="text-xl font-bold text-slate-500">{UI.vs}</div>
+            <div className="text-lg font-black text-slate-500">{UI.vs}</div>
           )}
         </div>
         <TeamSide name={match.awayTeam?.nameAr ?? "يُحدد"} flag={match.awayTeam?.flagUrl} />
@@ -113,8 +113,9 @@ export function MatchCard({
       <div className="mt-3 space-y-0.5 text-center text-xs text-slate-400">
         {match.stadium && <div>{match.stadium}{match.city ? ` · ${match.city}` : ""}</div>}
         {!locked && teamsKnown && (
-          <div className="text-gold-400">
-            {UI.locksIn}: <span className="font-mono">{fmtCountdown(ms)}</span>
+          <div className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-gold-500/30 bg-gold-500/10 px-3 py-1 text-gold-300">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold-400" />
+            {UI.locksIn} <span className="font-mono font-bold tabular-nums">{fmtCountdown(ms)}</span>
           </div>
         )}
       </div>
@@ -223,16 +224,16 @@ function StatusBadge({ status, locked }: { status: SerializedMatch["status"]; lo
 
 function TeamSide({ name, flag }: { name: string; flag?: string | null }) {
   return (
-    <div className="flex flex-1 flex-col items-center gap-1 text-center">
+    <div className="flex flex-1 flex-col items-center gap-2 text-center">
       {flag ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={flag} alt="" className="h-8 w-8 rounded-full object-cover" />
+        <img src={flag} alt="" className="flag h-14 w-14" />
       ) : (
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-navy-700 text-xs">
-          ?
+        <div className="grid h-14 w-14 place-items-center rounded-full bg-navy-700 text-base text-slate-400 ring-2 ring-white/15">
+          ؟
         </div>
       )}
-      <span className="text-sm font-semibold">{name}</span>
+      <span className="text-sm font-bold leading-tight">{name}</span>
     </div>
   );
 }
