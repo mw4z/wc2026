@@ -33,9 +33,9 @@ export const STATUS_LABEL_AR: Record<MatchStatus, string> = {
   CANCELLED: "ملغاة",
 };
 
-// Phase C: set to false once the official 104-match schedule is imported and
-// the sample/test fixtures (incl. lock-test match #101) are removed.
-export const SAMPLE_DATA = true;
+// Official 104-match schedule imported (phase C). Set true only if reverting to
+// sample/test fixtures.
+export const SAMPLE_DATA = false;
 
 export const UI = {
   appName: "توقعات كأس العالم 2026",
