@@ -1,4 +1,4 @@
-﻿BEGIN;
+BEGIN;
 
 -- CreateEnum
 CREATE TYPE "GroupRole" AS ENUM ('LEADER', 'MEMBER');

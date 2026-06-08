@@ -1,4 +1,4 @@
-﻿BEGIN;
+BEGIN;
 
 -- AlterTable
 ALTER TABLE "User" ADD COLUMN     "phoneE164" TEXT,

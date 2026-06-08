@@ -1,4 +1,4 @@
-﻿-- CreateEnum
+-- CreateEnum
 CREATE TYPE "GroupRole" AS ENUM ('LEADER', 'MEMBER');
 
 -- CreateTable
