@@ -22,8 +22,15 @@ function LoginForm() {
   const [name, setName] = useState("");
   const [country, setCountry] = useState(DEFAULT_COUNTRY);
   const [phone, setPhone] = useState("");
+  const [groupMode, setGroupMode] = useState<"join" | "create">("join");
+  const [groupCode, setGroupCode] = useState("");
+  const [newGroupName, setNewGroupName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Mandatory: must either join by code or create a new group to sign in.
+  const groupReady =
+    groupMode === "join" ? groupCode.trim().length > 0 : newGroupName.trim().length >= 2;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,11 +40,28 @@ function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, country, phone }),
+        body: JSON.stringify({
+          name,
+          country,
+          phone,
+          groupCode: groupMode === "join" ? groupCode : "",
+          newGroupName: groupMode === "create" ? newGroupName : "",
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "تعذّر تسجيل الدخول");
+        return;
+      }
+      // Joined a group at sign-in → go straight to it.
+      if (data.groupId) {
+        router.push(`/groups/${data.groupId}`);
+        router.refresh();
+        return;
+      }
+      // Signed in, but joining/creating the group failed — stay so they can fix it.
+      if (data.groupError) {
+        setError(data.groupError);
         return;
       }
       router.push(next);
@@ -87,12 +111,68 @@ function LoginForm() {
             required
           />
         </div>
+        <div>
+          <label className="label">المجموعة</label>
+          <div className="mb-2 grid grid-cols-2 gap-1 rounded-xl border border-white/[0.12] bg-navy-800/60 p-1">
+            <button
+              type="button"
+              onClick={() => setGroupMode("join")}
+              className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+                groupMode === "join" ? "bg-gold-500/20 text-gold-300" : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              {UI.joinGroup}
+            </button>
+            <button
+              type="button"
+              onClick={() => setGroupMode("create")}
+              className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+                groupMode === "create" ? "bg-gold-500/20 text-gold-300" : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              {UI.createGroup}
+            </button>
+          </div>
+
+          {groupMode === "join" ? (
+            <>
+              <input
+                className="input text-center font-mono tracking-widest"
+                value={groupCode}
+                onChange={(e) => setGroupCode(e.target.value)}
+                placeholder="CUP-12345"
+                inputMode="text"
+                autoCapitalize="characters"
+                required
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                أدخل كود المجموعة (بأي صيغة: CUP-12345 أو 12345) للانضمام عند الدخول.
+              </p>
+            </>
+          ) : (
+            <>
+              <input
+                className="input"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                placeholder={UI.groupName}
+                required
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                سيتم إنشاء مجموعة جديدة وستكون أنت قائدها، وتحصل على كود لدعوة زملائك.
+              </p>
+            </>
+          )}
+        </div>
 
         {error && (
           <p className="rounded-lg bg-danger/15 px-3 py-2 text-sm text-red-300">{error}</p>
         )}
 
-        <button className="btn-gold w-full" disabled={loading || name.trim().length < 2 || !phone.trim()}>
+        <button
+          className="btn-gold w-full"
+          disabled={loading || name.trim().length < 2 || !phone.trim() || !groupReady}
+        >
           {loading ? "..." : UI.login}
         </button>
         <div className="space-y-1 text-center text-xs text-slate-500">
