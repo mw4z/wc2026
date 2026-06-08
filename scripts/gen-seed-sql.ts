@@ -29,12 +29,12 @@ for (const t of TEAMS) {
   lines.push(
     `INSERT INTO "Team" ("id","code","nameEn","nameAr","groupName","createdAt","updatedAt") VALUES (` +
       `${q(teamId(t.code))}, ${q(t.code)}, ${q(t.nameEn)}, ${q(t.nameAr)}, ${q(t.group)}, now(), now()) ` +
-      `ON CONFLICT ("code") DO NOTHING;`,
+      `ON CONFLICT ("code") DO UPDATE SET "nameEn"=EXCLUDED."nameEn", "nameAr"=EXCLUDED."nameAr", "groupName"=EXCLUDED."groupName";`,
   );
 }
 lines.push(
   `INSERT INTO "Team" ("id","code","nameEn","nameAr","createdAt","updatedAt") VALUES (` +
-    `${q("team_tbd")}, 'TBD', 'TBD', 'يُحدد لاحقًا', now(), now()) ON CONFLICT ("code") DO NOTHING;`,
+    `${q("team_tbd")}, 'TBD', 'TBD', 'يُحدد لاحقًا', now(), now()) ON CONFLICT ("code") DO UPDATE SET "nameAr"=EXCLUDED."nameAr";`,
 );
 lines.push("");
 
@@ -43,7 +43,7 @@ lines.push("-- Bootstrap admin (employeeId 1001)");
 lines.push(
   `INSERT INTO "User" ("id","employeeId","name","department","role","isActive","createdAt","updatedAt") VALUES (` +
     `${q("usr_admin1001")}, '1001', 'مدير النظام', 'تقنية المعلومات', 'ADMIN', true, now(), now()) ` +
-    `ON CONFLICT ("employeeId") DO NOTHING;`,
+    `ON CONFLICT ("employeeId") DO UPDATE SET "name"=EXCLUDED."name", "department"=EXCLUDED."department";`,
 );
 lines.push("");
 
