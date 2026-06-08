@@ -51,11 +51,11 @@ async function main() {
   ok("new user login (200 + user created)", r.status === 200 && !!userJson?.user?.id, JSON.stringify(userJson));
   ok("session cookie set", userCookie.includes("wc26_session="));
 
-  // 2. submit prediction on OPEN match (mtch_1)
+  // 2. submit prediction on OPEN match (mtch_2 — still SCHEDULED/future)
   r = await fetch(`${BASE}/api/predictions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: userCookie },
-    body: JSON.stringify({ matchId: "mtch_1", predictedHomeScore: 2, predictedAwayScore: 1 }),
+    body: JSON.stringify({ matchId: "mtch_2", predictedHomeScore: 2, predictedAwayScore: 1 }),
   });
   const predJson = await r.json().catch(() => ({}));
   ok("prediction created on open match (200)", r.status === 200 && !!predJson?.prediction?.id, JSON.stringify(predJson));
@@ -69,7 +69,13 @@ async function main() {
   });
   const lockJson = await r.json().catch(() => ({}));
   ok("late prediction REJECTED by backend (409)", r.status === 409, `got ${r.status}`);
-  ok("rejection code = KICKOFF_REACHED", lockJson?.code === "KICKOFF_REACHED", JSON.stringify(lockJson));
+  // Either code proves a server-side lock: KICKOFF_REACHED (clock) or MATCH_NOT_OPEN
+  // (status already auto-locked past kickoff). Both come from lockPredictionGuard.
+  ok(
+    "rejection is a server-side lock (KICKOFF_REACHED | MATCH_NOT_OPEN)",
+    lockJson?.code === "KICKOFF_REACHED" || lockJson?.code === "MATCH_NOT_OPEN",
+    JSON.stringify(lockJson),
+  );
 
   // 4. admin login (employeeId 1001 from seed)
   r = await fetch(`${BASE}/api/auth/login`, {
@@ -81,8 +87,8 @@ async function main() {
   const adminCookie = cookieFrom(r);
   ok("admin login (role ADMIN)", r.status === 200 && adminJson?.user?.role === "ADMIN", JSON.stringify(adminJson));
 
-  // 5. admin enters result for mtch_1 (2-1 => user's 2-1 is exact => 3 pts)
-  r = await fetch(`${BASE}/api/admin/matches/mtch_1/result`, {
+  // 5. admin enters result for mtch_2 (2-1 => user's 2-1 is exact => 3 pts)
+  r = await fetch(`${BASE}/api/admin/matches/mtch_2/result`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: adminCookie },
     body: JSON.stringify({ homeScore: 2, awayScore: 1 }),
@@ -90,10 +96,11 @@ async function main() {
   const resultJson = await r.json().catch(() => ({}));
   ok("admin result accepted + match SCORED (200)", r.status === 200 && resultJson?.match?.status === "SCORED", JSON.stringify(resultJson));
 
-  // 6. points reflected for the user on /matches (LockedView shows "+3 نقطة")
+  // 6. points reflected for the user on /matches (LockedView shows "+3 نقطة").
+  // Strip React's HTML comment markers that split adjacent text nodes (+ / 3 / نقطة).
   r = await fetch(`${BASE}/matches`, { headers: { Cookie: userCookie } });
-  const matchesHtml = await r.text();
-  ok("user's prediction shows +3 نقطة on /matches", matchesHtml.includes("+3"), "no +3 found");
+  const matchesHtml = (await r.text()).replace(/<!--.*?-->/g, "");
+  ok("user's prediction shows +3 نقطة on /matches", /\+\s*3\s*نقطة/.test(matchesHtml), "no +3 found");
 
   // 7. leaderboard rebuilt and shows the user
   r = await fetch(`${BASE}/leaderboard`, { headers: { Cookie: userCookie } });
