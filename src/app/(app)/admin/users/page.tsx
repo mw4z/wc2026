@@ -15,7 +15,7 @@ export default async function AdminUsersPage() {
         <table className="w-full text-right text-sm">
           <thead className="border-b border-navy-700 text-xs text-slate-400">
             <tr>
-              <th className="p-3">الرقم الوظيفي</th>
+              <th className="p-3">رقم الجوال</th>
               <th className="p-3">الاسم</th>
               <th className="p-3">الإدارة</th>
               <th className="p-3">الصلاحية</th>
@@ -29,7 +29,7 @@ export default async function AdminUsersPage() {
                 key={u.id}
                 user={{
                   id: u.id,
-                  employeeId: u.employeeId,
+                  identifier: u.phoneE164 ?? u.employeeId ?? "—",
                   name: u.name,
                   department: u.department,
                   role: u.role,

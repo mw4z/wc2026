@@ -21,7 +21,7 @@ export default async function ProfilePage() {
 
       <div className="card mb-6 p-5">
         <Row label={UI.name} value={user.name} />
-        <Row label="الرقم الوظيفي" value={user.employeeId} hint="لا يمكن تغييره" />
+        <Row label={UI.phone} value={user.phoneE164 ?? user.employeeId ?? "—"} hint="لا يظهر للآخرين" />
         <Row label={UI.department} value={user.department ?? "—"} />
         <Row label="الصلاحية" value={user.role === "ADMIN" ? "مدير" : "مشارك"} />
       </div>

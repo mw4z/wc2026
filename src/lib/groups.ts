@@ -131,10 +131,11 @@ export async function leaveGroup(userId: string, groupId: string) {
   return { ok: true };
 }
 
+// Member-facing: never exposes phone/employee identifiers.
 export async function getGroupMembers(groupId: string) {
   return prisma.groupMember.findMany({
     where: { groupId },
-    include: { user: { select: { id: true, name: true, department: true, employeeId: true } } },
+    include: { user: { select: { id: true, name: true, department: true } } },
     orderBy: [{ role: "asc" }, { joinedAt: "asc" }],
   });
 }

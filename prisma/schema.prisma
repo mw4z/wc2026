@@ -59,9 +59,11 @@ enum GroupRole {
 
 model User {
   id         String   @id @default(cuid())
-  // employeeId IS the employee number — the unique, immutable identity. Never
-  // overwritten after creation and never editable by the user.
-  employeeId String   @unique
+  // LEGACY identity (pre-phone login). Kept nullable for backward compatibility
+  // with existing accounts (e.g. admin "1001"). New users use phoneE164.
+  employeeId String?  @unique
+  // Phone login identity, stored in E.164 (e.g. +966551234567). Never shown publicly.
+  phoneE164  String?  @unique
   name       String
   department String?
   email      String?  @unique

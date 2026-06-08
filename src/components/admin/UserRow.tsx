@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 interface U {
   id: string;
-  employeeId: string;
+  identifier: string; // phone (E.164) or legacy employee id — admin-only view
   name: string;
   department: string | null;
   role: "USER" | "ADMIN";
@@ -37,7 +37,7 @@ export function UserRow({ user, isSelf }: { user: U; isSelf: boolean }) {
 
   return (
     <tr className="border-b border-navy-800">
-      <td className="p-3 font-mono text-xs">{user.employeeId}</td>
+      <td className="p-3 font-mono text-xs" dir="ltr">{user.identifier}</td>
       <td className="p-3">
         {editing ? (
           <input className="input w-32" value={name} onChange={(e) => setName(e.target.value)} />

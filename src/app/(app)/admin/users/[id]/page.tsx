@@ -35,7 +35,7 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
 
       <h1 className="mb-1 mt-2 text-2xl font-extrabold">{user.name}</h1>
       <p className="mb-6 text-sm text-slate-400">
-        الرقم الوظيفي: <span className="font-mono">{user.employeeId}</span>
+        رقم الجوال: <span className="font-mono" dir="ltr">{user.phoneE164 ?? user.employeeId ?? "—"}</span>
         {user.department ? ` · ${user.department}` : ""} · {user.role === "ADMIN" ? "مدير" : "مشارك"}
         {" · "}عدد التوقعات: {predictions.length} · مجموع النقاط: {totalPoints}
       </p>

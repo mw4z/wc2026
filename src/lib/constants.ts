@@ -57,6 +57,7 @@ export const UI = {
   profile: "ملفي",
   login: "تسجيل الدخول",
   logout: "تسجيل الخروج",
+  phone: "رقم الجوال",
   rank: "الترتيب",
   name: "الاسم",
   department: "الإدارة",

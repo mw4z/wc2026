@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { isRegistrationOpen } from "./settings";
-import type { LoginInput } from "./validation";
+import { normalizePhone } from "./phone";
+import type { LoginInput, PhoneLoginInput } from "./validation";
 
 export class LoginError extends Error {
   constructor(message: string, public code: string, public status = 400) {
@@ -8,6 +9,7 @@ export class LoginError extends Error {
   }
 }
 
+// LEGACY: employee-id bootstrap admins (kept for transition).
 function adminIds(): Set<string> {
   return new Set(
     (process.env.ADMIN_EMPLOYEE_IDS || "")
@@ -15,6 +17,54 @@ function adminIds(): Set<string> {
       .map((s) => s.trim())
       .filter(Boolean),
   );
+}
+
+// Phone-based bootstrap admins (E.164), comma-separated in ADMIN_PHONE_NUMBERS.
+function adminPhones(): Set<string> {
+  return new Set(
+    (process.env.ADMIN_PHONE_NUMBERS || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
+}
+
+/**
+ * Phone login. phoneE164 is the unique identity.
+ *  - Existing phone → log into that account; display name is NEVER overwritten.
+ *  - New phone → create the user (if registration is open). No password, no OTP yet.
+ *  - Deactivated user → rejected.
+ * Bootstrap admins (ADMIN_PHONE_NUMBERS) are promoted to ADMIN on login.
+ */
+export async function loginOrRegisterByPhone(input: PhoneLoginInput) {
+  const phoneE164 = normalizePhone(input.phone, input.country);
+  if (!phoneE164) {
+    throw new LoginError("رقم الجوال غير صحيح", "INVALID_PHONE", 422);
+  }
+  const isBootstrapAdmin = adminPhones().has(phoneE164);
+
+  const existing = await prisma.user.findUnique({ where: { phoneE164 } });
+  if (existing) {
+    if (!existing.isActive) {
+      throw new LoginError("تم إيقاف هذا الحساب. تواصل مع الإدارة.", "USER_INACTIVE", 403);
+    }
+    if (isBootstrapAdmin && existing.role !== "ADMIN") {
+      return prisma.user.update({ where: { id: existing.id }, data: { role: "ADMIN" } });
+    }
+    return existing;
+  }
+
+  if (!isBootstrapAdmin && !(await isRegistrationOpen())) {
+    throw new LoginError("تم إغلاق تسجيل المشاركين الجدد.", "REGISTRATION_CLOSED", 403);
+  }
+
+  return prisma.user.create({
+    data: {
+      phoneE164,
+      name: input.name.trim(),
+      role: isBootstrapAdmin ? "ADMIN" : "USER",
+    },
+  });
 }
 
 /**

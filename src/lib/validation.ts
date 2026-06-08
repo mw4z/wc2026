@@ -14,6 +14,14 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
+// Phone login (Phase E). Phone is normalized + validated server-side via phone.ts.
+export const phoneLoginSchema = z.object({
+  name: z.string().trim().min(2, "الاسم قصير جدًا").max(80),
+  country: z.string().trim().length(2, "اختر الدولة"), // ISO 3166-1 alpha-2
+  phone: z.string().trim().min(3, "رقم الجوال مطلوب").max(20),
+});
+export type PhoneLoginInput = z.infer<typeof phoneLoginSchema>;
+
 export const predictionSchema = z.object({
   matchId: z.string().min(1),
   predictedHomeScore: score,

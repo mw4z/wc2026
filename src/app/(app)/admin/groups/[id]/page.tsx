@@ -14,12 +14,19 @@ export default async function AdminGroupDetail({ params }: { params: Promise<{ i
 
   const group = await prisma.group.findUnique({
     where: { id },
-    include: { leader: { select: { name: true, employeeId: true } } },
+    include: { leader: { select: { name: true, phoneE164: true, employeeId: true } } },
   });
   if (!group) {
     return <p className="card p-6 text-center text-slate-400">{UI.groupNotFound}</p>;
   }
   const members = await getGroupMembers(id);
+  // Admin-only: phone identifiers for the member list (not exposed by getGroupMembers).
+  const identUsers = await prisma.user.findMany({
+    where: { id: { in: members.map((m) => m.userId) } },
+    select: { id: true, phoneE164: true, employeeId: true },
+  });
+  const identById = new Map(identUsers.map((u) => [u.id, u.phoneE164 ?? u.employeeId ?? "—"]));
+  const leaderIdent = group.leader.phoneE164 ?? group.leader.employeeId ?? "—";
 
   return (
     <div>
@@ -30,7 +37,7 @@ export default async function AdminGroupDetail({ params }: { params: Promise<{ i
             <h1 className="text-2xl font-extrabold">{group.name}</h1>
             <p className="mt-1 text-sm text-slate-400">
               الكود: <span className="font-mono tracking-widest text-gold-300">{group.code}</span> ·{" "}
-              {UI.groupLeader}: {group.leader.name} ({group.leader.employeeId}) ·{" "}
+              {UI.groupLeader}: {group.leader.name} (<span dir="ltr">{leaderIdent}</span>) ·{" "}
               أُنشئت {formatDateTimeAr(group.createdAt)}
             </p>
             <p className="mt-1 text-sm">
@@ -50,7 +57,7 @@ export default async function AdminGroupDetail({ params }: { params: Promise<{ i
           <thead className="border-b border-white/10 text-xs text-slate-400">
             <tr>
               <th className="p-3">{UI.name}</th>
-              <th className="p-3">الرقم الوظيفي</th>
+              <th className="p-3">رقم الجوال</th>
               <th className="p-3">الدور</th>
             </tr>
           </thead>
@@ -58,7 +65,7 @@ export default async function AdminGroupDetail({ params }: { params: Promise<{ i
             {members.map((m) => (
               <tr key={m.userId} className="border-b border-white/5">
                 <td className="p-3 font-semibold">{m.user.name}</td>
-                <td className="p-3 font-mono text-xs">{m.user.employeeId}</td>
+                <td className="p-3 font-mono text-xs" dir="ltr">{identById.get(m.userId) ?? "—"}</td>
                 <td className="p-3">{m.role === "LEADER" ? UI.groupLeader : "عضو"}</td>
               </tr>
             ))}

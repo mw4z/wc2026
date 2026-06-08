@@ -3,9 +3,10 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { UI } from "@/lib/constants";
+import { DEFAULT_COUNTRY } from "@/lib/countries";
+import { CountrySelect } from "@/components/CountrySelect";
 
 export default function LoginPage() {
-  // useSearchParams must sit inside a Suspense boundary for static prerender.
   return (
     <Suspense fallback={null}>
       <LoginForm />
@@ -19,7 +20,8 @@ function LoginForm() {
   const next = params.get("next") || "/matches";
 
   const [name, setName] = useState("");
-  const [employeeId, setEmployeeId] = useState("");
+  const [country, setCountry] = useState(DEFAULT_COUNTRY);
+  const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -31,7 +33,7 @@ function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, employeeId }),
+        body: JSON.stringify({ name, country, phone }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -55,19 +57,11 @@ function LoginForm() {
         </div>
         <h1 className="hero-title text-3xl font-black leading-tight">{UI.appName}</h1>
         <p className="mt-2 text-sm text-slate-400">سجّل دخولك للمشاركة في التوقعات</p>
-        {/* Host nations 2026 */}
-        <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-500">
-          {["ca", "mx", "us"].map((c) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img key={c} src={`/flags/${c}.svg`} alt="" className="flag h-5 w-5" />
-          ))}
-          <span>كندا · المكسيك · الولايات المتحدة</span>
-        </div>
       </div>
 
       <form onSubmit={onSubmit} className="card card-accent space-y-4 p-6">
         <div>
-          <label className="label">الاسم</label>
+          <label className="label">{UI.name}</label>
           <input
             className="input"
             value={name}
@@ -77,25 +71,34 @@ function LoginForm() {
           />
         </div>
         <div>
-          <label className="label">الرقم الوظيفي</label>
+          <label className="label">رمز الدولة</label>
+          <CountrySelect value={country} onChange={setCountry} />
+        </div>
+        <div>
+          <label className="label">{UI.phone}</label>
           <input
             className="input"
-            value={employeeId}
-            onChange={(e) => setEmployeeId(e.target.value)}
-            placeholder="مثال: 12345"
+            type="tel"
+            inputMode="tel"
+            dir="ltr"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="05XXXXXXXX"
             required
           />
         </div>
+
         {error && (
           <p className="rounded-lg bg-danger/15 px-3 py-2 text-sm text-red-300">{error}</p>
         )}
 
-        <button className="btn-gold w-full" disabled={loading}>
+        <button className="btn-gold w-full" disabled={loading || name.trim().length < 2 || !phone.trim()}>
           {loading ? "..." : UI.login}
         </button>
-        <p className="text-center text-xs text-slate-500">
-          الرقم الوظيفي هو هويتك. لا حاجة لكلمة مرور.
-        </p>
+        <div className="space-y-1 text-center text-xs text-slate-500">
+          <p>استخدم نفس رقم الجوال لاحقًا للعودة إلى حسابك وتوقعاتك.</p>
+          <p>لن يظهر رقم الجوال في لوحة الترتيب أو للمشاركين.</p>
+        </div>
       </form>
     </main>
   );

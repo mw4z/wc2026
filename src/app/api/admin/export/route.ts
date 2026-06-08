@@ -29,10 +29,10 @@ export async function GET(req: NextRequest) {
         orderBy: [{ matchId: "asc" }, { submittedAt: "asc" }],
       });
       csv = toCsv(
-        ["match_number", "employee_id", "name", "pred_home", "pred_away", "points", "submitted_at"],
+        ["match_number", "phone", "name", "pred_home", "pred_away", "points", "submitted_at"],
         preds.map((p) => [
           p.match.matchNumber,
-          p.user.employeeId,
+          p.user.phoneE164 ?? p.user.employeeId ?? "",
           p.user.name,
           p.predictedHomeScore,
           p.predictedAwayScore,
