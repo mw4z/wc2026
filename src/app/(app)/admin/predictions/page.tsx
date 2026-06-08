@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { STAGE_LABEL_AR, STATUS_LABEL_AR } from "@/lib/constants";
-import { formatDateTimeAr, isKickoffReached } from "@/lib/time";
+import { formatDateTimeAr } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,7 @@ export default async function AdminPredictionsPage() {
     <div>
       <h1 className="mb-2 text-2xl font-extrabold">عرض توقعات المشاركين</h1>
       <p className="mb-6 text-sm text-slate-400">
-        تظهر توقعات المشاركين بعد إغلاق التوقع (بداية المباراة) فقط، حفاظًا على نزاهة المسابقة.
+        عرض للإدارة فقط. لا تظهر توقعات المشاركين لبعضهم البعض قبل بداية المباراة.
       </p>
       <div className="card overflow-x-auto">
         <table className="w-full text-right text-sm">
@@ -37,7 +37,6 @@ export default async function AdminPredictionsPage() {
           </thead>
           <tbody>
             {matches.map((m) => {
-              const locked = m.status !== "SCHEDULED" || isKickoffReached(m.kickoffAt);
               return (
                 <tr key={m.id} className="border-b border-white/5">
                   <td className="p-3 text-slate-400">{m.matchNumber}</td>
@@ -53,13 +52,9 @@ export default async function AdminPredictionsPage() {
                   </td>
                   <td className="p-3 font-bold text-gold-400">{m._count.predictions}</td>
                   <td className="p-3">
-                    {locked ? (
-                      <Link href={`/admin/predictions/${m.id}`} className="text-gold-400 hover:underline">
-                        عرض
-                      </Link>
-                    ) : (
-                      <span className="text-xs text-slate-500">مخفي حتى الإغلاق</span>
-                    )}
+                    <Link href={`/admin/predictions/${m.id}`} className="text-gold-400 hover:underline">
+                      عرض
+                    </Link>
                   </td>
                 </tr>
               );

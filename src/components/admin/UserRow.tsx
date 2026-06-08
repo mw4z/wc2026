@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 interface U {
@@ -41,7 +42,9 @@ export function UserRow({ user, isSelf }: { user: U; isSelf: boolean }) {
         {editing ? (
           <input className="input w-32" value={name} onChange={(e) => setName(e.target.value)} />
         ) : (
-          <span className="font-semibold">{user.name}</span>
+          <Link href={`/admin/users/${user.id}`} className="font-semibold text-gold-300 hover:underline">
+            {user.name}
+          </Link>
         )}
       </td>
       <td className="p-3 text-slate-400">{user.department ?? "—"}</td>

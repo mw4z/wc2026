@@ -2,7 +2,6 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { STAGE_LABEL_AR } from "@/lib/constants";
-import { isKickoffReached } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
@@ -23,25 +22,12 @@ export default async function AdminPredictionDetail({
   }
 
   const title = `${match.homeTeam?.nameAr ?? "يُحدد"} × ${match.awayTeam?.nameAr ?? "يُحدد"}`;
-  const locked = match.status !== "SCHEDULED" || isKickoffReached(match.kickoffAt);
 
   const back = (
     <Link href="/admin/predictions" className="text-sm text-gold-400 hover:underline">
       ← رجوع لقائمة المباريات
     </Link>
   );
-
-  if (!locked) {
-    return (
-      <div>
-        {back}
-        <h1 className="mt-2 text-2xl font-extrabold">{title}</h1>
-        <p className="card mt-4 p-6 text-center text-amber-200">
-          التوقعات مخفية حتى إغلاق التوقع (بداية المباراة) حفاظًا على نزاهة المسابقة.
-        </p>
-      </div>
-    );
-  }
 
   const predictions = await prisma.prediction.findMany({
     where: { matchId: id },
