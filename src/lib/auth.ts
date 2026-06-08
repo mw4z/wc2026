@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 import type { Role } from "@prisma/client";
@@ -56,12 +57,16 @@ export async function getSession(): Promise<SessionPayload | null> {
   }
 }
 
-/** Authoritative: loads the user from DB (role changes take effect immediately). */
-export async function getCurrentUser() {
+/**
+ * Authoritative: loads the user from DB (role changes take effect immediately).
+ * Wrapped in React cache() so the layout + page in a single render share ONE
+ * query instead of each hitting the DB.
+ */
+export const getCurrentUser = cache(async () => {
   const session = await getSession();
   if (!session) return null;
   return prisma.user.findUnique({ where: { id: session.userId } });
-}
+});
 
 export async function requireUser() {
   const user = await getCurrentUser();
