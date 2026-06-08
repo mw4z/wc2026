@@ -3,7 +3,6 @@ import { loginSchema, phoneLoginSchema } from "@/lib/validation";
 import { loginOrRegister, loginOrRegisterByPhone } from "@/lib/users";
 import { joinGroupByCode, createGroup, GroupError } from "@/lib/groups";
 import { createSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { errorResponse } from "@/lib/api";
 
 export async function POST(req: NextRequest) {
@@ -18,11 +17,10 @@ export async function POST(req: NextRequest) {
 
     await createSession({ userId: user.id, role: user.role, name: user.name });
 
-    // Group membership is mandatory at sign-in: the user must either join an
-    // existing group by code OR create a new one. The session is already set, so
-    // a bad code / name is surfaced softly (groupError) and the user retries —
-    // logging in again is idempotent. Returning users already in a group are not
-    // forced to re-enter anything.
+    // Group membership is OPTIONAL at sign-in. If the user supplies a code or a
+    // new group name we act on it; otherwise they sign in with no group and are
+    // nudged to join/create afterwards (see GroupNudge). The session is already
+    // set, so a bad code/name is surfaced softly (groupError) without blocking.
     const groupCode = typeof body?.groupCode === "string" ? body.groupCode.trim() : "";
     const newGroupName = typeof body?.newGroupName === "string" ? body.newGroupName.trim() : "";
 
@@ -46,15 +44,6 @@ export async function POST(req: NextRequest) {
         groupId = group.id;
       } catch (e) {
         groupError = e instanceof GroupError ? e.message : "تعذّر الانضمام إلى المجموعة";
-      }
-    } else {
-      // Nothing supplied — allow only if this user already belongs to a group.
-      const existingMembership = await prisma.groupMember.findFirst({
-        where: { userId: user.id },
-        select: { id: true },
-      });
-      if (!existingMembership) {
-        groupError = "يجب إدخال كود مجموعة أو إنشاء مجموعة جديدة للمتابعة";
       }
     }
 

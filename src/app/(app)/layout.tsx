@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { Logo } from "@/components/Logo";
 import { AppNav } from "@/components/AppNav";
 import { LogoutButton } from "@/components/LogoutButton";
+import { GroupNudge } from "@/components/GroupNudge";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user || !user.isActive) redirect("/login");
+
+  const groupCount = await prisma.groupMember.count({ where: { userId: user.id } });
 
   return (
     <div className="min-h-screen">
@@ -25,6 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+      <GroupNudge hasGroup={groupCount > 0} />
     </div>
   );
 }

@@ -29,10 +29,6 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Mandatory: must either join by code or create a new group to sign in.
-  const groupReady =
-    groupMode === "join" ? groupCode.trim().length > 0 : newGroupName.trim().length >= 2;
-
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -113,7 +109,12 @@ function LoginForm() {
           </div>
         </div>
         <div>
-          <label className="label">المجموعة</label>
+          <label className="label">
+            المجموعة <span className="font-normal normal-case text-slate-500">(اختياري)</span>
+          </label>
+          <p className="mb-2 text-xs text-slate-500">
+            انضم بكود أو أنشئ مجموعة الآن — أو تجاوز هذه الخطوة وافعلها لاحقًا من داخل التطبيق.
+          </p>
           <div className="mb-2 grid grid-cols-2 gap-1 rounded-xl border border-white/[0.12] bg-navy-800/60 p-1">
             <button
               type="button"
@@ -144,7 +145,6 @@ function LoginForm() {
                 placeholder="CUP-12345"
                 inputMode="text"
                 autoCapitalize="characters"
-                required
               />
               <p className="mt-1 text-xs text-slate-500">
                 أدخل كود المجموعة (بأي صيغة: CUP-12345 أو 12345) للانضمام عند الدخول.
@@ -157,7 +157,6 @@ function LoginForm() {
                 value={newGroupName}
                 onChange={(e) => setNewGroupName(e.target.value)}
                 placeholder={UI.groupName}
-                required
               />
               <p className="mt-1 text-xs text-slate-500">
                 سيتم إنشاء مجموعة جديدة وستكون أنت قائدها، وتحصل على كود لدعوة زملائك.
@@ -172,7 +171,7 @@ function LoginForm() {
 
         <button
           className="btn-primary w-full"
-          disabled={loading || name.trim().length < 2 || !phone.trim() || !groupReady}
+          disabled={loading || name.trim().length < 2 || !phone.trim()}
         >
           {loading ? "..." : UI.login}
         </button>
