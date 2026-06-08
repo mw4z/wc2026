@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="220" viewBox="0 0 1200 220" preserveAspectRatio="xMidYMax slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1426" stop-opacity="0"/>
+      <stop offset="1" stop-color="#0a0f1f"/>
+    </linearGradient>
+    <linearGradient id="bowl" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a2745"/>
+      <stop offset="1" stop-color="#0d1426"/>
+    </linearGradient>
+  </defs>
+  <!-- floodlights -->
+  <g stroke="#e9b949" stroke-opacity="0.5" stroke-width="3">
+    <line x1="150" y1="40" x2="150" y2="120"/>
+    <line x1="1050" y1="40" x2="1050" y2="120"/>
+  </g>
+  <g fill="#e9b949" fill-opacity="0.85">
+    <rect x="120" y="22" width="60" height="20" rx="4"/>
+    <rect x="1020" y="22" width="60" height="20" rx="4"/>
+  </g>
+  <g fill="#e9b949" fill-opacity="0.12">
+    <polygon points="150,42 90,140 210,140"/>
+    <polygon points="1050,42 990,140 1110,140"/>
+  </g>
+  <!-- stadium bowl -->
+  <path d="M0 220 L0 150 Q600 70 1200 150 L1200 220 Z" fill="url(#bowl)"/>
+  <path d="M0 160 Q600 90 1200 160" fill="none" stroke="#324470" stroke-width="3" stroke-opacity="0.6"/>
+  <!-- crowd speckle -->
+  <g fill="#f5d061" fill-opacity="0.18">
+    <circle cx="300" cy="150" r="2"/><circle cx="360" cy="140" r="2"/><circle cx="450" cy="132" r="2"/>
+    <circle cx="560" cy="128" r="2"/><circle cx="680" cy="128" r="2"/><circle cx="780" cy="134" r="2"/>
+    <circle cx="880" cy="142" r="2"/><circle cx="940" cy="150" r="2"/>
+  </g>
+  <rect x="0" y="0" width="1200" height="220" fill="url(#sky)"/>
+</svg>

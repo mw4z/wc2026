@@ -11,19 +11,16 @@
 
 body {
   @apply bg-navy-950 text-slate-100 antialiased;
-  /* Layered tournament backdrop: gold glow + cool/warm accents + faint pitch lines. */
+  /* Layered tournament backdrop: football/confetti wallpaper + vivid WC2026
+     multicolor glows (gold/teal/magenta/violet) over a deep navy base. */
   background-color: #070b16;
   background-image:
-    radial-gradient(900px 500px at 50% -120px, rgba(233, 185, 73, 0.16), transparent 70%),
-    radial-gradient(700px 500px at 100% 0%, rgba(22, 199, 154, 0.1), transparent 60%),
-    radial-gradient(700px 500px at 0% 10%, rgba(214, 51, 108, 0.1), transparent 60%),
-    repeating-linear-gradient(
-      115deg,
-      rgba(255, 255, 255, 0.015) 0px,
-      rgba(255, 255, 255, 0.015) 1px,
-      transparent 1px,
-      transparent 64px
-    );
+    url("/art/pattern.svg"),
+    radial-gradient(1000px 560px at 50% -140px, rgba(233, 185, 73, 0.20), transparent 70%),
+    radial-gradient(820px 560px at 100% 0%, rgba(22, 199, 154, 0.16), transparent 62%),
+    radial-gradient(820px 560px at 0% 8%, rgba(214, 51, 108, 0.16), transparent 62%),
+    radial-gradient(760px 520px at 50% 110%, rgba(124, 92, 255, 0.14), transparent 60%);
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat;
   background-attachment: fixed;
 }
 

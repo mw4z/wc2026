@@ -5,6 +5,7 @@ import { lockDueMatches } from "@/lib/matches";
 import { isSameDayInTz } from "@/lib/time";
 import { UI, SAMPLE_DATA } from "@/lib/constants";
 import { MatchCard } from "@/components/MatchCard";
+import { TournamentHero, EmptyState } from "@/components/TournamentHero";
 
 export const dynamic = "force-dynamic";
 
@@ -54,9 +55,12 @@ export default async function MatchesPage() {
           {UI.sampleNotice}
         </div>
       )}
-      <h1 className="mb-6 text-2xl font-extrabold">{UI.matches}</h1>
+      <TournamentHero
+        title={UI.appName}
+        subtitle="توقّع نتائج مباريات كأس العالم 2026 ونافس زملاءك على الصدارة."
+      />
       {matches.length === 0 && (
-        <p className="card p-6 text-center text-slate-400">لا توجد مباريات بعد.</p>
+        <EmptyState title="لا توجد مباريات بعد" hint="سيتم عرض المباريات هنا فور توفّر الجدول." />
       )}
       {section(UI.todayMatches, today)}
       {section(UI.upcomingMatches, upcoming)}

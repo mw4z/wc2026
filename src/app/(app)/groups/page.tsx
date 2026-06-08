@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getUserGroups } from "@/lib/groups";
 import { UI } from "@/lib/constants";
+import { EmptyState } from "@/components/TournamentHero";
 
 export const dynamic = "force-dynamic";
 
@@ -20,17 +21,13 @@ export default async function GroupsPage() {
       </div>
 
       {groups.length === 0 ? (
-        <div className="card card-accent p-8 text-center">
-          <div className="mb-3 text-4xl">👥</div>
-          <h2 className="mb-1 text-lg font-bold">لست في أي مجموعة بعد</h2>
-          <p className="mb-5 text-sm text-slate-400">
-            أنشئ مجموعة لزملائك أو انضم لمجموعة موجودة عبر الكود — توقعاتك تُحتسب في جميع مجموعاتك.
-          </p>
-          <div className="flex justify-center gap-3">
-            <Link href="/groups/new" className="btn-gold">{UI.createGroup}</Link>
-            <Link href="/groups/join" className="btn-ghost">{UI.joinGroup}</Link>
-          </div>
-        </div>
+        <EmptyState
+          title="لست في أي مجموعة بعد"
+          hint="أنشئ مجموعة لزملائك أو انضم لمجموعة موجودة عبر الكود — توقعاتك تُحتسب في جميع مجموعاتك."
+        >
+          <Link href="/groups/new" className="btn-gold">{UI.createGroup}</Link>
+          <Link href="/groups/join" className="btn-ghost">{UI.joinGroup}</Link>
+        </EmptyState>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {groups.map((g) => (

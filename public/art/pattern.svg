@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <g fill="none" stroke="#ffffff" stroke-opacity="0.05">
+    <!-- simple soccer balls -->
+    <g stroke-width="2">
+      <circle cx="40" cy="40" r="16"/>
+      <path d="M40 26 l9 7 -3 11 -12 0 -3 -11 z"/>
+      <circle cx="190" cy="150" r="14"/>
+      <path d="M190 138 l8 6 -3 9 -10 0 -3 -9 z"/>
+    </g>
+  </g>
+  <!-- confetti + stars -->
+  <g fill="#ffffff" fill-opacity="0.045">
+    <rect x="110" y="30" width="8" height="8" transform="rotate(20 114 34)"/>
+    <rect x="60" y="160" width="7" height="7" transform="rotate(-15 63 163)"/>
+    <rect x="200" y="60" width="6" height="6" transform="rotate(35 203 63)"/>
+    <circle cx="150" cy="200" r="3"/>
+    <circle cx="20" cy="120" r="3"/>
+    <circle cx="120" cy="120" r="2.5"/>
+    <path d="M95 95 l2.5 5 5.5 .8 -4 4 1 5.4 -5-2.6 -5 2.6 1-5.4 -4-4 5.5-.8z"/>
+    <path d="M215 205 l2 4 4.4 .6 -3.2 3.2 .8 4.3 -4-2 -4 2 .8-4.3 -3.2-3.2 4.4-.6z"/>
+  </g>
+</svg>

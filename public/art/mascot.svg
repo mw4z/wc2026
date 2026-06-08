@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="260" viewBox="0 0 200 260">
+  <defs>
+    <linearGradient id="jersey" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7d978"/>
+      <stop offset="1" stop-color="#caa12f"/>
+    </linearGradient>
+  </defs>
+  <!-- legs -->
+  <g stroke="#1a2745" stroke-width="12" stroke-linecap="round">
+    <line x1="84" y1="220" x2="80" y2="248"/>
+    <line x1="116" y1="220" x2="120" y2="248"/>
+  </g>
+  <!-- arms -->
+  <g stroke="url(#jersey)" stroke-width="12" stroke-linecap="round">
+    <line x1="70" y1="170" x2="40" y2="150"/>
+    <line x1="130" y1="170" x2="160" y2="150"/>
+  </g>
+  <!-- body / jersey -->
+  <rect x="66" y="158" width="68" height="70" rx="22" fill="url(#jersey)"/>
+  <text x="100" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="900" fill="#0a0f1f">26</text>
+  <!-- ball head -->
+  <circle cx="100" cy="100" r="56" fill="#ffffff" stroke="#1a2745" stroke-width="3"/>
+  <g fill="#1a2745">
+    <polygon points="100,74 116,86 110,106 90,106 84,86"/>
+    <polygon points="62,96 78,90 86,104 78,118 64,114"/>
+    <polygon points="138,96 122,90 114,104 122,118 136,114"/>
+  </g>
+  <!-- face -->
+  <g fill="#0a0f1f">
+    <circle cx="86" cy="120" r="5"/>
+    <circle cx="114" cy="120" r="5"/>
+  </g>
+  <path d="M86 134 Q100 146 114 134" fill="none" stroke="#0a0f1f" stroke-width="3" stroke-linecap="round"/>
+  <!-- little scarf -->
+  <path d="M70 150 q30 14 60 0 l-4 14 q-26 12 -52 0 z" fill="#16c79a"/>
+</svg>
