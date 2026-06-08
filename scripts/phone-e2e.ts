@@ -51,8 +51,9 @@ async function main() {
 
   // 6/7. Phone not shown on leaderboard or group pages
   const userCookie = (await login({ name: "Phone User A", country: "SA", phone: national })).cookie;
-  r = await fetch(`${BASE}/leaderboard`, { headers: { Cookie: userCookie } });
-  let html = await r.text();
+  const get = async (path: string) =>
+    (await fetch(`${BASE}${path}`, { headers: { Cookie: userCookie } })).text();
+  let html = await get("/leaderboard");
   ok("phone absent from leaderboard", !html.includes(e164) && !html.includes(national));
 
   const gc = await fetch(`${BASE}/api/groups`, {
@@ -61,9 +62,9 @@ async function main() {
   });
   const gid = (await gc.json())?.group?.id;
   if (gid) {
-    html = await (await fetch(`${BASE}/groups/${gid}`, { headers: { Cookie: userCookie } })).text();
+    html = await get(`/groups/${gid}`);
     ok("phone absent from group page", !html.includes(e164) && !html.includes(national));
-    html = await (await fetch(`${BASE}/groups/${gid}/members`, { headers: { Cookie: userCookie } })).text();
+    html = await get(`/groups/${gid}/members`);
     ok("phone absent from members page", !html.includes(e164) && !html.includes(national));
   } else {
     ok("group created for privacy check", false, "no group id");
