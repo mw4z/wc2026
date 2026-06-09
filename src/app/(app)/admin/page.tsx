@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { isRegistrationOpen, getPredictionLead } from "@/lib/settings";
 import { getUI } from "@/lib/locale";
 import { AdminControls } from "@/components/admin/AdminControls";
+import { PushTestButton } from "@/components/admin/PushTestButton";
 import { BallIcon, ListIcon, UsersIcon, UserIcon, DownloadIcon, ArrowIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
@@ -76,6 +77,10 @@ export default async function AdminHome() {
       </div>
 
       <AdminControls registrationOpen={registrationOpen} predictionLead={predictionLead} />
+
+      <div className="mt-6">
+        <PushTestButton />
+      </div>
     </div>
   );
 }
