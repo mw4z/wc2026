@@ -88,6 +88,8 @@ export default async function LeaderboardPage({
 
       <AdSlot slotId={AD_SLOTS.leaderboardTop} slotName="leaderboard-top" />
 
+      <p className="mb-5 text-center text-xs text-slate-400">{UI.leaderboardUpdatedTitle}</p>
+
       {/* Scope switcher: Overall + one tab per group the user is in */}
       {myGroups.length > 0 && (
         <div className="mb-5 flex flex-wrap gap-2">

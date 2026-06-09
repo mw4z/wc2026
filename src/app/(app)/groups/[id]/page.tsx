@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { getGroupForMember, getGroupLeaderboard, GroupError } from "@/lib/groups";
 import { getUI } from "@/lib/locale";
 import { CopyCode } from "@/components/groups/CopyCode";
+import { GroupShareButtons } from "@/components/groups/GroupShareButtons";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
 import { UsersIcon } from "@/components/icons";
 import { AdSlot } from "@/components/AdSlot";
@@ -49,6 +50,16 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
             <Link href={`/groups/${id}/members`} className="btn-ghost text-sm">{UI.groupMembers}</Link>
             <Link href="/matches" className="btn-ghost text-sm">{UI.matches}</Link>
           </div>
+        </div>
+        <div className="mt-3 border-t border-white/10 pt-3">
+          <GroupShareButtons code={group.code} points={myRow?.totalPoints ?? 0} rank={myRow?.rank ?? null} />
+          <p className="mt-3 text-sm text-slate-300">
+            <span className="font-semibold text-gold-300">{UI.leaderboardUpdatedTitle}</span>{" "}
+            —{" "}
+            <Link href={`/groups/${id}/leaderboard`} className="text-accent-400 hover:underline">
+              {UI.seeYourRank}
+            </Link>
+          </p>
         </div>
       </div>
 

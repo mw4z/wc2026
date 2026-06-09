@@ -9,6 +9,7 @@ import type { Locale } from "@/lib/i18n";
 import { getUI, getLocale } from "@/lib/locale";
 import { MatchCard } from "@/components/MatchCard";
 import { TournamentHero, EmptyState } from "@/components/TournamentHero";
+import { TodaySummary } from "@/components/TodaySummary";
 import { BallIcon } from "@/components/icons";
 import { AdSlot } from "@/components/AdSlot";
 import { AD_SLOTS } from "@/lib/ads";
@@ -32,14 +33,39 @@ export default async function MatchesPage() {
 
   const predByMatch = new Map(myPredictions.map((p) => [p.matchId, p]));
   const now = new Date();
+  const nowMs = now.getTime();
+  const SIX_H = 6 * 3600_000;
 
-  const today = matches.filter((m) => isSameDayInTz(m.kickoffAt, now));
+  // Closing soon: still-open matches kicking off within the next 6 hours.
+  const closingSoon = matches.filter(
+    (m) =>
+      m.status === "SCHEDULED" &&
+      m.homeTeamId &&
+      m.awayTeamId &&
+      m.kickoffAt.getTime() > nowMs &&
+      m.kickoffAt.getTime() <= nowMs + SIX_H,
+  );
+  const closingIds = new Set(closingSoon.map((m) => m.id));
+
+  const today = matches.filter((m) => isSameDayInTz(m.kickoffAt, now) && !closingIds.has(m.id));
   const upcoming = matches.filter(
-    (m) => m.kickoffAt > now && !isSameDayInTz(m.kickoffAt, now),
+    (m) => m.kickoffAt > now && !isSameDayInTz(m.kickoffAt, now) && !closingIds.has(m.id),
   );
   const finished = matches.filter(
     (m) => m.kickoffAt <= now && !isSameDayInTz(m.kickoffAt, now),
   );
+
+  // Today summary (counts ALL of today's matches, including closing-soon ones).
+  const todayAll = matches.filter((m) => isSameDayInTz(m.kickoffAt, now));
+  const todayOpen = todayAll.filter((m) => m.status === "SCHEDULED" && m.kickoffAt > now);
+  const summary = {
+    total: todayAll.length,
+    submitted: todayAll.filter((m) => predByMatch.has(m.id)).length,
+    missing: todayOpen.filter((m) => !predByMatch.has(m.id)).length,
+    nextLockAt: todayOpen.length
+      ? new Date(Math.min(...todayOpen.map((m) => m.kickoffAt.getTime()))).toISOString()
+      : null,
+  };
 
   const section = (title: string, list: typeof matches) =>
     list.length > 0 && (
@@ -68,8 +94,17 @@ export default async function MatchesPage() {
         </div>
       )}
       <TournamentHero title={UI.appName} subtitle={UI.matchesHeroSubtitle} icon={<BallIcon />} />
+      {summary.total > 0 && (
+        <TodaySummary
+          total={summary.total}
+          submitted={summary.submitted}
+          missing={summary.missing}
+          nextLockAt={summary.nextLockAt}
+        />
+      )}
       <AdSlot slotId={AD_SLOTS.matchesTop} slotName="matches-top" />
       {matches.length === 0 && <EmptyState title={UI.noMatchesTitle} hint={UI.noMatchesHint} />}
+      {section(UI.closingSoonTitle, closingSoon)}
       {section(UI.todayMatches, today)}
       {section(UI.upcomingMatches, upcoming)}
       {section(UI.finishedMatches, finished)}
