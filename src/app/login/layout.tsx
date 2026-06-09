@@ -18,7 +18,6 @@ export default async function LoginLayout({ children }: { children: React.ReactN
           {UI.worldCup26}
         </span>
         <h1 className="hero-title mt-1 text-3xl font-extrabold leading-tight">{UI.appName}</h1>
-        <p className="mt-2 text-sm text-slate-400">{UI.loginSubtitle}</p>
       </div>
       {children}
     </main>

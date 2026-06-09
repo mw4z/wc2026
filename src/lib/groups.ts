@@ -61,6 +61,17 @@ export async function joinGroupByCode(userId: string, codeInput: string) {
   return { group, alreadyMember: false };
 }
 
+/** Validate a code points to a joinable (existing, active) group — without joining. */
+export async function assertGroupJoinable(codeInput: string) {
+  const code = normalizeGroupCode(codeInput);
+  if (!code) throw new GroupError("كود المجموعة غير صحيح", "CODE_INVALID", 422);
+  const group = await prisma.group.findUnique({ where: { code } });
+  if (!group || !group.isActive) {
+    throw new GroupError("المجموعة غير موجودة أو تم تعطيلها", "GROUP_NOT_FOUND", 404);
+  }
+  return group;
+}
+
 export async function getUserGroups(userId: string) {
   const memberships = await prisma.groupMember.findMany({
     where: { userId, group: { isActive: true } },

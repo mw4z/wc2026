@@ -1,57 +1,31 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { loginSchema, phoneLoginSchema } from "@/lib/validation";
-import { loginOrRegister, loginOrRegisterByPhone } from "@/lib/users";
-import { joinGroupByCode, createGroup, GroupError } from "@/lib/groups";
-import { createSession } from "@/lib/auth";
+import { loginSchema, phoneStartSchema } from "@/lib/validation";
+import { loginOrRegister, getPhoneLoginStatus } from "@/lib/users";
+import { createSession, createPendingSignup } from "@/lib/auth";
 import { errorResponse } from "@/lib/api";
 
+// Step 1 of the 2-page flow. Phone only:
+//  - existing account  → log in, { exists: true }
+//  - new phone         → store a pending signup cookie, { exists: false }
+//                        (NO account is created here)
+// Legacy employeeId login is kept for the admin transition.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    // Phone login is the primary flow; employeeId is a legacy fallback kept for
-    // the admin transition. Phone responses never include the phone number.
-    const user =
-      body && typeof body.phone === "string"
-        ? await loginOrRegisterByPhone(phoneLoginSchema.parse(body))
-        : await loginOrRegister(loginSchema.parse(body));
 
-    await createSession({ userId: user.id, role: user.role, name: user.name });
-
-    // Group membership is OPTIONAL at sign-in. If the user supplies a code or a
-    // new group name we act on it; otherwise they sign in with no group and are
-    // nudged to join/create afterwards (see GroupNudge). The session is already
-    // set, so a bad code/name is surfaced softly (groupError) without blocking.
-    const groupCode = typeof body?.groupCode === "string" ? body.groupCode.trim() : "";
-    const newGroupName = typeof body?.newGroupName === "string" ? body.newGroupName.trim() : "";
-
-    let groupId: string | null = null;
-    let groupError: string | null = null;
-
-    if (newGroupName) {
-      if (newGroupName.length < 2) {
-        groupError = "اسم المجموعة قصير جدًا";
-      } else {
-        try {
-          const group = await createGroup(user.id, newGroupName);
-          groupId = group.id;
-        } catch (e) {
-          groupError = e instanceof GroupError ? e.message : "تعذّر إنشاء المجموعة";
-        }
+    if (body && typeof body.phone === "string") {
+      const { phoneE164, user } = await getPhoneLoginStatus(phoneStartSchema.parse(body));
+      if (user) {
+        await createSession({ userId: user.id, role: user.role, name: user.name });
+        return NextResponse.json({ exists: true });
       }
-    } else if (groupCode) {
-      try {
-        const { group } = await joinGroupByCode(user.id, groupCode);
-        groupId = group.id;
-      } catch (e) {
-        groupError = e instanceof GroupError ? e.message : "تعذّر الانضمام إلى المجموعة";
-      }
+      await createPendingSignup(phoneE164);
+      return NextResponse.json({ exists: false });
     }
 
-    return NextResponse.json({
-      user: { id: user.id, name: user.name, role: user.role },
-      groupId,
-      groupError,
-    });
+    const legacy = await loginOrRegister(loginSchema.parse(body));
+    await createSession({ userId: legacy.id, role: legacy.role, name: legacy.name });
+    return NextResponse.json({ exists: true });
   } catch (e) {
     return errorResponse(e);
   }

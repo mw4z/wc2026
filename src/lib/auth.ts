@@ -41,6 +41,43 @@ export async function destroySession(): Promise<void> {
   (await cookies()).delete(COOKIE);
 }
 
+// ---- Pending signup (phone verified at step 1, account created at step 2) ----
+// A short-lived signed httpOnly cookie holding the normalized E.164 phone so the
+// signup page never takes the phone from the URL or client state.
+const PENDING_COOKIE = "wc26_pending";
+const PENDING_MAX_AGE = 60 * 10; // 10 minutes
+
+export async function createPendingSignup(phoneE164: string): Promise<void> {
+  const token = await new SignJWT({ phoneE164 })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${PENDING_MAX_AGE}s`)
+    .sign(secret());
+  (await cookies()).set(PENDING_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: PENDING_MAX_AGE,
+    path: "/",
+  });
+}
+
+/** Returns the pending E.164 phone, or null if missing/expired/invalid. */
+export async function getPendingSignup(): Promise<string | null> {
+  const token = (await cookies()).get(PENDING_COOKIE)?.value;
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, secret());
+    return (payload.phoneE164 as string) || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearPendingSignup(): Promise<void> {
+  (await cookies()).delete(PENDING_COOKIE);
+}
+
 /** Lightweight: trusts the signed cookie. Use in middleware / cheap checks. */
 export async function getSession(): Promise<SessionPayload | null> {
   const token = (await cookies()).get(COOKIE)?.value;

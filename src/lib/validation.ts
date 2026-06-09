@@ -24,6 +24,22 @@ export const phoneLoginSchema = z.object({
 });
 export type PhoneLoginInput = z.infer<typeof phoneLoginSchema>;
 
+// Step 1: phone entry (no name). Server logs in if the phone exists, else opens
+// a pending signup.
+export const phoneStartSchema = z.object({
+  country: z.string().trim().length(2, "اختر الدولة"),
+  phone: z.string().trim().min(3, "رقم الجوال مطلوب").max(20),
+});
+export type PhoneStartInput = z.infer<typeof phoneStartSchema>;
+
+// Step 2: complete signup (phone comes from the pending cookie, never the body).
+export const signupCompleteSchema = z.object({
+  name: z.string().trim().min(2, "الاسم قصير جدًا").max(80),
+  groupCode: z.string().trim().max(40).optional().or(z.literal("")),
+  newGroupName: z.string().trim().max(60).optional().or(z.literal("")),
+});
+export type SignupCompleteInput = z.infer<typeof signupCompleteSchema>;
+
 export const predictionSchema = z.object({
   matchId: z.string().min(1),
   predictedHomeScore: score,

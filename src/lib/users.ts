@@ -75,6 +75,55 @@ export async function loginOrRegisterByPhone(input: PhoneLoginInput) {
 }
 
 /**
+ * Step 1 of the 2-page flow. Normalize the phone and report whether an account
+ * exists — WITHOUT creating one. For an existing account, returns the user
+ * (promoting a bootstrap-admin phone, rejecting a deactivated one).
+ */
+export async function getPhoneLoginStatus(input: { country: string; phone: string }) {
+  const phoneE164 = normalizePhone(input.phone, input.country);
+  if (!phoneE164) {
+    throw new LoginError("رقم الجوال غير صحيح", "INVALID_PHONE", 422);
+  }
+  const existing = await prisma.user.findUnique({ where: { phoneE164 } });
+  if (!existing) return { phoneE164, user: null as null };
+
+  if (!existing.isActive) {
+    throw new LoginError("تم إيقاف هذا الحساب. تواصل مع الإدارة.", "USER_INACTIVE", 403);
+  }
+  if (adminPhones().has(phoneE164) && existing.role !== "ADMIN") {
+    const promoted = await prisma.user.update({ where: { id: existing.id }, data: { role: "ADMIN" } });
+    return { phoneE164, user: promoted };
+  }
+  return { phoneE164, user: existing };
+}
+
+/**
+ * Step 2 of the 2-page flow. Create the account for an already-verified pending
+ * phone (E.164). Re-validates server-side: registration must be open (unless a
+ * bootstrap admin), and a name is required. Idempotent if the phone now exists.
+ */
+export async function completePhoneSignup(phoneE164: string, rawName: string) {
+  const isBootstrapAdmin = adminPhones().has(phoneE164);
+  const existing = await prisma.user.findUnique({ where: { phoneE164 } });
+  if (existing) {
+    if (!existing.isActive) {
+      throw new LoginError("تم إيقاف هذا الحساب. تواصل مع الإدارة.", "USER_INACTIVE", 403);
+    }
+    return existing; // already created (e.g. double submit) — just log in
+  }
+  if (!isBootstrapAdmin && !(await isRegistrationOpen())) {
+    throw new LoginError("تم إغلاق تسجيل المشاركين الجدد.", "REGISTRATION_CLOSED", 403);
+  }
+  const name = (rawName ?? "").trim();
+  if (name.length < 2) {
+    throw new LoginError("الاسم مطلوب", "NAME_REQUIRED", 422);
+  }
+  return prisma.user.create({
+    data: { phoneE164, name, role: isBootstrapAdmin ? "ADMIN" : "USER" },
+  });
+}
+
+/**
  * Low-friction login. employeeId (the employee number) is the unique identity.
  *
  *  - Existing employeeId  → log into that account. The stored name is NEVER
