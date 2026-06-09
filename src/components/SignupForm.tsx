@@ -42,7 +42,8 @@ export function SignupForm({ phone }: { phone: string }) {
         setError(data.error || UI.loginFailed);
         return;
       }
-      router.push(data.groupId ? `/groups/${data.groupId}` : next);
+      // Always land on the matches page after signup (even if a group was joined).
+      router.push(next);
       router.refresh();
     } catch {
       setError(UI.connError);
