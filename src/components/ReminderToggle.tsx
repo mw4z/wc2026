@@ -114,13 +114,11 @@ export function ReminderToggle() {
       <div className="min-w-0 flex-1">
         <div className="text-sm font-semibold text-slate-100">{UI.remindersTitle}</div>
         <div className="text-xs text-slate-400">
-          {state === "ios-install"
-            ? UI.remindersIosHint
-            : state === "blocked"
-              ? UI.remindersBlocked
-              : error
-                ? UI.remindersError
-                : UI.remindersDesc}
+          {state === "blocked"
+            ? UI.remindersBlocked
+            : error
+              ? UI.remindersError
+              : UI.remindersDesc}
         </div>
       </div>
       {state === "off" && (
