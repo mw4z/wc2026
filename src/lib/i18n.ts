@@ -30,6 +30,7 @@ const ar = {
   upcomingMatches: "المباريات القادمة",
   finishedMatches: "المباريات المنتهية",
   matchesHeroSubtitle: "توقّع نتائج مباريات كأس العالم 2026 ونافس زملاءك على الصدارة.",
+  timezoneNote: "جميع الأوقات معروضة بتوقيت السعودية (UTC+3).",
   noMatchesTitle: "لا توجد مباريات بعد",
   noMatchesHint: "سيتم عرض المباريات هنا فور توفّر الجدول.",
   // match card / prediction
@@ -395,6 +396,7 @@ const en: Dict = {
   upcomingMatches: "Upcoming matches",
   finishedMatches: "Finished matches",
   matchesHeroSubtitle: "Predict the FIFA World Cup 2026 results and compete with your colleagues for the top spot.",
+  timezoneNote: "All times are shown in Saudi Arabia time (UTC+3).",
   noMatchesTitle: "No matches yet",
   noMatchesHint: "Matches will appear here as soon as the schedule is available.",
   submitPrediction: "Submit prediction",

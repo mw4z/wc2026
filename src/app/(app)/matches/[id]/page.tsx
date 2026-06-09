@@ -81,6 +81,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
       <p className="mt-3 text-center text-sm text-slate-400">
         {UI.kickoff}: <span className="text-slate-200">{formatDateTimeAr(match.kickoffAt)}</span>
       </p>
+      <p className="mt-1 text-center text-xs text-slate-500">{UI.timezoneNote}</p>
 
       <div className="mt-6">
         {locked && stats ? (

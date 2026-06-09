@@ -12,7 +12,7 @@ import { TournamentHero, EmptyState } from "@/components/TournamentHero";
 import { TodaySummary } from "@/components/TodaySummary";
 import { ReminderToggle } from "@/components/ReminderToggle";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { BallIcon } from "@/components/icons";
+import { BallIcon, ClockIcon } from "@/components/icons";
 import { AdSlot } from "@/components/AdSlot";
 import { AD_SLOTS } from "@/lib/ads";
 
@@ -96,6 +96,10 @@ export default async function MatchesPage() {
         </div>
       )}
       <TournamentHero title={UI.appName} subtitle={UI.matchesHeroSubtitle} icon={<BallIcon />} />
+      <p className="-mt-2 mb-5 flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">
+        <ClockIcon className="text-sm text-accent-400" />
+        {UI.timezoneNote}
+      </p>
       <InstallPrompt />
       <ReminderToggle />
       {summary.total > 0 && (
