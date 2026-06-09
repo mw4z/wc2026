@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { SerializedMatch, SerializedPrediction } from "@/app/(app)/matches/page";
 import { useUI } from "./I18nProvider";
 import { ClockIcon, CheckIcon, LockIcon } from "./icons";
+import { Flag } from "./Flag";
 
 const KNOCKOUT = new Set([
   "ROUND_OF_32",
@@ -284,14 +285,7 @@ function StatusPill({
 function TeamSide({ name, flag, win }: { name: string; flag?: string | null; win?: boolean }) {
   return (
     <div className="flex flex-1 flex-col items-center gap-2 text-center">
-      {flag ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={flag} alt="" className={`flag h-12 w-12 ${win ? "ring-2 ring-gold-400" : ""}`} />
-      ) : (
-        <div className="grid h-12 w-12 place-items-center rounded-md bg-navy-700 text-sm text-slate-400 ring-1 ring-white/15">
-          ؟
-        </div>
-      )}
+      <Flag src={flag} className={`h-12 w-12 ${win ? "ring-2 ring-gold-400" : ""}`} />
       <span className={`text-sm font-bold leading-tight ${win ? "text-gold-300" : "text-slate-100"}`}>
         {name}
       </span>
