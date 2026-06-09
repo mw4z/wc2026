@@ -4,7 +4,6 @@ import { AppNav } from "@/components/AppNav";
 import { MobileTabBar } from "@/components/MobileTabBar";
 import { LogoutButton } from "@/components/LogoutButton";
 import { LangToggle } from "@/components/LangToggle";
-import { SiteFooter } from "@/components/SiteFooter";
 
 // The authenticated app chrome (header + inline/bottom nav). Shared by the (app)
 // layout and the (public) layout when the visitor is logged in, so public pages
@@ -28,9 +27,7 @@ export function AppShell({ isAdmin, children }: { isAdmin: boolean; children: Re
         </div>
         <div className="h-[3px] w-full bg-gradient-to-l from-accent-500 via-[#7c5cff] to-lime-500" />
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
-      {/* Extra bottom padding on mobile so the copyright clears the fixed tab bar. */}
-      <SiteFooter className="pb-24 xl:pb-0" />
+      <main className="mx-auto max-w-5xl px-4 py-6 pb-28 xl:pb-6">{children}</main>
       <MobileTabBar isAdmin={isAdmin} />
     </div>
   );

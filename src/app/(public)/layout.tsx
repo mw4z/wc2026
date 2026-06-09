@@ -48,25 +48,20 @@ export default async function PublicLayout({ children }: { children: React.React
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">{children}</main>
 
-      <footer className="mt-12 border-t border-white/15 bg-navy-950">
-        <div className="h-[3px] w-full bg-gradient-to-l from-accent-500 via-[#7c5cff] to-lime-500" />
-        <div className="mx-auto max-w-5xl px-4 pt-10 pb-20 text-slate-300">
-          <Link href="/" className="mb-5 flex items-center gap-2.5">
-            <BrandMark className="h-9 w-9" />
-            <span className="font-display text-lg font-extrabold text-white">توقعات كأس 2026</span>
-          </Link>
-          <nav className="mb-6 flex flex-wrap gap-x-6 gap-y-3 text-base font-semibold">
+      <footer className="border-t border-white/10 bg-navy-950/60">
+        <div className="mx-auto max-w-5xl px-4 pt-8 pb-16 text-sm text-slate-400">
+          <nav className="mb-4 flex flex-wrap gap-x-4 gap-y-2">
             {NAV.map((l) => (
-              <Link key={l.href} href={l.href} className="text-slate-200 transition hover:text-accent-400">
+              <Link key={l.href} href={l.href} className="hover:text-white">
                 {l.label}
               </Link>
             ))}
           </nav>
-          <p className="max-w-2xl text-sm leading-relaxed text-slate-400">
+          <p className="text-xs text-slate-500">
             هذا الموقع لعبة توقعات للترفيه والمنافسة بين الأصدقاء، وغير مرتبط رسميًا بالاتحاد الدولي لكرة القدم
             (FIFA). جميع العلامات التجارية تعود لأصحابها.
           </p>
-          <p className="mt-4 text-sm font-semibold text-slate-400">© 2026 توقعات كأس 2026</p>
+          <p className="mt-2 text-xs text-slate-600">© 2026 توقعات كأس 2026</p>
         </div>
       </footer>
     </div>
