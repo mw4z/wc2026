@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { signupCompleteSchema } from "@/lib/validation";
 import { completeEmailSignup } from "@/lib/users";
-import { getPendingSignup, clearPendingSignup, createSession } from "@/lib/auth";
+import { getPendingSignup, clearPendingSignup, createSession, clearInvitePending } from "@/lib/auth";
 import { assertGroupJoinable, joinGroupByCode, createGroup } from "@/lib/groups";
 import { errorResponse } from "@/lib/api";
 
@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
     }
 
     await clearPendingSignup();
+    await clearInvitePending();
     return NextResponse.json({ ok: true, groupId });
   } catch (e) {
     return errorResponse(e);

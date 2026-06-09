@@ -114,6 +114,31 @@ export async function clearOtpPending(): Promise<void> {
   (await cookies()).delete(OTP_COOKIE);
 }
 
+// ---- Invite code (logged-out user arriving via /join/CODE) -------------------
+// A short-lived cookie that carries the group invite code through the login/
+// signup flow, so a brand-new user lands on /matches (not the group page) and
+// the signup form pre-fills the code instead of auto-joining via `next`.
+const INVITE_COOKIE = "wc26_invite";
+const INVITE_MAX_AGE = 60 * 30; // 30 minutes
+
+export async function createInvitePending(code: string): Promise<void> {
+  (await cookies()).set(INVITE_COOKIE, code, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: INVITE_MAX_AGE,
+    path: "/",
+  });
+}
+
+export async function getInvitePending(): Promise<string | null> {
+  return (await cookies()).get(INVITE_COOKIE)?.value || null;
+}
+
+export async function clearInvitePending(): Promise<void> {
+  (await cookies()).delete(INVITE_COOKIE);
+}
+
 // ---- Email change (logged-in user adding/changing their email, OTP-verified) --
 const EMAIL_CHANGE_COOKIE = "wc26_emailchg";
 const EMAIL_CHANGE_MAX_AGE = 60 * 10; // 10 minutes

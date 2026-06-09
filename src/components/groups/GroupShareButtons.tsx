@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useUI } from "@/components/I18nProvider";
-import { BellIcon, WhatsAppIcon, ShareIcon } from "@/components/icons";
+import { BellIcon, ShareIcon } from "@/components/icons";
 
 // Reminder / result share actions as uniform grid-item buttons (parent supplies
 // the grid). Messages are Arabic-first (meant for WhatsApp); no data sent anywhere.
@@ -41,10 +41,6 @@ export function GroupShareButtons({
       <button onClick={copyReminder} className={`action-btn ${copied ? "is-ok" : ""}`}>
         <BellIcon className="ab-ic" />
         {copied ? UI.reminderCopied : UI.copyGroupReminder}
-      </button>
-      <button onClick={() => whatsapp(reminder())} className="action-btn is-wa">
-        <WhatsAppIcon className="ab-ic" />
-        {UI.shareViaWhatsApp}
       </button>
       {points != null && points > 0 && rank != null && (
         <button onClick={() => whatsapp(result())} className="action-btn is-wa">

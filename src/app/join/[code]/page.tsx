@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, createInvitePending } from "@/lib/auth";
 import { getUI } from "@/lib/locale";
 import { BrandMark } from "@/components/Logo";
 import { AutoJoin } from "@/components/groups/AutoJoin";
@@ -7,13 +7,16 @@ import { AutoJoin } from "@/components/groups/AutoJoin";
 export const dynamic = "force-dynamic";
 
 // Invite link target: /join/CUP-12345. If logged in, AutoJoin joins immediately
-// and redirects to the group. If not, send through login carrying the code in
-// `next` so the user lands back here and auto-joins after authenticating.
+// and redirects to the group. If not, stash the code in a short-lived invite
+// cookie and send the user through login normally — after signing up they land
+// on /matches and the signup form pre-fills the code (rather than auto-joining
+// and dumping them on the group page).
 export default async function JoinPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const user = await getCurrentUser();
   if (!user || !user.isActive) {
-    redirect(`/login?next=${encodeURIComponent(`/join/${code}`)}`);
+    await createInvitePending(code);
+    redirect("/login");
   }
   const UI = await getUI();
 

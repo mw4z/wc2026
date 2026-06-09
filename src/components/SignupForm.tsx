@@ -7,7 +7,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useUI } from "@/components/I18nProvider";
 
 // Step 2 form. Email is read-only (verified in step 1, held in a pending cookie).
-export function SignupForm({ email }: { email: string }) {
+// `inviteCode` is set when the user arrived via an invite link (/join/CODE) — we
+// pre-fill the join field with it so they don't have to retype it.
+export function SignupForm({ email, inviteCode }: { email: string; inviteCode?: string | null }) {
   const UI = useUI();
   const router = useRouter();
   const params = useSearchParams();
@@ -15,7 +17,7 @@ export function SignupForm({ email }: { email: string }) {
 
   const [name, setName] = useState("");
   const [groupMode, setGroupMode] = useState<"join" | "create">("join");
-  const [groupCode, setGroupCode] = useState("");
+  const [groupCode, setGroupCode] = useState(inviteCode ?? "");
   const [newGroupName, setNewGroupName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

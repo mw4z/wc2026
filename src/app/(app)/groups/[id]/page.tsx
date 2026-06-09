@@ -5,7 +5,7 @@ import { getUI } from "@/lib/locale";
 import { CopyCode } from "@/components/groups/CopyCode";
 import { GroupShareButtons } from "@/components/groups/GroupShareButtons";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
-import { UsersIcon, TrophyIcon, BallIcon } from "@/components/icons";
+import { UsersIcon, TrophyIcon } from "@/components/icons";
 import { AdSlot } from "@/components/AdSlot";
 import { AD_SLOTS } from "@/lib/ads";
 
@@ -61,10 +61,6 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
           <Link href={`/groups/${id}/members`} className="action-btn">
             <UsersIcon className="ab-ic" />
             {UI.groupMembers}
-          </Link>
-          <Link href="/matches" className="action-btn">
-            <BallIcon className="ab-ic" />
-            {UI.matches}
           </Link>
           <GroupShareButtons code={group.code} points={myRow?.totalPoints ?? 0} rank={myRow?.rank ?? null} />
         </div>
