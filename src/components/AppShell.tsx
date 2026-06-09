@@ -11,7 +11,7 @@ import { LangToggle } from "@/components/LangToggle";
 export function AppShell({ isAdmin, children }: { isAdmin: boolean; children: React.ReactNode }) {
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-navy-950/85 backdrop-blur-xl">
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-navy-950/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
         <div className="h-[3px] w-full bg-gradient-to-l from-accent-500 via-[#7c5cff] to-lime-500" />
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5">
           <Link href="/matches" className="min-w-0">
