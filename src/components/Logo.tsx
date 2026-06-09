@@ -49,16 +49,24 @@ export function LogoMark({ className }: { className?: string }) {
 // falls back to the original vector mark. Drop the real (licensed) file there
 // and it appears everywhere automatically.
 export function BrandMark({ className = "" }: { className?: string }) {
+  // Show the vector mark by default; reveal /art/logo.png only once it actually
+  // loads. A missing file therefore shows the clean SVG, never a broken glyph.
+  const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  if (failed) return <LogoMark className={className} />;
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/art/logo.png"
-      alt="توقعات كأس العالم 2026"
-      className={`object-contain ${className}`}
-      onError={() => setFailed(true)}
-    />
+    <>
+      {!loaded && <LogoMark className={className} />}
+      {!failed && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src="/art/logo.png"
+          alt="توقعات كأس العالم 2026"
+          className={loaded ? `object-contain ${className}` : "hidden"}
+          onLoad={() => setLoaded(true)}
+          onError={() => setFailed(true)}
+        />
+      )}
+    </>
   );
 }
 
