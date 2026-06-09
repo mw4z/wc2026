@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CONTACT_EMAIL } from "@/lib/ads";
+import { CONTACT_WHATSAPP, CONTACT_WHATSAPP_LINK } from "@/lib/ads";
 
 export const metadata: Metadata = {
   title: "سياسة الخصوصية — توقعات كأس 2026",
@@ -34,9 +34,15 @@ export default function PrivacyPage() {
 
       <h2 className="font-bold text-gold-400">حذف البيانات والتواصل</h2>
       <p>
-        يمكنك التواصل معنا لطلب حذف بياناتك أو لأي استفسار يتعلّق بالخصوصية عبر البريد:{" "}
-        <a href={`mailto:${CONTACT_EMAIL}`} className="text-accent-400 hover:underline" dir="ltr">
-          {CONTACT_EMAIL}
+        يمكنك التواصل معنا لطلب حذف بياناتك أو لأي استفسار يتعلّق بالخصوصية عبر واتساب:{" "}
+        <a
+          href={CONTACT_WHATSAPP_LINK}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-accent-400 hover:underline"
+          dir="ltr"
+        >
+          {CONTACT_WHATSAPP}
         </a>
         .
       </p>

@@ -15,4 +15,7 @@ export const AD_SLOTS = {
   faqBottom: process.env.NEXT_PUBLIC_ADSENSE_FAQ_BOTTOM_SLOT || "",
 } as const;
 
-export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "support@example.com";
+// Support contact is a WhatsApp number. Display form keeps spaces/“+” for
+// readability; the wa.me link uses the digits only.
+export const CONTACT_WHATSAPP = process.env.NEXT_PUBLIC_CONTACT_WHATSAPP || "+966 55 789 7925";
+export const CONTACT_WHATSAPP_LINK = `https://wa.me/${CONTACT_WHATSAPP.replace(/\D/g, "")}`;
