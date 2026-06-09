@@ -15,7 +15,7 @@ export function MobileTabBar({ isAdmin }: { isAdmin: boolean }) {
   const items = navItems(UI, isAdmin);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-navy-950/95 backdrop-blur-xl lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-navy-950/95 backdrop-blur-xl xl:hidden">
       <div className="h-[2px] w-full bg-gradient-to-l from-accent-500 via-[#7c5cff] to-lime-500" />
       <div className="flex items-stretch justify-around pb-[env(safe-area-inset-bottom)]">
         {items.map(({ href, label, Icon }) => (

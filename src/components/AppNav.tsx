@@ -15,12 +15,12 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
   const items = navItems(UI, isAdmin);
 
   return (
-    <nav className="no-scrollbar hidden items-center gap-0.5 overflow-x-auto lg:flex">
+    <nav className="no-scrollbar hidden items-center gap-0.5 overflow-x-auto xl:flex">
       {items.map(({ href, label, Icon }) => (
         <Link
           key={href}
           href={href}
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap transition ${
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-semibold whitespace-nowrap transition ${
             active(href) ? "bg-accent-500/15 text-accent-400" : "text-slate-300 hover:bg-white/5 hover:text-white"
           }`}
         >
