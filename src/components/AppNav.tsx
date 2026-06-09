@@ -15,7 +15,7 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
   const items = navItems(UI, isAdmin);
 
   return (
-    <nav className="hidden items-center gap-0.5 md:flex">
+    <nav className="hidden items-center gap-0.5 lg:flex">
       {items.map(({ href, label, Icon }) => (
         <Link
           key={href}

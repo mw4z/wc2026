@@ -23,17 +23,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/matches" className="min-w-0">
             <Logo />
           </Link>
-          <div className="mx-1 hidden h-6 w-px bg-white/10 md:block" />
-          <div className="hidden min-w-0 flex-1 md:block">
+          <div className="mx-1 hidden h-6 w-px bg-white/10 lg:block" />
+          <div className="hidden min-w-0 flex-1 lg:block">
             <AppNav isAdmin={user.role === "ADMIN"} />
           </div>
-          <div className="ms-auto flex shrink-0 items-center gap-1 md:ms-0">
+          <div className="ms-auto flex shrink-0 items-center gap-1 lg:ms-0">
             <LangToggle />
             <LogoutButton />
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-6 pb-24 md:pb-6">{children}</main>
+      <main className="mx-auto max-w-5xl px-4 py-6 pb-24 lg:pb-6">{children}</main>
       <MobileTabBar isAdmin={user.role === "ADMIN"} />
       <GroupNudge hasGroup={groupCount > 0} />
     </div>
