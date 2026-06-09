@@ -179,6 +179,64 @@
   animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* ---- Action tiles & buttons (uniform, recognizable nav/actions) ---- */
+@layer components {
+  /* Big list-style tile: leading icon badge + label + trailing chevron. */
+  .tile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    border-radius: 0.875rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.85rem 1rem;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  }
+  .tile:hover { border-color: rgba(43, 123, 255, 0.45); background: rgba(255, 255, 255, 0.06); }
+  .tile:active { transform: scale(0.99); }
+  .tile-ic {
+    display: grid;
+    place-items: center;
+    height: 2.25rem;
+    width: 2.25rem;
+    flex: none;
+    border-radius: 0.625rem;
+    background: rgba(43, 123, 255, 0.14);
+    color: var(--accent);
+    font-size: 1.15rem;
+  }
+  .tile-label { font-size: 0.9rem; font-weight: 600; color: #e2e8f0; }
+  .tile-chev { margin-inline-start: auto; color: #64748b; font-size: 1.05rem; flex: none; }
+
+  /* Compact equal-size action button: centered icon + label (for grids). */
+  .action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.7rem 0.65rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    line-height: 1.25;
+    text-align: center;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  }
+  .action-btn:hover { border-color: rgba(43, 123, 255, 0.45); background: rgba(255, 255, 255, 0.06); color: #fff; }
+  .action-btn:active { transform: scale(0.98); }
+  .action-btn .ab-ic { color: var(--accent); font-size: 1.05rem; flex: none; }
+  /* Success/confirmed state (e.g. "copied"). */
+  .action-btn.is-ok { border-color: rgba(132, 204, 22, 0.5); color: #bef264; }
+  .action-btn.is-ok .ab-ic { color: #bef264; }
+  /* WhatsApp-flavored action. */
+  .action-btn.is-wa .ab-ic { color: #25d366; }
+}
+
 /* ---- Branded route loader (instant tab transitions via loading.tsx) ---- */
 @keyframes ball-spin { to { transform: rotate(360deg); } }
 @keyframes ball-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }

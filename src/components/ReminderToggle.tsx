@@ -104,7 +104,9 @@ export function ReminderToggle() {
     }
   }
 
-  if (state === "loading" || state === "unsupported") return null;
+  // "ios-install" is handled by the dedicated InstallPrompt guide, so don't show
+  // a redundant reminders card here — it reappears (functional) once installed.
+  if (state === "loading" || state === "unsupported" || state === "ios-install") return null;
 
   return (
     <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">

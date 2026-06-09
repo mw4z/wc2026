@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { isRegistrationOpen, getPredictionLead } from "@/lib/settings";
 import { getUI } from "@/lib/locale";
 import { AdminControls } from "@/components/admin/AdminControls";
+import { BallIcon, ListIcon, UsersIcon, UserIcon, DownloadIcon, ArrowIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -37,13 +38,41 @@ export default async function AdminHome() {
         {stat(UI.statPredictions, predictions)}
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2">
-        <Link href="/admin/matches" className="btn-ghost">{UI.admin.manageMatches}</Link>
-        <Link href="/admin/predictions" className="btn-ghost">{UI.admin.viewPredictions}</Link>
-        <Link href="/admin/groups" className="btn-ghost">{UI.admin.manageGroups}</Link>
-        <Link href="/admin/users" className="btn-ghost">{UI.admin.manageUsers}</Link>
-        <a href="/api/admin/export?type=leaderboard" className="btn-ghost">{UI.admin.exportLeaderboard}</a>
-        <a href="/api/admin/export?type=predictions" className="btn-ghost">{UI.admin.exportPredictions}</a>
+      <div className="mb-6 grid gap-2.5 sm:grid-cols-2">
+        <Link href="/admin/matches" className="tile">
+          <span className="tile-ic"><BallIcon /></span>
+          <span className="tile-label">{UI.admin.manageMatches}</span>
+          <ArrowIcon className="tile-chev" />
+        </Link>
+        <Link href="/admin/predictions" className="tile">
+          <span className="tile-ic"><ListIcon /></span>
+          <span className="tile-label">{UI.admin.viewPredictions}</span>
+          <ArrowIcon className="tile-chev" />
+        </Link>
+        <Link href="/admin/groups" className="tile">
+          <span className="tile-ic"><UsersIcon /></span>
+          <span className="tile-label">{UI.admin.manageGroups}</span>
+          <ArrowIcon className="tile-chev" />
+        </Link>
+        <Link href="/admin/users" className="tile">
+          <span className="tile-ic"><UserIcon /></span>
+          <span className="tile-label">{UI.admin.manageUsers}</span>
+          <ArrowIcon className="tile-chev" />
+        </Link>
+      </div>
+
+      <div className="mb-6">
+        <span className="eyebrow mb-2 block">{UI.admin.exportData}</span>
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          <a href="/api/admin/export?type=leaderboard" className="tile">
+            <span className="tile-ic"><DownloadIcon /></span>
+            <span className="tile-label">{UI.admin.exportLeaderboard}</span>
+          </a>
+          <a href="/api/admin/export?type=predictions" className="tile">
+            <span className="tile-ic"><DownloadIcon /></span>
+            <span className="tile-label">{UI.admin.exportPredictions}</span>
+          </a>
+        </div>
       </div>
 
       <AdminControls registrationOpen={registrationOpen} predictionLead={predictionLead} />

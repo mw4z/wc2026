@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useUI } from "@/components/I18nProvider";
+import { BellIcon, WhatsAppIcon, ShareIcon } from "@/components/icons";
 
-// Copy-to-clipboard retention helpers for a group. The shared MESSAGE text is
-// Arabic-first (it's meant to be pasted into WhatsApp etc.); button labels are
-// localized. No data sent anywhere — pure clipboard.
+// Reminder / result share actions as uniform grid-item buttons (parent supplies
+// the grid). Messages are Arabic-first (meant for WhatsApp); no data sent anywhere.
 export function GroupShareButtons({
   code,
   points,
@@ -16,14 +16,19 @@ export function GroupShareButtons({
   rank?: number | null;
 }) {
   const UI = useUI();
-  const [copied, setCopied] = useState<"reminder" | "result" | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const link = () => `${window.location.origin}/join/${code}`;
-  async function copy(text: string, which: "reminder" | "result") {
+  const reminder = () =>
+    `تذكير سريع ⚽\nلا تنسون توقعات مباريات اليوم قبل بداية كل مباراة.\nرابط المجموعة:\n${link()}\nكود المجموعة: ${code}`;
+  const result = () =>
+    `نتيجتي في توقعات كأس 2026:\n${points} نقطة\nمركزي في المجموعة: ${rank}\nرابط المجموعة:\n${link()}`;
+
+  async function copyReminder() {
     try {
-      await navigator.clipboard.writeText(text);
-      setCopied(which);
-      setTimeout(() => setCopied(null), 1500);
+      await navigator.clipboard.writeText(reminder());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
     } catch {
       /* clipboard unavailable */
     }
@@ -31,31 +36,22 @@ export function GroupShareButtons({
   const whatsapp = (text: string) =>
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
 
-  const reminder = () =>
-    `تذكير سريع ⚽\nلا تنسون توقعات مباريات اليوم قبل بداية كل مباراة.\nرابط المجموعة:\n${link()}\nكود المجموعة: ${code}`;
-  const result = () =>
-    `نتيجتي في توقعات كأس 2026:\n${points} نقطة\nمركزي في المجموعة: ${rank}\nرابط المجموعة:\n${link()}`;
-
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-2">
-        <button onClick={() => copy(reminder(), "reminder")} className="btn-ghost text-sm">
-          {copied === "reminder" ? UI.reminderCopied : UI.copyGroupReminder}
-        </button>
-        <button onClick={() => whatsapp(reminder())} className="btn-ghost text-sm">
-          {UI.shareViaWhatsApp}
-        </button>
-      </div>
+    <>
+      <button onClick={copyReminder} className={`action-btn ${copied ? "is-ok" : ""}`}>
+        <BellIcon className="ab-ic" />
+        {copied ? UI.reminderCopied : UI.copyGroupReminder}
+      </button>
+      <button onClick={() => whatsapp(reminder())} className="action-btn is-wa">
+        <WhatsAppIcon className="ab-ic" />
+        {UI.shareViaWhatsApp}
+      </button>
       {points != null && points > 0 && rank != null && (
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => copy(result(), "result")} className="btn-ghost text-sm">
-            {copied === "result" ? UI.resultCopied : UI.shareMyResult}
-          </button>
-          <button onClick={() => whatsapp(result())} className="btn-ghost text-sm">
-            {UI.shareViaWhatsApp}
-          </button>
-        </div>
+        <button onClick={() => whatsapp(result())} className="action-btn is-wa">
+          <ShareIcon className="ab-ic" />
+          {UI.shareMyResult}
+        </button>
       )}
-    </div>
+    </>
   );
 }

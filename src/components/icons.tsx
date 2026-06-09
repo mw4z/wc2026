@@ -121,6 +121,53 @@ export function ArrowIcon(props: IconProps) {
   );
 }
 
+export function CopyIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <rect x="9" y="9" width="11" height="11" rx="2.5" />
+      <path d="M15 5.5A2.5 2.5 0 0 0 12.5 3H6.5A3.5 3.5 0 0 0 3 6.5v6A2.5 2.5 0 0 0 5.5 15" />
+    </Base>
+  );
+}
+
+export function LinkIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M10.5 13.5a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-1.5 1.5" />
+      <path d="M13.5 10.5a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l1.5-1.5" />
+    </Base>
+  );
+}
+
+export function DownloadIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M12 4v10m0 0 3.5-3.5M12 14l-3.5-3.5" />
+      <path d="M5 17v1.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V17" />
+    </Base>
+  );
+}
+
+export function ShareIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <circle cx="6" cy="12" r="2.5" />
+      <circle cx="17" cy="6" r="2.5" />
+      <circle cx="17" cy="18" r="2.5" />
+      <path d="m8.2 10.8 6.6-3.6M8.2 13.2l6.6 3.6" />
+    </Base>
+  );
+}
+
+export function WhatsAppIcon(props: IconProps) {
+  // WhatsApp glyph (filled), recognizable. Uses fill, not stroke.
+  return (
+    <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm0 1.8c2.17 0 4.21.85 5.74 2.38a8.07 8.07 0 0 1 2.38 5.73c0 4.48-3.65 8.12-8.13 8.12-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.05 8.05 0 0 1-1.24-4.3c0-4.48 3.65-8.12 8.12-8.12Zm-2.6 4.2c-.18 0-.46.07-.7.33-.24.26-.92.9-.92 2.2 0 1.3.94 2.55 1.07 2.73.13.18 1.85 2.82 4.55 3.96.64.27 1.13.43 1.52.55.64.2 1.22.17 1.68.1.51-.07 1.57-.64 1.79-1.26.22-.62.22-1.15.16-1.26-.07-.11-.24-.18-.51-.31-.27-.13-1.57-.78-1.81-.86-.24-.09-.42-.13-.6.13-.17.26-.68.86-.83 1.03-.15.18-.31.2-.57.07-.27-.13-1.12-.41-2.13-1.31-.79-.7-1.32-1.57-1.47-1.83-.15-.26-.02-.4.11-.53.12-.12.27-.31.4-.46.13-.16.18-.27.27-.45.09-.18.04-.33-.02-.46-.07-.13-.6-1.45-.83-1.99-.22-.52-.44-.45-.6-.46-.16-.01-.34-.01-.52-.01Z" />
+    </svg>
+  );
+}
+
 export function PlusIcon(props: IconProps) {
   return (
     <Base {...props}>

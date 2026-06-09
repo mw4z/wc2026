@@ -5,7 +5,7 @@ import { getUI } from "@/lib/locale";
 import { CopyCode } from "@/components/groups/CopyCode";
 import { GroupShareButtons } from "@/components/groups/GroupShareButtons";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
-import { UsersIcon } from "@/components/icons";
+import { UsersIcon, TrophyIcon, BallIcon } from "@/components/icons";
 import { AdSlot } from "@/components/AdSlot";
 import { AD_SLOTS } from "@/lib/ads";
 
@@ -43,24 +43,38 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
       </TournamentHero>
 
       <div className="card card-accent mb-6 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* Prominent group code */}
+        <div className="mb-4 flex flex-col items-center gap-2 text-center">
+          <span className="rounded-xl border border-gold-500/40 bg-gold-500/10 px-5 py-2 font-mono text-2xl font-bold tracking-[0.3em] text-gold-300">
+            {group.code}
+          </span>
+          <p className="text-xs text-slate-400">{UI.groupCodeShareHint}</p>
+        </div>
+
+        {/* Unified, uniform action grid */}
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
           <CopyCode code={group.code} />
-          <div className="flex flex-wrap gap-2">
-            <Link href={`/groups/${id}/leaderboard`} className="btn-ghost text-sm">{UI.groupRanking}</Link>
-            <Link href={`/groups/${id}/members`} className="btn-ghost text-sm">{UI.groupMembers}</Link>
-            <Link href="/matches" className="btn-ghost text-sm">{UI.matches}</Link>
-          </div>
-        </div>
-        <div className="mt-3 border-t border-white/10 pt-3">
+          <Link href={`/groups/${id}/leaderboard`} className="action-btn">
+            <TrophyIcon className="ab-ic" />
+            {UI.groupRanking}
+          </Link>
+          <Link href={`/groups/${id}/members`} className="action-btn">
+            <UsersIcon className="ab-ic" />
+            {UI.groupMembers}
+          </Link>
+          <Link href="/matches" className="action-btn">
+            <BallIcon className="ab-ic" />
+            {UI.matches}
+          </Link>
           <GroupShareButtons code={group.code} points={myRow?.totalPoints ?? 0} rank={myRow?.rank ?? null} />
-          <p className="mt-3 text-sm text-slate-300">
-            <span className="font-semibold text-gold-300">{UI.leaderboardUpdatedTitle}</span>{" "}
-            —{" "}
-            <Link href={`/groups/${id}/leaderboard`} className="text-accent-400 hover:underline">
-              {UI.seeYourRank}
-            </Link>
-          </p>
         </div>
+
+        <p className="mt-4 border-t border-white/10 pt-4 text-sm text-slate-300">
+          <span className="font-semibold text-gold-300">{UI.leaderboardUpdatedTitle}</span> —{" "}
+          <Link href={`/groups/${id}/leaderboard`} className="text-accent-400 hover:underline">
+            {UI.seeYourRank}
+          </Link>
+        </p>
       </div>
 
       <AdSlot slotId={AD_SLOTS.groupTop} slotName="group-top" />
