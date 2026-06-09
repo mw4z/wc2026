@@ -9,7 +9,7 @@ export default async function LoginLayout({ children }: { children: React.ReactN
   const UI = await getUI();
   return (
     <main className="relative mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
-      <div className="absolute end-4 top-4 z-10">
+      <div className="absolute end-4 top-[calc(env(safe-area-inset-top)+1rem)] z-10">
         <LangToggle />
       </div>
       <div className="mb-8 text-center">
