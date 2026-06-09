@@ -46,8 +46,12 @@ export function ReminderToggle() {
       setState("blocked");
       return;
     }
-    navigator.serviceWorker.ready
-      .then((reg) => reg.pushManager.getSubscription())
+    // Use getRegistration() (resolves immediately, undefined if none) rather than
+    // serviceWorker.ready, which never resolves until a SW is registered — that
+    // left the card stuck on "loading" (hidden) on fresh devices/installs.
+    navigator.serviceWorker
+      .getRegistration()
+      .then((reg) => (reg ? reg.pushManager.getSubscription() : null))
       .then((sub) => setState(sub ? "on" : "off"))
       .catch(() => setState("off"));
   }, []);
