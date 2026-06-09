@@ -42,9 +42,13 @@ function fmtCountdown(ms: number) {
 export function MatchCard({
   match,
   prediction,
+  winnerOnly = false,
 }: {
   match: SerializedMatch;
   prediction: SerializedPrediction;
+  // True when ALL of the viewer's groups are winner-only: show a result picker
+  // instead of goal boxes. The stored score is a placeholder (1-0 / 0-0 / 0-1).
+  winnerOnly?: boolean;
 }) {
   const UI = useUI();
   const router = useRouter();
@@ -67,11 +71,43 @@ export function MatchCard({
   const [home, setHome] = useState(prediction?.predictedHomeScore?.toString() ?? "");
   const [away, setAway] = useState(prediction?.predictedAwayScore?.toString() ?? "");
   const [winner, setWinner] = useState(prediction?.predictedWinnerTeamId ?? "");
+  // Winner-only group-stage selection ("" until chosen), derived from any score.
+  const [outcome, setOutcome] = useState<"HOME" | "DRAW" | "AWAY" | "">(() => {
+    if (!prediction) return "";
+    if (prediction.predictedHomeScore > prediction.predictedAwayScore) return "HOME";
+    if (prediction.predictedHomeScore < prediction.predictedAwayScore) return "AWAY";
+    return "DRAW";
+  });
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function save() {
     setMsg(null);
+
+    // In winner-only mode the score is a placeholder derived from the pick:
+    // knockout → chosen team wins 1-0; group stage → HOME 1-0 / DRAW 0-0 / AWAY 0-1.
+    let hScore = Number(home);
+    let aScore = Number(away);
+    let winnerId: string | null = isKnockout ? winner || null : null;
+    if (winnerOnly) {
+      if (isKnockout) {
+        if (!winner) {
+          setMsg({ type: "err", text: UI.predictedWinner });
+          return;
+        }
+        winnerId = winner;
+        hScore = winner === match.homeTeam!.id ? 1 : 0;
+        aScore = winner === match.awayTeam!.id ? 1 : 0;
+      } else {
+        if (!outcome) {
+          setMsg({ type: "err", text: UI.whoWins });
+          return;
+        }
+        hScore = outcome === "HOME" ? 1 : 0;
+        aScore = outcome === "AWAY" ? 1 : 0;
+      }
+    }
+
     setSaving(true);
     try {
       const res = await fetch("/api/predictions", {
@@ -79,9 +115,9 @@ export function MatchCard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           matchId: match.id,
-          predictedHomeScore: Number(home),
-          predictedAwayScore: Number(away),
-          predictedWinnerTeamId: isKnockout ? winner || null : null,
+          predictedHomeScore: hScore,
+          predictedAwayScore: aScore,
+          predictedWinnerTeamId: winnerId,
         }),
       });
       const data = await res.json();
@@ -178,32 +214,44 @@ export function MatchCard({
               <LockIcon className="text-sm" />
               {UI.closesAtKickoff}
             </p>
-            <div className="flex items-center justify-center gap-3">
-              <ScoreInput value={home} onChange={setHome} label={match.homeTeam!.name} />
-              <span className="font-display text-xl text-slate-600">:</span>
-              <ScoreInput value={away} onChange={setAway} label={match.awayTeam!.name} />
-            </div>
 
-            {isKnockout && (
+            {winnerOnly ? (
+              // Result picker (no goals): all of the viewer's groups are winner-only.
               <div>
-                <label className="label text-center">{UI.predictedWinner}</label>
-                <div className="flex gap-2">
-                  {[match.homeTeam!, match.awayTeam!].map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setWinner(t.id)}
-                      className={`flex-1 rounded-lg border px-2 py-2 text-sm font-semibold transition ${
-                        winner === t.id
-                          ? "border-accent-500 bg-accent-500/15 text-accent-400"
-                          : "border-white/10 text-slate-300 hover:border-white/25"
-                      }`}
-                    >
-                      {t.name}
-                    </button>
-                  ))}
-                </div>
+                <p className="mb-2 text-center text-xs text-slate-500">{UI.winnerOnlyInputHint}</p>
+                {isKnockout ? (
+                  <div className="flex gap-2">
+                    {[match.homeTeam!, match.awayTeam!].map((t) => (
+                      <PickButton key={t.id} active={winner === t.id} onClick={() => setWinner(t.id)} label={t.name} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <PickButton active={outcome === "HOME"} onClick={() => setOutcome("HOME")} label={match.homeTeam!.name} />
+                    <PickButton active={outcome === "DRAW"} onClick={() => setOutcome("DRAW")} label={UI.outcomeDraw} />
+                    <PickButton active={outcome === "AWAY"} onClick={() => setOutcome("AWAY")} label={match.awayTeam!.name} />
+                  </div>
+                )}
               </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-center gap-3">
+                  <ScoreInput value={home} onChange={setHome} label={match.homeTeam!.name} />
+                  <span className="font-display text-xl text-slate-600">:</span>
+                  <ScoreInput value={away} onChange={setAway} label={match.awayTeam!.name} />
+                </div>
+
+                {isKnockout && (
+                  <div>
+                    <label className="label text-center">{UI.predictedWinner}</label>
+                    <div className="flex gap-2">
+                      {[match.homeTeam!, match.awayTeam!].map((t) => (
+                        <PickButton key={t.id} active={winner === t.id} onClick={() => setWinner(t.id)} label={t.name} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {msg && (
@@ -217,7 +265,14 @@ export function MatchCard({
               </p>
             )}
 
-            <button onClick={save} disabled={saving || home === "" || away === ""} className="btn-primary w-full">
+            <button
+              onClick={save}
+              disabled={
+                saving ||
+                (winnerOnly ? (isKnockout ? !winner : !outcome) : home === "" || away === "")
+              }
+              className="btn-primary w-full"
+            >
               {saving ? <Spinner /> : UI.submitPrediction}
             </button>
           </div>
@@ -319,6 +374,22 @@ function TeamSide({ name, flag, win }: { name: string; flag?: string | null; win
         {name}
       </span>
     </div>
+  );
+}
+
+function PickButton({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex-1 rounded-lg border px-2 py-2 text-sm font-semibold transition ${
+        active
+          ? "border-accent-500 bg-accent-500/15 text-accent-400"
+          : "border-white/10 text-slate-300 hover:border-white/25"
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 

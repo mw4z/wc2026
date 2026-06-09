@@ -24,14 +24,22 @@ export default async function MatchesPage() {
   const user = await requireUser();
   await lockDueMatches(); // keep status badges accurate on load
 
-  const [matches, myPredictions] = await Promise.all([
+  const [matches, myPredictions, myGroups] = await Promise.all([
     prisma.match.findMany({
       include: { homeTeam: true, awayTeam: true },
       orderBy: { kickoffAt: "asc" },
     }),
     prisma.prediction.findMany({ where: { userId: user.id } }),
+    prisma.groupMember.findMany({
+      where: { userId: user.id, group: { isActive: true } },
+      select: { group: { select: { winnerOnly: true } } },
+    }),
   ]);
   const lead = await getPredictionLead();
+
+  // Show the goal-free result picker only when EVERY group the user belongs to is
+  // winner-only (no group needs exact goals). Mixed membership keeps score inputs.
+  const winnerOnly = myGroups.length > 0 && myGroups.every((m) => m.group.winnerOnly);
 
   const predByMatch = new Map(myPredictions.map((p) => [p.matchId, p]));
   const now = new Date();
@@ -82,6 +90,7 @@ export default async function MatchesPage() {
               key={m.id}
               match={serializeMatch(m, locale, lead)}
               prediction={serializePrediction(predByMatch.get(m.id))}
+              winnerOnly={winnerOnly}
             />
           ))}
         </div>

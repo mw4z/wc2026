@@ -40,6 +40,13 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
     where: { userId_matchId: { userId: user.id, matchId: match.id } },
   });
 
+  // Goal-free picker when every group the user is in is winner-only.
+  const myGroups = await prisma.groupMember.findMany({
+    where: { userId: user.id, group: { isActive: true } },
+    select: { group: { select: { winnerOnly: true } } },
+  });
+  const winnerOnly = myGroups.length > 0 && myGroups.every((m) => m.group.winnerOnly);
+
   // Mirror the server lock guard: a match is locked once it leaves SCHEDULED or
   // kickoff is reached. Stats are only exposed (and computed) after lock.
   const locked = match.status !== "SCHEDULED" || isKickoffReached(match.kickoffAt);
@@ -76,6 +83,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
       <MatchCard
         match={serializeMatch(match, locale)}
         prediction={serializePrediction(myPrediction ?? undefined)}
+        winnerOnly={winnerOnly}
       />
 
       <p className="mt-3 text-center text-sm text-slate-400">
