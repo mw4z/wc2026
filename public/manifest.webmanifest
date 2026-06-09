@@ -1,6 +1,6 @@
 {
   "name": "توقعات كأس العالم 2026",
-  "short_name": "توقعات 2026",
+  "short_name": "GamePredict",
   "description": "توقّع نتائج مباريات كأس العالم 2026 ونافس أصدقاءك.",
   "start_url": "/matches",
   "scope": "/",
