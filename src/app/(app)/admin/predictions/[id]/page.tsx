@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { STAGE_LABEL_AR } from "@/lib/constants";
+import { getUI, getLocale } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +10,8 @@ export default async function AdminPredictionDetail({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const UI = await getUI();
+  const locale = await getLocale();
   await requireAdmin();
   const { id } = await params;
 
@@ -18,14 +20,17 @@ export default async function AdminPredictionDetail({
     include: { homeTeam: true, awayTeam: true },
   });
   if (!match) {
-    return <p className="card p-6 text-center text-slate-400">المباراة غير موجودة.</p>;
+    return <p className="card p-6 text-center text-slate-400">{UI.matchNotFound}</p>;
   }
 
-  const title = `${match.homeTeam?.nameAr ?? "يُحدد"} × ${match.awayTeam?.nameAr ?? "يُحدد"}`;
+  const tn = (t: { nameAr: string; nameEn: string } | null, fallback: string) =>
+    t ? (locale === "en" ? t.nameEn : t.nameAr) : fallback;
+  const winLabel = (n: string) => (locale === "en" ? `${n} ${UI.admin.winWord}` : `${UI.admin.winWord} ${n}`);
+  const title = `${tn(match.homeTeam, UI.tbd)} × ${tn(match.awayTeam, UI.tbd)}`;
 
   const back = (
     <Link href="/admin/predictions" className="text-sm text-gold-400 hover:underline">
-      ← رجوع لقائمة المباريات
+      ← {UI.admin.backToMatchesList}
     </Link>
   );
 
@@ -52,15 +57,15 @@ export default async function AdminPredictionDetail({
       {back}
       <div className="mb-1 mt-2 flex items-center gap-2">
         <h1 className="text-2xl font-extrabold">{title}</h1>
-        <span className="text-sm text-slate-500">#{match.matchNumber} · {STAGE_LABEL_AR[match.stage]}</span>
+        <span className="text-sm text-slate-500">#{match.matchNumber} · {UI.stages[match.stage]}</span>
       </div>
 
       {/* Distribution */}
       <div className="mb-6 grid grid-cols-3 gap-3">
         {[
-          { label: `فوز ${match.homeTeam?.nameAr ?? "المضيف"}`, v: pct(home) },
-          { label: "تعادل", v: pct(draw) },
-          { label: `فوز ${match.awayTeam?.nameAr ?? "الضيف"}`, v: pct(away) },
+          { label: winLabel(tn(match.homeTeam, UI.home)), v: pct(home) },
+          { label: UI.admin.draw, v: pct(draw) },
+          { label: winLabel(tn(match.awayTeam, UI.away)), v: pct(away) },
         ].map((d) => (
           <div key={d.label} className="card p-4 text-center">
             <div className="text-2xl font-black text-gold-400">{d.v}%</div>
@@ -69,16 +74,16 @@ export default async function AdminPredictionDetail({
         ))}
       </div>
 
-      <p className="mb-2 text-sm text-slate-400">إجمالي التوقعات: {total}</p>
+      <p className="mb-2 text-sm text-slate-400">{UI.admin.totalPredictions}: {total}</p>
       <div className="card overflow-x-auto">
         <table className="w-full text-right text-sm">
           <thead className="border-b border-white/10 text-xs text-slate-400">
             <tr>
-              <th className="p-3">المشارك</th>
-              <th className="hidden p-3 sm:table-cell">الإدارة</th>
-              <th className="p-3">التوقع</th>
-              <th className="p-3">المتأهل</th>
-              <th className="p-3">النقاط</th>
+              <th className="p-3">{UI.admin.colParticipant}</th>
+              <th className="hidden p-3 sm:table-cell">{UI.department}</th>
+              <th className="p-3">{UI.admin.colPrediction}</th>
+              <th className="p-3">{UI.colQualifier}</th>
+              <th className="p-3">{UI.admin.colPoints}</th>
             </tr>
           </thead>
           <tbody>
@@ -89,13 +94,13 @@ export default async function AdminPredictionDetail({
                 <td className="p-3 font-bold tabular-nums">
                   {p.predictedHomeScore} - {p.predictedAwayScore}
                 </td>
-                <td className="p-3 text-slate-300">{p.predictedWinner?.nameAr ?? "—"}</td>
+                <td className="p-3 text-slate-300">{tn(p.predictedWinner, "—")}</td>
                 <td className="p-3 font-bold text-gold-400">{p.pointsAwarded ?? "—"}</td>
               </tr>
             ))}
             {total === 0 && (
               <tr>
-                <td colSpan={5} className="p-6 text-center text-slate-500">لا توجد توقعات لهذه المباراة.</td>
+                <td colSpan={5} className="p-6 text-center text-slate-500">{UI.admin.noPredictionsForMatch}</td>
               </tr>
             )}
           </tbody>

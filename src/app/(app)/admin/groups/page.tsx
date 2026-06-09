@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { UI } from "@/lib/constants";
+import { getUI } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminGroupsPage() {
+  const UI = await getUI();
   await requireAdmin();
   const groups = await prisma.group.findMany({
     orderBy: { createdAt: "desc" },
@@ -19,11 +20,11 @@ export default async function AdminGroupsPage() {
         <table className="w-full text-right text-sm">
           <thead className="border-b border-white/10 text-xs text-slate-400">
             <tr>
-              <th className="p-3">الاسم</th>
-              <th className="p-3">الكود</th>
+              <th className="p-3">{UI.name}</th>
+              <th className="p-3">{UI.admin.code}</th>
               <th className="p-3">{UI.groupLeader}</th>
-              <th className="p-3">الأعضاء</th>
-              <th className="p-3">الحالة</th>
+              <th className="p-3">{UI.members}</th>
+              <th className="p-3">{UI.admin.status}</th>
               <th className="p-3"></th>
             </tr>
           </thead>
@@ -36,16 +37,16 @@ export default async function AdminGroupsPage() {
                 <td className="p-3 font-bold text-gold-400">{g._count.members}</td>
                 <td className="p-3">
                   <span className={g.isActive ? "text-ok" : "text-red-400"}>
-                    {g.isActive ? "نشطة" : "معطّلة"}
+                    {g.isActive ? UI.admin.active : UI.admin.disabled}
                   </span>
                 </td>
                 <td className="p-3">
-                  <Link href={`/admin/groups/${g.id}`} className="text-gold-400 hover:underline">عرض</Link>
+                  <Link href={`/admin/groups/${g.id}`} className="text-gold-400 hover:underline">{UI.admin.view}</Link>
                 </td>
               </tr>
             ))}
             {groups.length === 0 && (
-              <tr><td colSpan={6} className="p-6 text-center text-slate-500">لا توجد مجموعات بعد.</td></tr>
+              <tr><td colSpan={6} className="p-6 text-center text-slate-500">{UI.admin.noGroupsYet}</td></tr>
             )}
           </tbody>
         </table>

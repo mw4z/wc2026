@@ -2,13 +2,14 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getGroupMembers } from "@/lib/groups";
-import { UI } from "@/lib/constants";
+import { getUI } from "@/lib/locale";
 import { formatDateTimeAr } from "@/lib/time";
 import { AdminGroupToggle } from "@/components/groups/AdminGroupToggle";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminGroupDetail({ params }: { params: Promise<{ id: string }> }) {
+  const UI = await getUI();
   await requireAdmin();
   const { id } = await params;
 
@@ -36,14 +37,14 @@ export default async function AdminGroupDetail({ params }: { params: Promise<{ i
           <div>
             <h1 className="text-2xl font-extrabold">{group.name}</h1>
             <p className="mt-1 text-sm text-slate-400">
-              الكود: <span className="font-mono tracking-widest text-gold-300">{group.code}</span> ·{" "}
+              {UI.admin.code}: <span className="font-mono tracking-widest text-gold-300">{group.code}</span> ·{" "}
               {UI.groupLeader}: {group.leader.name} (<span dir="ltr">{leaderIdent}</span>) ·{" "}
-              أُنشئت {formatDateTimeAr(group.createdAt)}
+              {UI.admin.createdAt} {formatDateTimeAr(group.createdAt)}
             </p>
             <p className="mt-1 text-sm">
-              الحالة:{" "}
+              {UI.admin.status}:{" "}
               <span className={group.isActive ? "text-ok" : "text-red-400"}>
-                {group.isActive ? "نشطة" : "معطّلة"}
+                {group.isActive ? UI.admin.active : UI.admin.disabled}
               </span>
             </p>
           </div>
@@ -57,8 +58,8 @@ export default async function AdminGroupDetail({ params }: { params: Promise<{ i
           <thead className="border-b border-white/10 text-xs text-slate-400">
             <tr>
               <th className="p-3">{UI.name}</th>
-              <th className="p-3">رقم الجوال</th>
-              <th className="p-3">الدور</th>
+              <th className="p-3">{UI.phone}</th>
+              <th className="p-3">{UI.roleColumn}</th>
             </tr>
           </thead>
           <tbody>
@@ -66,7 +67,7 @@ export default async function AdminGroupDetail({ params }: { params: Promise<{ i
               <tr key={m.userId} className="border-b border-white/5">
                 <td className="p-3 font-semibold">{m.user.name}</td>
                 <td className="p-3 font-mono text-xs" dir="ltr">{identById.get(m.userId) ?? "—"}</td>
-                <td className="p-3">{m.role === "LEADER" ? UI.groupLeader : "عضو"}</td>
+                <td className="p-3">{m.role === "LEADER" ? UI.groupLeader : UI.memberRole}</td>
               </tr>
             ))}
           </tbody>

@@ -1,26 +1,28 @@
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getUI } from "@/lib/locale";
 import { UserRow } from "@/components/admin/UserRow";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
+  const UI = await getUI();
   const me = await requireAdmin();
   const users = await prisma.user.findMany({ orderBy: { createdAt: "asc" } });
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-extrabold">إدارة المستخدمين</h1>
+      <h1 className="mb-6 text-2xl font-extrabold">{UI.admin.manageUsers}</h1>
       <div className="card overflow-x-auto">
         <table className="w-full text-right text-sm">
           <thead className="border-b border-navy-700 text-xs text-slate-400">
             <tr>
-              <th className="p-3">رقم الجوال</th>
-              <th className="p-3">الاسم</th>
-              <th className="p-3">الإدارة</th>
-              <th className="p-3">الصلاحية</th>
-              <th className="p-3">الحالة</th>
-              <th className="p-3">إجراءات</th>
+              <th className="p-3">{UI.phone}</th>
+              <th className="p-3">{UI.name}</th>
+              <th className="p-3">{UI.department}</th>
+              <th className="p-3">{UI.roleLabel}</th>
+              <th className="p-3">{UI.admin.status}</th>
+              <th className="p-3">{UI.admin.actions}</th>
             </tr>
           </thead>
           <tbody>

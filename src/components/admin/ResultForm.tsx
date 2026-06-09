@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useUI } from "@/components/I18nProvider";
 
 interface Team {
   id: string;
@@ -26,6 +27,7 @@ export function ResultForm({
     winnerTeamId: string | null;
   };
 }) {
+  const UI = useUI();
   const router = useRouter();
   const [h, setH] = useState(current.homeScore?.toString() ?? "");
   const [a, setA] = useState(current.awayScore?.toString() ?? "");
@@ -49,7 +51,7 @@ export function ResultForm({
         }),
       });
       const data = await res.json();
-      setMsg({ ok: res.ok, text: res.ok ? "تم حفظ النتيجة واحتساب النقاط" : data.error });
+      setMsg({ ok: res.ok, text: res.ok ? UI.admin.resultSaved : data.error });
       if (res.ok) router.refresh();
     } finally {
       setBusy(false);
@@ -68,7 +70,7 @@ export function ResultForm({
         <div className="space-y-2">
           <label className="flex items-center justify-center gap-2 text-sm text-slate-300">
             <input type="checkbox" checked={pens} onChange={(e) => setPens(e.target.checked)} />
-            ذهبت إلى ركلات الترجيح
+            {UI.admin.wentToPenalties}
           </label>
           <div className="flex gap-2">
             {[home, away].map((t) => (
@@ -80,7 +82,7 @@ export function ResultForm({
                   winner === t.id ? "border-gold-500 bg-gold-500/15 text-gold-300" : "border-navy-600"
                 }`}
               >
-                المتأهل: {t.name}
+                {UI.qualifierLabel} {t.name}
               </button>
             ))}
           </div>
@@ -90,7 +92,7 @@ export function ResultForm({
       {msg && <p className={`text-center text-sm ${msg.ok ? "text-ok" : "text-red-300"}`}>{msg.text}</p>}
 
       <button onClick={save} disabled={busy || h === "" || a === ""} className="btn-gold w-full">
-        {busy ? "..." : "حفظ النتيجة واحتساب النقاط"}
+        {busy ? "..." : UI.admin.saveResult}
       </button>
     </div>
   );

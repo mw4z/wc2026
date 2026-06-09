@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useUI } from "@/components/I18nProvider";
 
 interface U {
   id: string;
@@ -14,6 +15,7 @@ interface U {
 }
 
 export function UserRow({ user, isSelf }: { user: U; isSelf: boolean }) {
+  const UI = useUI();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState(user.name);
@@ -28,7 +30,7 @@ export function UserRow({ user, isSelf }: { user: U; isSelf: boolean }) {
         body: JSON.stringify(body),
       });
       if (res.ok) router.refresh();
-      else alert((await res.json()).error || "فشل التعديل");
+      else alert((await res.json()).error || UI.admin.editFailed);
     } finally {
       setBusy(false);
       setEditing(false);
@@ -36,15 +38,12 @@ export function UserRow({ user, isSelf }: { user: U; isSelf: boolean }) {
   }
 
   async function remove() {
-    if (
-      !confirm(`حذف حساب "${user.name}" نهائيًا؟ تُحذف توقعاته وعضوياته. لا يمكن التراجع.`)
-    )
-      return;
+    if (!confirm(`${user.name} — ${UI.admin.deleteUserConfirm}`)) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
       if (res.ok) router.refresh();
-      else alert((await res.json()).error || "تعذّر حذف الحساب");
+      else alert((await res.json()).error || UI.admin.deleteUserFailed);
     } finally {
       setBusy(false);
     }
@@ -63,28 +62,28 @@ export function UserRow({ user, isSelf }: { user: U; isSelf: boolean }) {
         )}
       </td>
       <td className="p-3 text-slate-400">{user.department ?? "—"}</td>
-      <td className="p-3">{user.role === "ADMIN" ? "مدير" : "مشارك"}</td>
+      <td className="p-3">{user.role === "ADMIN" ? UI.roleAdmin : UI.roleUser}</td>
       <td className="p-3">
         <span className={user.isActive ? "text-ok" : "text-red-400"}>
-          {user.isActive ? "نشط" : "موقوف"}
+          {user.isActive ? UI.admin.statusActive : UI.admin.statusSuspended}
         </span>
       </td>
       <td className="flex flex-wrap gap-1 p-3">
         {editing ? (
-          <button onClick={() => patch({ name })} disabled={busy} className="rounded bg-gold-500 px-2 py-1 text-xs text-navy-950">حفظ</button>
+          <button onClick={() => patch({ name })} disabled={busy} className="rounded bg-gold-500 px-2 py-1 text-xs text-navy-950">{UI.save}</button>
         ) : (
-          <button onClick={() => setEditing(true)} className="rounded border border-navy-600 px-2 py-1 text-xs">تعديل الاسم</button>
+          <button onClick={() => setEditing(true)} className="rounded border border-navy-600 px-2 py-1 text-xs">{UI.admin.editName}</button>
         )}
         {!isSelf && (
           <>
             <button onClick={() => patch({ isActive: !user.isActive })} disabled={busy} className="rounded border border-navy-600 px-2 py-1 text-xs">
-              {user.isActive ? "إيقاف" : "تفعيل"}
+              {user.isActive ? UI.admin.suspend : UI.admin.activate}
             </button>
             <button onClick={() => patch({ role: user.role === "ADMIN" ? "USER" : "ADMIN" })} disabled={busy} className="rounded border border-navy-600 px-2 py-1 text-xs">
-              {user.role === "ADMIN" ? "إزالة الإدارة" : "ترقية لمدير"}
+              {user.role === "ADMIN" ? UI.admin.removeAdmin : UI.admin.makeAdmin}
             </button>
             <button onClick={remove} disabled={busy} className="rounded border border-danger/50 px-2 py-1 text-xs text-red-300 hover:bg-danger/10">
-              حذف
+              {UI.admin.delete}
             </button>
           </>
         )}

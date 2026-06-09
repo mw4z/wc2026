@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useUI } from "@/components/I18nProvider";
 
 export function AdminControls({ registrationOpen }: { registrationOpen: boolean }) {
+  const UI = useUI();
   const router = useRouter();
   const [csv, setCsv] = useState("");
   const [busy, setBusy] = useState(false);
@@ -27,7 +29,7 @@ export function AdminControls({ registrationOpen }: { registrationOpen: boolean 
       });
       const data = await res.json();
       if (res.ok) setSummary(data.summary);
-      else setNote(data.error || "فشل الاستيراد");
+      else setNote(data.error || UI.admin.importFailed);
       router.refresh();
     } finally {
       setBusy(false);
@@ -44,7 +46,7 @@ export function AdminControls({ registrationOpen }: { registrationOpen: boolean 
         body: "{}",
       });
       const data = await res.json();
-      setNote(res.ok ? `تم تحديث الترتيب (${data.entries} مشارك)` : data.error);
+      setNote(res.ok ? `${UI.admin.recalcDonePrefix} (${data.entries} ${UI.admin.participantsWord})` : data.error);
       router.refresh();
     } finally {
       setBusy(false);
@@ -62,7 +64,7 @@ export function AdminControls({ registrationOpen }: { registrationOpen: boolean 
       });
       if (res.ok) {
         setRegOpen(next);
-        setNote(next ? "تم فتح تسجيل المشاركين" : "تم إغلاق تسجيل المشاركين الجدد");
+        setNote(next ? UI.admin.regOpened : UI.admin.regClosed);
       }
     } finally {
       setBusy(false);
@@ -72,11 +74,8 @@ export function AdminControls({ registrationOpen }: { registrationOpen: boolean 
   return (
     <div className="space-y-6">
       <section className="card p-5">
-        <h2 className="mb-3 font-bold text-gold-400">استيراد المباريات (CSV)</h2>
-        <p className="mb-2 text-xs text-slate-400">
-          الأعمدة: match_number, stage, home_team_code, away_team_code, kickoff_at, city, stadium —
-          الوقت بصيغة ISO وبتوقيت UTC.
-        </p>
+        <h2 className="mb-3 font-bold text-gold-400">{UI.admin.importTitle}</h2>
+        <p className="mb-2 text-xs text-slate-400">{UI.admin.importColumns}</p>
         <textarea
           dir="ltr"
           className="input h-40 font-mono text-xs"
@@ -85,18 +84,18 @@ export function AdminControls({ registrationOpen }: { registrationOpen: boolean 
           placeholder="match_number,stage,home_team_code,..."
         />
         <button onClick={importCsv} disabled={busy || !csv.trim()} className="btn-gold mt-3">
-          استيراد
+          {UI.admin.importBtn}
         </button>
         {summary && (
           <div className="mt-3 rounded-lg bg-navy-800 p-3 text-sm">
             <p>
-              تم الإنشاء: <b>{summary.created}</b> · التحديث: <b>{summary.updated}</b> · المتجاهَل:{" "}
-              <b>{summary.skipped}</b>
+              {UI.admin.created}: <b>{summary.created}</b> · {UI.admin.updated}: <b>{summary.updated}</b> ·{" "}
+              {UI.admin.skipped}: <b>{summary.skipped}</b>
             </p>
             {summary.errors.length > 0 && (
-              <ul className="mt-2 list-disc pr-5 text-xs text-red-300">
+              <ul className="mt-2 list-disc ps-5 text-xs text-red-300">
                 {summary.errors.map((e, i) => (
-                  <li key={i}>صف {e.row}: {e.message}</li>
+                  <li key={i}>{UI.admin.row} {e.row}: {e.message}</li>
                 ))}
               </ul>
             )}
@@ -106,23 +105,23 @@ export function AdminControls({ registrationOpen }: { registrationOpen: boolean 
 
       <section className="card flex flex-wrap items-center justify-between gap-3 p-5">
         <div>
-          <h2 className="font-bold text-gold-400">إعادة احتساب الترتيب</h2>
-          <p className="text-xs text-slate-400">يعيد بناء لوحة المتصدرين من جميع النقاط المحتسبة.</p>
+          <h2 className="font-bold text-gold-400">{UI.admin.recalcTitle}</h2>
+          <p className="text-xs text-slate-400">{UI.admin.recalcNote}</p>
         </div>
         <button onClick={recalc} disabled={busy} className="btn-ghost">
-          إعادة الاحتساب الكامل
+          {UI.admin.recalcBtn}
         </button>
       </section>
 
       <section className="card flex flex-wrap items-center justify-between gap-3 p-5">
         <div>
-          <h2 className="font-bold text-gold-400">تسجيل المشاركين الجدد</h2>
+          <h2 className="font-bold text-gold-400">{UI.admin.regTitle}</h2>
           <p className="text-xs text-slate-400">
-            الحالة: {regOpen ? "مفتوح" : "مغلق"} — أغلقه بعد انطلاق البطولة لمنع حسابات جديدة.
+            {UI.admin.status}: {regOpen ? UI.admin.regOpenState : UI.admin.regClosedState} — {UI.admin.regNote}
           </p>
         </div>
         <button onClick={toggleReg} disabled={busy} className="btn-ghost">
-          {regOpen ? "إغلاق التسجيل" : "فتح التسجيل"}
+          {regOpen ? UI.admin.regClose : UI.admin.regOpenBtn}
         </button>
       </section>
 
