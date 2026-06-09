@@ -1,0 +1,58 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Brand gradient: accent blue → violet → lime -->
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2b7bff"/>
+      <stop offset="0.55" stop-color="#7c5cff"/>
+      <stop offset="1" stop-color="#aef000"/>
+    </linearGradient>
+    <!-- Soft top-down sheen over the tile -->
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.18"/>
+    </linearGradient>
+    <!-- Cup vertical shading -->
+    <linearGradient id="cup" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e9eefc"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.6">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Rounded-square tile -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="#070b15"/>
+  <rect x="14" y="14" width="484" height="484" rx="100" fill="url(#brand)"/>
+  <ellipse cx="256" cy="208" rx="240" ry="190" fill="url(#glow)"/>
+  <rect x="14" y="14" width="484" height="484" rx="100" fill="url(#sheen)"/>
+  <rect x="20" y="20" width="472" height="472" rx="95" fill="none" stroke="#ffffff" stroke-opacity="0.30" stroke-width="6"/>
+
+  <!-- Championship trophy (original geometry — not the FIFA mark) -->
+  <g transform="translate(256 210) scale(10.4)">
+    <g transform="translate(-24 -22)">
+      <!-- handles -->
+      <g fill="none" stroke="#ffffff" stroke-width="2.1" stroke-linecap="round">
+        <path d="M16.6 14.2 C11.4 14.2 11.4 21.2 16.9 20.5"/>
+        <path d="M31.4 14.2 C36.6 14.2 36.6 21.2 31.1 20.5"/>
+      </g>
+      <!-- cup + stem + base -->
+      <g fill="url(#cup)">
+        <path d="M16.3 12.2 H31.7 V15.6 C31.7 22.2 28.3 26.2 24 26.2 C19.7 26.2 16.3 22.2 16.3 15.6 Z"/>
+        <rect x="22.6" y="25.6" width="2.8" height="4.8" rx="0.6"/>
+        <path d="M18.5 31 H29.5 L31 35 H17 Z"/>
+        <rect x="16.2" y="35.4" width="15.6" height="2.6" rx="1.1"/>
+      </g>
+      <!-- shine on the cup -->
+      <path d="M19.8 14.3 C19.8 19 21.3 22 23 22.9" stroke="#ffffff" stroke-opacity="0.6" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- Year wordmark -->
+  <text x="256" y="452" text-anchor="middle"
+        font-family="Arial Black, Archivo, Helvetica, sans-serif"
+        font-size="72" font-weight="900" letter-spacing="3"
+        fill="#ffffff" fill-opacity="0.95">2026</text>
+</svg>
