@@ -62,6 +62,8 @@ const ar = {
   outcomeAwayWin: "فوز الضيف",
   // leaderboard
   leaderboardSubtitle: "ترتيب المتنافسين على صدارة توقعات كأس العالم 2026.",
+  overall: "عام",
+  overallRank: "الترتيب العام",
   participant: "مشارك",
   lastUpdated: "آخر تحديث:",
   noResultsTitle: "لا توجد نتائج بعد",
@@ -331,6 +333,8 @@ const en: Dict = {
   outcomeDraw: "Draw",
   outcomeAwayWin: "Away win",
   leaderboardSubtitle: "Standings of everyone competing for the top of the table.",
+  overall: "Overall",
+  overallRank: "Overall rank",
   participant: "players",
   lastUpdated: "Last updated:",
   noResultsTitle: "No results yet",

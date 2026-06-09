@@ -1,32 +1,106 @@
 import Link from "next/link";
 import { getLeaderboard } from "@/lib/leaderboard";
+import { getUserGroups, getGroupLeaderboard } from "@/lib/groups";
+import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { getUI } from "@/lib/locale";
-import { formatDateTimeAr } from "@/lib/time";
 import { TournamentHero, HeroStat, EmptyState } from "@/components/TournamentHero";
 import { TrophyIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
-export default async function LeaderboardPage() {
+// A single row shape covering both the global leaderboard and a group board.
+type Row = {
+  userId: string;
+  name: string;
+  department: string | null;
+  totalPoints: number;
+  exactScores: number;
+  correctOutcomes: number;
+  correctQualifiers: number;
+  accuracy: number;
+  rank: number;
+};
+
+export default async function LeaderboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ group?: string }>;
+}) {
   const UI = await getUI();
   const me = await requireUser();
-  const rows = await getLeaderboard();
-  const updatedAt = rows[0]?.updatedAt;
+  const { group: groupParam } = await searchParams;
+
+  // Scope = a group the user belongs to, or "overall".
+  const myGroups = await getUserGroups(me.id);
+  const activeGroup = groupParam ? myGroups.find((g) => g.id === groupParam) : undefined;
+
+  const rows: Row[] = activeGroup
+    ? await getGroupLeaderboard(activeGroup.id)
+    : (await getLeaderboard()).map((r) => ({
+        userId: r.userId,
+        name: r.name,
+        department: r.department,
+        totalPoints: r.totalPoints,
+        exactScores: r.exactScores,
+        correctOutcomes: r.correctOutcomes,
+        correctQualifiers: r.correctQualifiers,
+        accuracy: r.accuracy,
+        rank: r.rank,
+      }));
+
   const myRow = rows.find((r) => r.userId === me.id);
+  // Always-available overall rank (so users see their global placement even in a group view).
+  const myOverall = await prisma.leaderboardEntry.findUnique({
+    where: { userId: me.id },
+    select: { rank: true },
+  });
+
+  const scopes = [
+    { id: "", label: UI.overall, href: "/leaderboard", active: !activeGroup },
+    ...myGroups.map((g) => ({
+      id: g.id,
+      label: g.name,
+      href: `/leaderboard?group=${g.id}`,
+      active: activeGroup?.id === g.id,
+    })),
+  ];
 
   return (
     <div>
-      <TournamentHero title={UI.leaderboard} subtitle={UI.leaderboardSubtitle} icon={<TrophyIcon />}>
-        <HeroStat label={UI.rank} value={myRow ? `#${myRow.rank}` : "—"} />
+      <TournamentHero
+        title={activeGroup ? activeGroup.name : UI.leaderboard}
+        subtitle={UI.leaderboardSubtitle}
+        icon={<TrophyIcon />}
+      >
+        <HeroStat
+          label={activeGroup ? UI.groupRanking : UI.overallRank}
+          value={myRow ? `#${myRow.rank}` : "—"}
+        />
+        {activeGroup && (
+          <HeroStat label={UI.overallRank} value={myOverall?.rank ? `#${myOverall.rank}` : "—"} />
+        )}
         <HeroStat label={UI.point} value={myRow?.totalPoints ?? 0} />
         <HeroStat label={UI.participant} value={rows.length} />
       </TournamentHero>
 
-      {updatedAt && (
-        <p className="mb-4 text-left text-xs text-slate-500">
-          {UI.lastUpdated} {formatDateTimeAr(updatedAt)}
-        </p>
+      {/* Scope switcher: Overall + one tab per group the user is in */}
+      {myGroups.length > 0 && (
+        <div className="mb-5 flex flex-wrap gap-2">
+          {scopes.map((s) => (
+            <Link
+              key={s.id || "overall"}
+              href={s.href}
+              className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${
+                s.active
+                  ? "border-accent-500 bg-accent-500/15 text-accent-400"
+                  : "border-white/10 text-slate-300 hover:border-white/25 hover:bg-white/5"
+              }`}
+            >
+              {s.label}
+            </Link>
+          ))}
+        </div>
       )}
 
       {/* Podium — top 3 */}
@@ -36,7 +110,7 @@ export default async function LeaderboardPage() {
             const place = i === 1 ? 1 : i === 0 ? 2 : 3;
             return r ? (
               <div
-                key={r.id}
+                key={r.userId}
                 className={`card edge-accent reveal flex flex-col items-center p-4 text-center ${
                   place === 1 ? "-mt-2 shadow-[0_0_36px_rgba(233,185,73,0.18)]" : "mt-2"
                 } ${r.userId === me.id ? "ring-1 ring-accent-500/50" : ""}`}
@@ -81,7 +155,7 @@ export default async function LeaderboardPage() {
             <tbody>
               {rows.map((r) => (
                 <tr
-                  key={r.id}
+                  key={r.userId}
                   className={`border-b border-white/5 transition hover:bg-white/5 ${
                     r.userId === me.id ? "bg-accent-500/10 ring-1 ring-inset ring-accent-500/40" : ""
                   }`}
