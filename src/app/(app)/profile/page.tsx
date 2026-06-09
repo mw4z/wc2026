@@ -40,7 +40,7 @@ export default async function ProfilePage() {
 
       <EmailManager current={user.email} />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stat(UI.rank, entry?.rank ?? "—")}
         {stat(UI.totalPoints, entry?.totalPoints ?? 0)}
         {stat(UI.statExact, entry?.exactScores ?? 0)}
