@@ -184,6 +184,10 @@
 *::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 9999px; }
 *::-webkit-scrollbar-track { background: transparent; }
 
+/* Hidden scrollbar (used by the header nav so overflow scrolls, never overlaps). */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
 @media (prefers-reduced-motion: reduce) {
   .reveal, .animate-live .pill-dot { animation: none; }
 }
