@@ -5,6 +5,8 @@ import { getUI } from "@/lib/locale";
 import { CopyCode } from "@/components/groups/CopyCode";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
 import { UsersIcon } from "@/components/icons";
+import { AdSlot } from "@/components/AdSlot";
+import { AD_SLOTS } from "@/lib/ads";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +51,8 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
           </div>
         </div>
       </div>
+
+      <AdSlot slotId={AD_SLOTS.groupTop} slotName="group-top" />
 
       <h2 className="mb-3 text-lg font-bold text-gold-400">{UI.topFive}</h2>
       <div className="card overflow-x-auto">

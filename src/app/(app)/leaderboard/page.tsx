@@ -6,6 +6,8 @@ import { requireUser } from "@/lib/auth";
 import { getUI } from "@/lib/locale";
 import { TournamentHero, HeroStat, EmptyState } from "@/components/TournamentHero";
 import { TrophyIcon } from "@/components/icons";
+import { AdSlot } from "@/components/AdSlot";
+import { AD_SLOTS } from "@/lib/ads";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +85,8 @@ export default async function LeaderboardPage({
         <HeroStat label={UI.point} value={myRow?.totalPoints ?? 0} />
         <HeroStat label={UI.participant} value={rows.length} />
       </TournamentHero>
+
+      <AdSlot slotId={AD_SLOTS.leaderboardTop} slotName="leaderboard-top" />
 
       {/* Scope switcher: Overall + one tab per group the user is in */}
       {myGroups.length > 0 && (

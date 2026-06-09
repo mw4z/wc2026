@@ -9,6 +9,8 @@ import { getUI, getLocale } from "@/lib/locale";
 import { MatchCard } from "@/components/MatchCard";
 import { TournamentHero, EmptyState } from "@/components/TournamentHero";
 import { BallIcon } from "@/components/icons";
+import { AdSlot } from "@/components/AdSlot";
+import { AD_SLOTS } from "@/lib/ads";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +66,7 @@ export default async function MatchesPage() {
         </div>
       )}
       <TournamentHero title={UI.appName} subtitle={UI.matchesHeroSubtitle} icon={<BallIcon />} />
+      <AdSlot slotId={AD_SLOTS.matchesTop} slotName="matches-top" />
       {matches.length === 0 && <EmptyState title={UI.noMatchesTitle} hint={UI.noMatchesHint} />}
       {section(UI.todayMatches, today)}
       {section(UI.upcomingMatches, upcoming)}

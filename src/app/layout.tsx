@@ -4,6 +4,7 @@ import "./globals.css";
 import { dirFor } from "@/lib/i18n";
 import { getLocale, getUI } from "@/lib/locale";
 import { I18nProvider } from "@/components/I18nProvider";
+import { AdScript } from "@/components/AdScript";
 
 // Display / numerals (Latin): broadcast-grade grotesque with heavy weights.
 const display = Archivo({
@@ -37,6 +38,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale} dir={dirFor(locale)} className={`${display.variable} ${sans.variable}`}>
       <body className="min-h-screen">
         <I18nProvider locale={locale}>{children}</I18nProvider>
+        <AdScript />
       </body>
     </html>
   );
