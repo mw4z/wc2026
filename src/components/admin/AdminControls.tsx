@@ -4,7 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUI } from "@/components/I18nProvider";
 
-export function AdminControls({ registrationOpen }: { registrationOpen: boolean }) {
+export function AdminControls({
+  registrationOpen,
+  predictionLead,
+}: {
+  registrationOpen: boolean;
+  predictionLead: string;
+}) {
   const UI = useUI();
   const router = useRouter();
   const [csv, setCsv] = useState("");
@@ -16,7 +22,33 @@ export function AdminControls({ registrationOpen }: { registrationOpen: boolean 
     errors: { row: number; message: string }[];
   }>(null);
   const [regOpen, setRegOpen] = useState(registrationOpen);
+  const [lead, setLead] = useState(predictionLead);
   const [note, setNote] = useState<string | null>(null);
+
+  const LEAD_OPTS = [
+    { v: "always", label: UI.admin.predWindowAlways },
+    { v: "24", label: UI.admin.predWindow24 },
+    { v: "12", label: UI.admin.predWindow12 },
+    { v: "6", label: UI.admin.predWindow6 },
+    { v: "2", label: UI.admin.predWindow2 },
+  ];
+
+  async function changeLead(value: string) {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ predictionLead: value }),
+      });
+      if (res.ok) {
+        setLead(value);
+        setNote(UI.admin.predWindowSaved);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function importCsv() {
     setBusy(true);
@@ -123,6 +155,25 @@ export function AdminControls({ registrationOpen }: { registrationOpen: boolean 
         <button onClick={toggleReg} disabled={busy} className="btn-ghost">
           {regOpen ? UI.admin.regClose : UI.admin.regOpenBtn}
         </button>
+      </section>
+
+      <section className="card flex flex-wrap items-center justify-between gap-3 p-5">
+        <div>
+          <h2 className="font-bold text-gold-400">{UI.admin.predWindowTitle}</h2>
+          <p className="text-xs text-slate-400">{UI.admin.predWindowNote}</p>
+        </div>
+        <select
+          value={lead}
+          onChange={(e) => changeLead(e.target.value)}
+          disabled={busy}
+          className="input w-auto"
+        >
+          {LEAD_OPTS.map((o) => (
+            <option key={o.v} value={o.v}>
+              {o.label}
+            </option>
+          ))}
+        </select>
       </section>
 
       {note && <p className="text-center text-sm text-gold-300">{note}</p>}

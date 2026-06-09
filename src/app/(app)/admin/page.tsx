@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isRegistrationOpen } from "@/lib/settings";
+import { isRegistrationOpen, getPredictionLead } from "@/lib/settings";
 import { getUI } from "@/lib/locale";
 import { AdminControls } from "@/components/admin/AdminControls";
 
@@ -10,12 +10,13 @@ export const dynamic = "force-dynamic";
 export default async function AdminHome() {
   const UI = await getUI();
   await requireAdmin();
-  const [users, matches, scored, predictions, registrationOpen] = await Promise.all([
+  const [users, matches, scored, predictions, registrationOpen, predictionLead] = await Promise.all([
     prisma.user.count(),
     prisma.match.count(),
     prisma.match.count({ where: { status: "SCORED" } }),
     prisma.prediction.count(),
     isRegistrationOpen(),
+    getPredictionLead(),
   ]);
 
   const stat = (label: string, value: number | string) => (
@@ -45,7 +46,7 @@ export default async function AdminHome() {
         <a href="/api/admin/export?type=predictions" className="btn-ghost">{UI.admin.exportPredictions}</a>
       </div>
 
-      <AdminControls registrationOpen={registrationOpen} />
+      <AdminControls registrationOpen={registrationOpen} predictionLead={predictionLead} />
     </div>
   );
 }

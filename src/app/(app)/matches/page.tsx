@@ -2,8 +2,9 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { lockDueMatches } from "@/lib/matches";
-import { isSameDayInTz } from "@/lib/time";
+import { isSameDayInTz, formatDateTimeAr } from "@/lib/time";
 import { SAMPLE_DATA } from "@/lib/constants";
+import { getPredictionLead, predictionOpensAt, type PredictionLead } from "@/lib/settings";
 import type { Locale } from "@/lib/i18n";
 import { getUI, getLocale } from "@/lib/locale";
 import { MatchCard } from "@/components/MatchCard";
@@ -27,6 +28,7 @@ export default async function MatchesPage() {
     }),
     prisma.prediction.findMany({ where: { userId: user.id } }),
   ]);
+  const lead = await getPredictionLead();
 
   const predByMatch = new Map(myPredictions.map((p) => [p.matchId, p]));
   const now = new Date();
@@ -50,7 +52,7 @@ export default async function MatchesPage() {
           {list.map((m) => (
             <MatchCard
               key={m.id}
-              match={serializeMatch(m, locale)}
+              match={serializeMatch(m, locale, lead)}
               prediction={serializePrediction(predByMatch.get(m.id))}
             />
           ))}
@@ -81,9 +83,10 @@ type TeamRow = MatchWithTeams["homeTeam"];
 // Serialize for the client component (Dates → ISO strings). Team display name
 // is resolved to the active locale here (server-side) so the client component
 // stays locale-agnostic; a language toggle re-runs this via router.refresh().
-export function serializeMatch(m: MatchWithTeams, locale: Locale = "ar") {
+export function serializeMatch(m: MatchWithTeams, locale: Locale = "ar", lead: PredictionLead = "always") {
   const team = (t: TeamRow) =>
     t ? { id: t.id, name: locale === "en" ? t.nameEn : t.nameAr, code: t.code, flagUrl: t.flagUrl } : null;
+  const opensAt = predictionOpensAt(m.kickoffAt, lead);
   return {
     id: m.id,
     matchNumber: m.matchNumber,
@@ -96,6 +99,9 @@ export function serializeMatch(m: MatchWithTeams, locale: Locale = "ar") {
     awayScore: m.awayScore,
     homeTeam: team(m.homeTeam),
     awayTeam: team(m.awayTeam),
+    // Global prediction-opening window (null = always open).
+    opensAt: opensAt ? opensAt.toISOString() : null,
+    opensAtLabel: opensAt ? formatDateTimeAr(opensAt) : null,
   };
 }
 export function serializePrediction(p?: { predictedHomeScore: number; predictedAwayScore: number; predictedWinnerTeamId: string | null; pointsAwarded: number | null }) {

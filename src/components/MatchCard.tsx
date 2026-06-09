@@ -53,6 +53,9 @@ export function MatchCard({
   // of the server guard — the server is still the source of truth on submit).
   const locked = match.status !== "SCHEDULED" || ms <= 0;
   const teamsKnown = !!match.homeTeam && !!match.awayTeam;
+  // Global prediction window: before opensAt, predictions aren't open yet.
+  // (Re-evaluated each second via the countdown re-render, so it flips on time.)
+  const notOpenYet = !locked && match.opensAt != null && Date.now() < Date.parse(match.opensAt);
 
   const finished = match.homeScore != null && match.awayScore != null;
   const homeWin = finished && match.homeScore! > match.awayScore!;
@@ -81,7 +84,11 @@ export function MatchCard({
       const data = await res.json();
       if (!res.ok) {
         setMsg({ type: "err", text: data.error || UI.saveFailed });
-        if (data.code === "KICKOFF_REACHED" || data.code === "MATCH_NOT_OPEN") {
+        if (
+          data.code === "KICKOFF_REACHED" ||
+          data.code === "MATCH_NOT_OPEN" ||
+          data.code === "PREDICTION_NOT_OPEN_YET"
+        ) {
           router.refresh();
         }
         return;
@@ -149,6 +156,15 @@ export function MatchCard({
           <p className="text-center text-sm text-slate-500">{UI.teamsTbd}</p>
         ) : locked ? (
           <LockedView prediction={prediction} isKnockout={isKnockout} match={match} />
+        ) : notOpenYet ? (
+          <div className="text-center text-sm">
+            <p className="font-semibold text-slate-300">{UI.notOpenYet}</p>
+            {match.opensAtLabel && (
+              <p className="mt-1 text-xs text-slate-500">
+                {UI.opensAtLabel}: {match.opensAtLabel}
+              </p>
+            )}
+          </div>
         ) : (
           <div className="space-y-3">
             <p className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">

@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { isKnockoutStage } from "./constants";
 import { isKickoffReached } from "./time";
+import { getPredictionLead, predictionOpensAt } from "./settings";
 import type { PredictionInput } from "./validation";
 
 export class PredictionError extends Error {
@@ -13,14 +14,21 @@ export class PredictionError extends Error {
  * Server-side gate. The ONLY source of truth for whether a prediction may be
  * created/updated. Frontend countdowns are cosmetic — every write passes here.
  */
-export function lockPredictionGuard(match: {
-  status: string;
-  kickoffAt: Date;
-  homeTeamId: string | null;
-  awayTeamId: string | null;
-}): void {
+export function lockPredictionGuard(
+  match: {
+    status: string;
+    kickoffAt: Date;
+    homeTeamId: string | null;
+    awayTeamId: string | null;
+  },
+  opensAt?: Date | null,
+): void {
   if (match.status !== "SCHEDULED") {
     throw new PredictionError("التوقع مُغلق لهذه المباراة", "MATCH_NOT_OPEN", 409);
+  }
+  // Global prediction-opening window: reject before predictions open.
+  if (opensAt && Date.now() < opensAt.getTime()) {
+    throw new PredictionError("لم يفتح التوقع لهذه المباراة بعد", "PREDICTION_NOT_OPEN_YET", 409);
   }
   if (isKickoffReached(match.kickoffAt)) {
     throw new PredictionError("تم إغلاق التوقع عند بداية المباراة", "KICKOFF_REACHED", 409);
@@ -37,6 +45,7 @@ export function lockPredictionGuard(match: {
  * after kickoff" race — the guard uses the transaction's read, not the page load.
  */
 export async function submitPrediction(userId: string, input: PredictionInput) {
+  const lead = await getPredictionLead();
   return prisma.$transaction(async (tx) => {
     const match = await tx.match.findUnique({
       where: { id: input.matchId },
@@ -44,7 +53,7 @@ export async function submitPrediction(userId: string, input: PredictionInput) {
     });
     if (!match) throw new PredictionError("المباراة غير موجودة", "MATCH_NOT_FOUND", 404);
 
-    lockPredictionGuard(match);
+    lockPredictionGuard(match, predictionOpensAt(match.kickoffAt, lead));
 
     const knockout = isKnockoutStage(match.stage);
     let winnerTeamId: string | null = null;
