@@ -27,6 +27,14 @@ export function CopyCode({ code }: { code: string }) {
       <button onClick={() => copy("link")} className="btn-ghost px-3 py-1.5 text-sm">
         {copied === "link" ? UI.inviteCopied : UI.copyInviteLink}
       </button>
+      <button onClick={whatsappInvite} className="btn-ghost px-3 py-1.5 text-sm">
+        {UI.inviteViaWhatsApp}
+      </button>
     </div>
   );
+
+  function whatsappInvite() {
+    const msg = `انضم لمجموعة توقعات كأس 2026 ⚽\nكود المجموعة: ${code}\nرابط الانضمام:\n${window.location.origin}/join/${code}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
+  }
 }

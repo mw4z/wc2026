@@ -28,6 +28,8 @@ export function GroupShareButtons({
       /* clipboard unavailable */
     }
   }
+  const whatsapp = (text: string) =>
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
 
   const reminder = () =>
     `تذكير سريع ⚽\nلا تنسون توقعات مباريات اليوم قبل بداية كل مباراة.\nرابط المجموعة:\n${link()}\nكود المجموعة: ${code}`;
@@ -35,14 +37,24 @@ export function GroupShareButtons({
     `نتيجتي في توقعات كأس 2026:\n${points} نقطة\nمركزي في المجموعة: ${rank}\nرابط المجموعة:\n${link()}`;
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <button onClick={() => copy(reminder(), "reminder")} className="btn-ghost text-sm">
-        {copied === "reminder" ? UI.reminderCopied : UI.copyGroupReminder}
-      </button>
-      {points != null && points > 0 && rank != null && (
-        <button onClick={() => copy(result(), "result")} className="btn-ghost text-sm">
-          {copied === "result" ? UI.resultCopied : UI.shareMyResult}
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
+        <button onClick={() => copy(reminder(), "reminder")} className="btn-ghost text-sm">
+          {copied === "reminder" ? UI.reminderCopied : UI.copyGroupReminder}
         </button>
+        <button onClick={() => whatsapp(reminder())} className="btn-ghost text-sm">
+          {UI.shareViaWhatsApp}
+        </button>
+      </div>
+      {points != null && points > 0 && rank != null && (
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => copy(result(), "result")} className="btn-ghost text-sm">
+            {copied === "result" ? UI.resultCopied : UI.shareMyResult}
+          </button>
+          <button onClick={() => whatsapp(result())} className="btn-ghost text-sm">
+            {UI.shareViaWhatsApp}
+          </button>
+        </div>
       )}
     </div>
   );
