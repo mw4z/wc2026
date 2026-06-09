@@ -1,5 +1,9 @@
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
 import { BrandMark } from "@/components/Logo";
+import { AppShell } from "@/components/AppShell";
+
+export const dynamic = "force-dynamic";
 
 // Public marketing/legal shell (no auth). Arabic-first, RTL. These pages exist
 // so the site reads as a real product (for users and ad review), not a login wall.
@@ -12,7 +16,14 @@ const NAV = [
   { href: "/contact", label: "تواصل معنا" },
 ];
 
-export default function PublicLayout({ children }: { children: React.ReactNode }) {
+export default async function PublicLayout({ children }: { children: React.ReactNode }) {
+  // Logged-in visitors keep the app chrome on public pages (e.g. /rules) instead
+  // of seeing the marketing/landing shell.
+  const user = await getCurrentUser();
+  if (user && user.isActive) {
+    return <AppShell isAdmin={user.role === "ADMIN"}>{children}</AppShell>;
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-30 border-b border-white/10 bg-navy-950/85 backdrop-blur-xl">
