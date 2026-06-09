@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="wc26icon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2b7bff"/>
+      <stop offset="0.55" stop-color="#7c5cff"/>
+      <stop offset="1" stop-color="#aef000"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="48" height="48" rx="12" fill="url(#wc26icon)"/>
+  <g transform="translate(0,3)">
+    <!-- trophy handles -->
+    <g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+      <path d="M16.8 14.5 C12 14.5 12 21 17 20.4"/>
+      <path d="M31.2 14.5 C36 14.5 36 21 31 20.4"/>
+    </g>
+    <!-- trophy cup + stem + base -->
+    <g fill="#fff">
+      <path d="M16.5 12.5 H31.5 V15.5 C31.5 21.8 28.2 25.6 24 25.6 C19.8 25.6 16.5 21.8 16.5 15.5 Z"/>
+      <rect x="22.7" y="25" width="2.6" height="4.4" rx="0.5"/>
+      <path d="M18.8 30.4 H29.2 L30.6 34 H17.4 Z"/>
+      <rect x="16.6" y="34.4" width="14.8" height="2.3" rx="1"/>
+    </g>
+    <path d="M20 14.5 C20 18.8 21.4 21.6 23 22.4" stroke="rgba(255,255,255,0.55)" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>
