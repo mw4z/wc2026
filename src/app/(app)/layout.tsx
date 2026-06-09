@@ -20,15 +20,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <header className="sticky top-0 z-30 border-b border-white/10 bg-navy-950/85 backdrop-blur-xl">
         <div className="h-[3px] w-full bg-gradient-to-l from-accent-500 via-[#7c5cff] to-lime-500" />
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5">
-          <Link href="/matches" className="shrink-0">
+          <Link href="/matches" className="min-w-0">
             <Logo />
           </Link>
           <div className="mx-1 hidden h-6 w-px bg-white/10 md:block" />
-          <div className="min-w-0 flex-1">
+          <div className="hidden min-w-0 flex-1 md:block">
             <AppNav isAdmin={user.role === "ADMIN"} />
           </div>
-          <LangToggle />
-          <LogoutButton />
+          <div className="ms-auto flex shrink-0 items-center gap-1 md:ms-0">
+            <LangToggle />
+            <LogoutButton />
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-6 pb-24 md:pb-6">{children}</main>

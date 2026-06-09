@@ -66,10 +66,10 @@ export function BrandMark({ className = "" }: { className?: string }) {
 export function Logo({ className = "" }: { className?: string }) {
   const UI = useUI();
   return (
-    <span className={`flex items-center gap-2.5 ${className}`}>
+    <span className={`flex min-w-0 items-center gap-2.5 ${className}`}>
       <BrandMark className="h-9 w-9 shrink-0" />
-      <span className="hidden leading-none sm:flex sm:flex-col">
-        <span className="text-sm font-extrabold text-white">{UI.appName}</span>
+      <span className="flex min-w-0 flex-col leading-none">
+        <span className="truncate text-sm font-extrabold text-white">{UI.appName}</span>
         <span className="font-display text-[11px] font-bold uppercase tracking-widest2 text-accent-400">
           {UI.worldCup26}
         </span>
