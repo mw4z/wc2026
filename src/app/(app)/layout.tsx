@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Logo } from "@/components/Logo";
 import { AppNav } from "@/components/AppNav";
+import { MobileTabBar } from "@/components/MobileTabBar";
 import { LogoutButton } from "@/components/LogoutButton";
 import { LangToggle } from "@/components/LangToggle";
 import { GroupNudge } from "@/components/GroupNudge";
@@ -31,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-6 pb-24 md:pb-6">{children}</main>
+      <MobileTabBar isAdmin={user.role === "ADMIN"} />
       <GroupNudge hasGroup={groupCount > 0} />
     </div>
   );
