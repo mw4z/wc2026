@@ -1,5 +1,7 @@
 "use client";
 
+import { Spinner } from "@/components/Spinner";
+
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUI } from "@/components/I18nProvider";
@@ -119,7 +121,7 @@ export function SignupForm({ email }: { email: string }) {
       {error && <p className="rounded-lg bg-danger/15 px-3 py-2 text-sm text-red-300">{error}</p>}
 
       <button className="btn-primary w-full" disabled={loading || name.trim().length < 2}>
-        {loading ? "..." : UI.createAccount}
+        {loading ? <Spinner /> : UI.createAccount}
       </button>
     </form>
   );

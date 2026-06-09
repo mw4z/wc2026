@@ -1,5 +1,7 @@
 "use client";
 
+import { Spinner } from "@/components/Spinner";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUI } from "@/components/I18nProvider";
@@ -92,7 +94,7 @@ export function ResultForm({
       {msg && <p className={`text-center text-sm ${msg.ok ? "text-ok" : "text-red-300"}`}>{msg.text}</p>}
 
       <button onClick={save} disabled={busy || h === "" || a === ""} className="btn-gold w-full">
-        {busy ? "..." : UI.admin.saveResult}
+        {busy ? <Spinner /> : UI.admin.saveResult}
       </button>
     </div>
   );

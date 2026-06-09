@@ -1,5 +1,7 @@
 "use client";
 
+import { Spinner } from "@/components/Spinner";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUI } from "@/components/I18nProvider";
@@ -109,7 +111,7 @@ export function EmailManager({ current }: { current: string | null }) {
           {error && <p className="text-sm text-red-300">{error}</p>}
           <div className="flex gap-2">
             <button className="btn-primary flex-1" disabled={busy || !email.trim()}>
-              {busy ? "..." : UI.sendCode}
+              {busy ? <Spinner /> : UI.sendCode}
             </button>
             <button type="button" onClick={reset} className="btn-ghost">
               {UI.cancel}
@@ -135,7 +137,7 @@ export function EmailManager({ current }: { current: string | null }) {
           {error && <p className="text-sm text-red-300">{error}</p>}
           <div className="flex gap-2">
             <button className="btn-primary flex-1" disabled={busy || otp.trim().length < 4}>
-              {busy ? "..." : UI.otpVerifyBtn}
+              {busy ? <Spinner /> : UI.otpVerifyBtn}
             </button>
             <button type="button" onClick={reset} className="btn-ghost">
               {UI.cancel}

@@ -1,5 +1,7 @@
 "use client";
 
+import { Spinner } from "@/components/Spinner";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUI } from "@/components/I18nProvider";
@@ -54,7 +56,7 @@ export default function JoinGroupPage() {
         </div>
         {error && <p className="rounded-lg bg-danger/15 px-3 py-2 text-sm text-red-300">{error}</p>}
         <button className="btn-gold w-full" disabled={loading || !code.trim()}>
-          {loading ? "..." : UI.joinGroup}
+          {loading ? <Spinner /> : UI.joinGroup}
         </button>
       </form>
     </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { Spinner } from "@/components/Spinner";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -216,7 +218,7 @@ export function MatchCard({
             )}
 
             <button onClick={save} disabled={saving || home === "" || away === ""} className="btn-primary w-full">
-              {saving ? "..." : UI.submitPrediction}
+              {saving ? <Spinner /> : UI.submitPrediction}
             </button>
           </div>
         )}

@@ -1,5 +1,7 @@
 "use client";
 
+import { Spinner } from "@/components/Spinner";
+
 import { useState } from "react";
 import { useUI } from "@/components/I18nProvider";
 import { BellIcon } from "@/components/icons";
@@ -39,7 +41,7 @@ export function PushTestButton() {
       </div>
       <button onClick={send} disabled={busy} className="btn-ghost">
         <BellIcon className="text-base" />
-        {busy ? "..." : UI.admin.testPush}
+        {busy ? <Spinner /> : UI.admin.testPush}
       </button>
     </section>
   );

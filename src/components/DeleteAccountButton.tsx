@@ -1,5 +1,7 @@
 "use client";
 
+import { Spinner } from "@/components/Spinner";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUI } from "./I18nProvider";
@@ -38,7 +40,7 @@ export function DeleteAccountButton() {
         disabled={busy}
         className="btn mt-3 border border-danger/50 text-red-300 hover:bg-danger/10"
       >
-        {busy ? "..." : UI.deleteAccount}
+        {busy ? <Spinner /> : UI.deleteAccount}
       </button>
     </div>
   );

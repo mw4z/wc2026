@@ -1,5 +1,7 @@
 "use client";
 
+import { Spinner } from "@/components/Spinner";
+
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUI } from "@/components/I18nProvider";
@@ -94,7 +96,7 @@ function VerifyForm() {
       {note && <p className="rounded-lg bg-ok/15 px-3 py-2 text-sm text-ok">{note}</p>}
 
       <button className="btn-primary w-full" disabled={loading || otp.trim().length < 4}>
-        {loading ? "..." : UI.otpVerifyBtn}
+        {loading ? <Spinner /> : UI.otpVerifyBtn}
       </button>
 
       <button
@@ -103,7 +105,7 @@ function VerifyForm() {
         disabled={resending}
         className="w-full text-center text-sm font-semibold text-accent-400 hover:underline disabled:opacity-50"
       >
-        {resending ? "..." : UI.otpResend}
+        {resending ? <Spinner /> : UI.otpResend}
       </button>
     </form>
   );

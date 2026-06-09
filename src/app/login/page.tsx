@@ -1,5 +1,7 @@
 "use client";
 
+import { Spinner } from "@/components/Spinner";
+
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUI } from "@/components/I18nProvider";
@@ -81,7 +83,7 @@ function EmailEntry() {
       {error && <p className="rounded-lg bg-danger/15 px-3 py-2 text-sm text-red-300">{error}</p>}
 
       <button className="btn-primary w-full" disabled={loading || !email.trim()}>
-        {loading ? "..." : UI.continueBtn}
+        {loading ? <Spinner /> : UI.continueBtn}
       </button>
 
       <p className="text-center text-xs text-slate-400">{UI.emailEntryHelper}</p>
