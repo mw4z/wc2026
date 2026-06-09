@@ -49,7 +49,7 @@ export default async function PublicLayout({ children }: { children: React.React
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">{children}</main>
 
       <footer className="border-t border-white/10 bg-navy-950/60">
-        <div className="mx-auto max-w-5xl px-4 py-8 text-sm text-slate-400">
+        <div className="mx-auto max-w-5xl px-4 pt-8 pb-16 text-sm text-slate-400">
           <nav className="mb-4 flex flex-wrap gap-x-4 gap-y-2">
             {NAV.map((l) => (
               <Link key={l.href} href={l.href} className="hover:text-white">
