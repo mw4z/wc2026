@@ -58,6 +58,9 @@ export function TournamentHero({
         </div>
         {children && <div className="mt-4 flex flex-wrap items-center gap-2">{children}</div>}
       </div>
+
+      {/* moving glass reflection — a diagonal light sweep across the whole card */}
+      <span className="hero-sheen" aria-hidden="true" />
     </section>
   );
 }

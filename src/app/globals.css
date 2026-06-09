@@ -170,6 +170,36 @@
   animation: live-pulse 1.1s ease-in-out infinite;
 }
 
+/* Moving glass reflection sweeping across the tournament hero card. */
+@keyframes hero-sheen {
+  0% { transform: translateX(-140%) skewX(-14deg); }
+  60%, 100% { transform: translateX(260%) skewX(-14deg); }
+}
+.hero-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.hero-sheen::before {
+  content: "";
+  position: absolute;
+  top: -25%;
+  bottom: -25%;
+  left: 0;
+  width: 32%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 35%,
+    rgba(255, 255, 255, 0.22) 50%,
+    rgba(255, 255, 255, 0.04) 65%,
+    transparent 100%
+  );
+  transform: translateX(-140%) skewX(-14deg);
+  animation: hero-sheen 6s ease-in-out infinite;
+}
+
 /* Staggered page-load reveal. */
 @keyframes rise {
   from { opacity: 0; transform: translateY(8px); }
@@ -284,4 +314,5 @@
   .reveal, .animate-live .pill-dot,
   .loader-bob, .loader-ball, .loader-ring, .loader-ring-spin, .loader-dot,
   .loader-bar, .skeleton { animation: none; }
+  .hero-sheen::before { animation: none; opacity: 0; }
 }
