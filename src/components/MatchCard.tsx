@@ -47,6 +47,7 @@ export function MatchCard({
   const UI = useUI();
   const router = useRouter();
   const ms = useCountdown(match.kickoffAt);
+  const msToOpen = useCountdown(match.opensAt ?? match.kickoffAt);
   const isKnockout = KNOCKOUT.has(match.stage);
 
   // Locked if status moved past SCHEDULED OR kickoff time reached (client mirror
@@ -157,10 +158,14 @@ export function MatchCard({
         ) : locked ? (
           <LockedView prediction={prediction} isKnockout={isKnockout} match={match} />
         ) : notOpenYet ? (
-          <div className="text-center text-sm">
+          <div className="flex flex-col items-center gap-2 text-center text-sm">
             <p className="font-semibold text-slate-300">{UI.notOpenYet}</p>
+            <span className="pill pill-locked">
+              <ClockIcon className="text-[13px]" />
+              {UI.opensIn} <span className="tnum">{fmtCountdown(msToOpen)}</span>
+            </span>
             {match.opensAtLabel && (
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="text-xs text-slate-500">
                 {UI.opensAtLabel}: {match.opensAtLabel}
               </p>
             )}
