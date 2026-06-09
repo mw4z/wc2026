@@ -78,6 +78,7 @@ model User {
   matchResultAudits  MatchResultAuditLog[] @relation("AdminAudits")
   ledGroups          Group[]               @relation("GroupLeader")
   groupMemberships   GroupMember[]
+  pushSubscriptions  PushSubscription[]
 
   @@index([role])
   @@index([isActive])
@@ -250,6 +251,38 @@ model Group {
 
   @@index([code])
   @@index([isActive])
+}
+
+// ----------------------------------------------------------------------------
+// Web Push (Phase: reminders). A browser PushSubscription per device/user.
+// A small hourly cron sends "your predictions close soon" notifications.
+// No phone numbers, no third-party messaging — standard Web Push (VAPID).
+// ----------------------------------------------------------------------------
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique // the push service URL (unique per device subscription)
+  p256dh    String // client public key (for payload encryption)
+  auth      String // client auth secret
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Dedupe log: at most one reminder per (user, match) so the hourly cron never
+// spams. A row means "we already nudged this user about this match".
+model PushReminder {
+  id      String   @id @default(cuid())
+  userId  String
+  matchId String
+  sentAt  DateTime @default(now())
+
+  @@unique([userId, matchId])
+  @@index([sentAt])
 }
 
 model GroupMember {

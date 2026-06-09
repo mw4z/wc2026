@@ -71,3 +71,8 @@ leaderboard tie-breakers · auth model. No OTP yet (keep code OTP-ready).
 ## Verification scripts (run against deployed URL or localhost)
 `scripts/verify.ts` (pure logic), `scripts/e2e.ts` (core flow),
 `scripts/groups-e2e.ts`, `scripts/phone-e2e.ts`, `scripts/diag.ts`.
+
+## Web Push reminders
+Browser/PWA push that nudges users to predict before kickoff. Hourly cron at
+`/api/cron/reminders` (see `vercel.json`). Full setup, env vars, SQL, and the
+Vercel-plan/cron caveat are in **docs/PUSH.md**. DB migration: `supabase/40_push.sql`.

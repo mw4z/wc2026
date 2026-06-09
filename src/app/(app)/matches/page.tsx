@@ -10,6 +10,7 @@ import { getUI, getLocale } from "@/lib/locale";
 import { MatchCard } from "@/components/MatchCard";
 import { TournamentHero, EmptyState } from "@/components/TournamentHero";
 import { TodaySummary } from "@/components/TodaySummary";
+import { ReminderToggle } from "@/components/ReminderToggle";
 import { BallIcon } from "@/components/icons";
 import { AdSlot } from "@/components/AdSlot";
 import { AD_SLOTS } from "@/lib/ads";
@@ -94,6 +95,7 @@ export default async function MatchesPage() {
         </div>
       )}
       <TournamentHero title={UI.appName} subtitle={UI.matchesHeroSubtitle} icon={<BallIcon />} />
+      <ReminderToggle />
       {summary.total > 0 && (
         <TodaySummary
           total={summary.total}

@@ -23,7 +23,14 @@ const sans = IBM_Plex_Sans_Arabic({
 
 export async function generateMetadata(): Promise<Metadata> {
   const ui = await getUI();
-  return { title: ui.appName, description: ui.appName };
+  return {
+    title: ui.appName,
+    description: ui.appName,
+    manifest: "/manifest.webmanifest",
+    // iOS only allows Web Push when the site is installed to the Home Screen as a
+    // standalone PWA — these tags make that possible.
+    appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: ui.appName },
+  };
 }
 
 export const viewport: Viewport = {

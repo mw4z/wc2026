@@ -1,0 +1,20 @@
+{
+  "name": "توقعات كأس العالم 2026",
+  "short_name": "توقعات 2026",
+  "description": "توقّع نتائج مباريات كأس العالم 2026 ونافس أصدقاءك.",
+  "start_url": "/matches",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#070b15",
+  "theme_color": "#070b15",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
