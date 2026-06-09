@@ -279,9 +279,10 @@ model PushReminder {
   id      String   @id @default(cuid())
   userId  String
   matchId String
+  kind    String   @default("closing") // "open" | "closing" | "scored"
   sentAt  DateTime @default(now())
 
-  @@unique([userId, matchId])
+  @@unique([userId, matchId, kind])
   @@index([sentAt])
 }
 

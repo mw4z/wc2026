@@ -24,6 +24,9 @@ export interface PushPayload {
   title: string;
   body: string;
   url: string;
+  // Optional notification tag. Distinct tags keep the three reminder types
+  // (open / closing / scored) from collapsing into one on the device.
+  tag?: string;
 }
 
 export interface StoredSubscription {

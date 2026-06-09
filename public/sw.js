@@ -15,7 +15,9 @@ self.addEventListener("push", (event) => {
     badge: "/icon.svg",
     dir: "rtl",
     lang: "ar",
-    tag: "wc2026-reminder", // collapse repeats into one notification
+    // Distinct tags per reminder type so opened/closing/scored don't replace
+    // each other; same tag still collapses repeats of the same type.
+    tag: data.tag || "wc2026-reminder",
     renotify: true,
     data: { url: data.url || "/matches" },
   };
