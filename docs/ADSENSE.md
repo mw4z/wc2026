@@ -6,16 +6,16 @@ ad containers, no layout shift while disabled.
 
 ## 1. Apply / add the site in AdSense
 1. Sign in at https://adsense.google.com and add your site (the live domain).
-2. AdSense gives you a **publisher id** like `ca-pub-1234567890123456`.
+2. AdSense gives you a **publisher id** like `ca-pub-7307749688711791`.
    - The "client id" used here is that full value (`ca-pub-...`).
-   - The "pub" number (`pub-1234567890123456`) goes in `ads.txt`.
+   - The "pub" number (`pub-7307749688711791`) goes in `ads.txt`.
 
 ## 2. ads.txt
 Edit `public/ads.txt` and replace the placeholder. If your client id is
-`ca-pub-1234567890123456`, the file must read:
+`ca-pub-7307749688711791`, the file must read:
 
 ```
-google.com, pub-1234567890123456, DIRECT, f08c47fec0942fa0
+google.com, pub-7307749688711791, DIRECT, f08c47fec0942fa0
 ```
 
 It will be served at `https://<your-domain>/ads.txt`.
@@ -39,7 +39,7 @@ Vercel → project → **Settings → Environment Variables** (Production):
 
 ```
 NEXT_PUBLIC_ENABLE_ADS=true
-NEXT_PUBLIC_ADSENSE_CLIENT_ID=ca-pub-1234567890123456
+NEXT_PUBLIC_ADSENSE_CLIENT_ID=ca-pub-7307749688711791
 NEXT_PUBLIC_ADSENSE_MATCHES_TOP_SLOT=1234567890
 NEXT_PUBLIC_ADSENSE_LEADERBOARD_TOP_SLOT=...
 NEXT_PUBLIC_ADSENSE_GROUP_TOP_SLOT=...
