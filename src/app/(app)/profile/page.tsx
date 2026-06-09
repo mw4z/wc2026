@@ -33,7 +33,7 @@ export default async function ProfilePage() {
 
       <div className="card mb-6 p-5">
         <Row label={UI.name} value={user.name} />
-        <Row label={UI.phone} value={user.phoneE164 ?? user.employeeId ?? "—"} hint={UI.hiddenFromOthers} />
+        <Row label={UI.emailLabel} value={user.email ?? "—"} hint={UI.hiddenFromOthers} />
         <Row label={UI.department} value={user.department ?? "—"} />
         <Row label={UI.roleLabel} value={user.role === "ADMIN" ? UI.roleAdmin : UI.roleUser} />
       </div>

@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUI } from "@/components/I18nProvider";
 
-// Step 2 form. Phone is read-only (verified in step 1, held in a pending cookie).
-export function SignupForm({ phone }: { phone: string }) {
+// Step 2 form. Email is read-only (verified in step 1, held in a pending cookie).
+export function SignupForm({ email }: { email: string }) {
   const UI = useUI();
   const router = useRouter();
   const params = useSearchParams();
@@ -55,9 +55,9 @@ export function SignupForm({ phone }: { phone: string }) {
   return (
     <form onSubmit={onSubmit} className="card card-accent space-y-4 p-6">
       <div>
-        <label className="label">{UI.phone}</label>
+        <label className="label">{UI.emailLabel}</label>
         <div className="input flex items-center bg-navy-800/40 text-slate-300" dir="ltr">
-          {phone}
+          {email}
         </div>
       </div>
 

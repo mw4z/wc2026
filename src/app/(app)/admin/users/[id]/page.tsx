@@ -41,7 +41,7 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
 
       <h1 className="mb-1 mt-2 text-2xl font-extrabold">{user.name}</h1>
       <p className="mb-2 text-sm text-slate-400">
-        {UI.phone}: <span className="font-mono" dir="ltr">{user.phoneE164 ?? user.employeeId ?? "—"}</span>
+        {UI.emailLabel}: <span className="font-mono" dir="ltr">{user.email ?? "—"}</span>
         {user.department ? ` · ${user.department}` : ""} · {user.role === "ADMIN" ? UI.roleAdmin : UI.roleUser}
         {" · "}
         <span className={user.isActive ? "text-ok" : "text-red-400"}>

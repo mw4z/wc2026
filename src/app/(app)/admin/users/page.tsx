@@ -17,7 +17,7 @@ export default async function AdminUsersPage() {
         <table className="w-full text-right text-sm">
           <thead className="border-b border-navy-700 text-xs text-slate-400">
             <tr>
-              <th className="p-3">{UI.phone}</th>
+              <th className="p-3">{UI.emailLabel}</th>
               <th className="p-3">{UI.name}</th>
               <th className="p-3">{UI.department}</th>
               <th className="p-3">{UI.roleLabel}</th>
@@ -31,7 +31,7 @@ export default async function AdminUsersPage() {
                 key={u.id}
                 user={{
                   id: u.id,
-                  identifier: u.phoneE164 ?? u.employeeId ?? "—",
+                  identifier: u.email ?? "—",
                   name: u.name,
                   department: u.department,
                   role: u.role,

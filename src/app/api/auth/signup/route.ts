@@ -1,20 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { signupCompleteSchema } from "@/lib/validation";
-import { completePhoneSignup } from "@/lib/users";
+import { completeEmailSignup } from "@/lib/users";
 import { getPendingSignup, clearPendingSignup, createSession } from "@/lib/auth";
 import { assertGroupJoinable, joinGroupByCode, createGroup } from "@/lib/groups";
 import { errorResponse } from "@/lib/api";
 
-// Step 2 of the 2-page flow. The phone comes from the pending-signup cookie
-// (never the request body / URL). Creates the account and optionally joins/creates
-// a group. An invalid group code is rejected BEFORE the account is created, so the
-// form keeps its values and the pending phone stays valid for a retry.
+// Step 2 of the email flow. The (verified) email comes from the pending-signup
+// cookie (never the request body / URL). Creates the account and optionally
+// joins/creates a group. An invalid group code is rejected BEFORE the account is
+// created, so the form keeps its values and the pending email stays valid.
 export async function POST(req: NextRequest) {
   try {
-    const phoneE164 = await getPendingSignup();
-    if (!phoneE164) {
+    const email = await getPendingSignup();
+    if (!email) {
       return NextResponse.json(
-        { error: "انتهت صلاحية الجلسة، أعد إدخال رقم جوالك.", code: "NO_PENDING" },
+        { error: "انتهت صلاحية الجلسة، أعد إدخال بريدك الإلكتروني.", code: "NO_PENDING" },
         { status: 401 },
       );
     }
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       await assertGroupJoinable(groupCode); // throws GroupError → handled by errorResponse
     }
 
-    const user = await completePhoneSignup(phoneE164, input.name);
+    const user = await completeEmailSignup(email, input.name);
     await createSession({ userId: user.id, role: user.role, name: user.name });
 
     let groupId: string | null = null;

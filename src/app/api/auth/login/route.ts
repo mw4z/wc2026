@@ -1,31 +1,34 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { loginSchema, phoneStartSchema } from "@/lib/validation";
-import { loginOrRegister, getPhoneLoginStatus } from "@/lib/users";
-import { createSession, createPendingSignup } from "@/lib/auth";
+import { emailStartSchema } from "@/lib/validation";
+import { getEmailLoginStatus, normalizeEmail } from "@/lib/users";
+import { createSession, createPendingSignup, createOtpPending } from "@/lib/auth";
+import { otpConfigured, sendEmailOtp } from "@/lib/authentica";
 import { errorResponse } from "@/lib/api";
 
-// Step 1 of the 2-page flow. Phone only:
-//  - existing account  → log in, { exists: true }
-//  - new phone         → store a pending signup cookie, { exists: false }
-//                        (NO account is created here)
-// Legacy employeeId login is kept for the admin transition.
+// Step 1 of the email flow. Email only:
+//  - OTP configured  → email a code, store an otp-pending cookie, { otpRequired: true }.
+//                      Existing-vs-new is decided after the code is verified.
+//  - OTP not configured → fall back to no-verification: existing email logs in
+//                      ({ exists: true }), new email opens a pending signup ({ exists: false }).
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const { email } = emailStartSchema.parse(await req.json());
+    const normalized = normalizeEmail(email);
 
-    if (body && typeof body.phone === "string") {
-      const { phoneE164, user } = await getPhoneLoginStatus(phoneStartSchema.parse(body));
-      if (user) {
-        await createSession({ userId: user.id, role: user.role, name: user.name });
-        return NextResponse.json({ exists: true });
-      }
-      await createPendingSignup(phoneE164);
-      return NextResponse.json({ exists: false });
+    if (otpConfigured) {
+      await sendEmailOtp(normalized);
+      await createOtpPending(normalized); // unverified email, pending OTP
+      return NextResponse.json({ otpRequired: true });
     }
 
-    const legacy = await loginOrRegister(loginSchema.parse(body));
-    await createSession({ userId: legacy.id, role: legacy.role, name: legacy.name });
-    return NextResponse.json({ exists: true });
+    // No OTP provider configured → verification-free flow.
+    const { user } = await getEmailLoginStatus({ email: normalized });
+    if (user) {
+      await createSession({ userId: user.id, role: user.role, name: user.name });
+      return NextResponse.json({ exists: true });
+    }
+    await createPendingSignup(normalized);
+    return NextResponse.json({ exists: false });
   } catch (e) {
     return errorResponse(e);
   }

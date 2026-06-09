@@ -1,8 +1,7 @@
 import { prisma } from "./prisma";
 import { isRegistrationOpen } from "./settings";
-import { normalizePhone } from "./phone";
 import { recalculateLeaderboard } from "./leaderboard";
-import type { LoginInput, PhoneLoginInput } from "./validation";
+import type { LoginInput } from "./validation";
 
 export class LoginError extends Error {
   constructor(message: string, public code: string, public status = 400) {
@@ -20,96 +19,54 @@ function adminIds(): Set<string> {
   );
 }
 
-// Phone-based bootstrap admins (E.164), comma-separated in ADMIN_PHONE_NUMBERS.
-function adminPhones(): Set<string> {
+// Email bootstrap admins, comma-separated in ADMIN_EMAILS (case-insensitive).
+function adminEmails(): Set<string> {
   return new Set(
-    (process.env.ADMIN_PHONE_NUMBERS || "")
+    (process.env.ADMIN_EMAILS || "")
       .split(",")
-      .map((s) => s.trim())
+      .map((s) => s.trim().toLowerCase())
       .filter(Boolean),
   );
 }
 
-/**
- * Phone login. phoneE164 is the unique identity.
- *  - Existing phone → log into that account; display name is NEVER overwritten.
- *  - New phone → create the user (if registration is open). No password, no OTP yet.
- *  - Deactivated user → rejected.
- * Bootstrap admins (ADMIN_PHONE_NUMBERS) are promoted to ADMIN on login.
- */
-export async function loginOrRegisterByPhone(input: PhoneLoginInput) {
-  const phoneE164 = normalizePhone(input.phone, input.country);
-  if (!phoneE164) {
-    throw new LoginError("رقم الجوال غير صحيح", "INVALID_PHONE", 422);
-  }
-  const isBootstrapAdmin = adminPhones().has(phoneE164);
-
-  const existing = await prisma.user.findUnique({ where: { phoneE164 } });
-  if (existing) {
-    if (!existing.isActive) {
-      throw new LoginError("تم إيقاف هذا الحساب. تواصل مع الإدارة.", "USER_INACTIVE", 403);
-    }
-    if (isBootstrapAdmin && existing.role !== "ADMIN") {
-      return prisma.user.update({ where: { id: existing.id }, data: { role: "ADMIN" } });
-    }
-    return existing;
-  }
-
-  if (!isBootstrapAdmin && !(await isRegistrationOpen())) {
-    throw new LoginError("تم إغلاق تسجيل المشاركين الجدد.", "REGISTRATION_CLOSED", 403);
-  }
-
-  // Creating a new account requires a name (returning users sign in by phone only).
-  const name = (input.name ?? "").trim();
-  if (name.length < 2) {
-    throw new LoginError("لا يوجد حساب بهذا الرقم. أنشئ حسابًا جديدًا بإدخال اسمك.", "NAME_REQUIRED", 422);
-  }
-
-  return prisma.user.create({
-    data: {
-      phoneE164,
-      name,
-      role: isBootstrapAdmin ? "ADMIN" : "USER",
-    },
-  });
+export function normalizeEmail(raw: string): string {
+  return (raw ?? "").trim().toLowerCase();
 }
 
 /**
- * Step 1 of the 2-page flow. Normalize the phone and report whether an account
- * exists — WITHOUT creating one. For an existing account, returns the user
- * (promoting a bootstrap-admin phone, rejecting a deactivated one).
+ * Step 1 (email flow). Report whether an account exists for this email WITHOUT
+ * creating one. For an existing account, returns the user (promoting a bootstrap-
+ * admin email to ADMIN, rejecting a deactivated one).
  */
-export async function getPhoneLoginStatus(input: { country: string; phone: string }) {
-  const phoneE164 = normalizePhone(input.phone, input.country);
-  if (!phoneE164) {
-    throw new LoginError("رقم الجوال غير صحيح", "INVALID_PHONE", 422);
-  }
-  const existing = await prisma.user.findUnique({ where: { phoneE164 } });
-  if (!existing) return { phoneE164, user: null as null };
+export async function getEmailLoginStatus(input: { email: string }) {
+  const email = normalizeEmail(input.email);
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (!existing) return { email, user: null as null };
 
   if (!existing.isActive) {
     throw new LoginError("تم إيقاف هذا الحساب. تواصل مع الإدارة.", "USER_INACTIVE", 403);
   }
-  if (adminPhones().has(phoneE164) && existing.role !== "ADMIN") {
+  if (adminEmails().has(email) && existing.role !== "ADMIN") {
     const promoted = await prisma.user.update({ where: { id: existing.id }, data: { role: "ADMIN" } });
-    return { phoneE164, user: promoted };
+    return { email, user: promoted };
   }
-  return { phoneE164, user: existing };
+  return { email, user: existing };
 }
 
 /**
- * Step 2 of the 2-page flow. Create the account for an already-verified pending
- * phone (E.164). Re-validates server-side: registration must be open (unless a
- * bootstrap admin), and a name is required. Idempotent if the phone now exists.
+ * Step 2 (email flow). Create the account for an already-verified email.
+ * Re-validates: registration must be open (unless a bootstrap admin) and a name
+ * is required. Idempotent if the email now exists (e.g. double submit).
  */
-export async function completePhoneSignup(phoneE164: string, rawName: string) {
-  const isBootstrapAdmin = adminPhones().has(phoneE164);
-  const existing = await prisma.user.findUnique({ where: { phoneE164 } });
+export async function completeEmailSignup(email: string, rawName: string) {
+  const e = normalizeEmail(email);
+  const isBootstrapAdmin = adminEmails().has(e);
+  const existing = await prisma.user.findUnique({ where: { email: e } });
   if (existing) {
     if (!existing.isActive) {
       throw new LoginError("تم إيقاف هذا الحساب. تواصل مع الإدارة.", "USER_INACTIVE", 403);
     }
-    return existing; // already created (e.g. double submit) — just log in
+    return existing;
   }
   if (!isBootstrapAdmin && !(await isRegistrationOpen())) {
     throw new LoginError("تم إغلاق تسجيل المشاركين الجدد.", "REGISTRATION_CLOSED", 403);
@@ -119,7 +76,7 @@ export async function completePhoneSignup(phoneE164: string, rawName: string) {
     throw new LoginError("الاسم مطلوب", "NAME_REQUIRED", 422);
   }
   return prisma.user.create({
-    data: { phoneE164, name, role: isBootstrapAdmin ? "ADMIN" : "USER" },
+    data: { email: e, name, role: isBootstrapAdmin ? "ADMIN" : "USER" },
   });
 }
 

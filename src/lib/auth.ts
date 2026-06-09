@@ -47,8 +47,8 @@ export async function destroySession(): Promise<void> {
 const PENDING_COOKIE = "wc26_pending";
 const PENDING_MAX_AGE = 60 * 10; // 10 minutes
 
-export async function createPendingSignup(phoneE164: string): Promise<void> {
-  const token = await new SignJWT({ phoneE164 })
+export async function createPendingSignup(email: string): Promise<void> {
+  const token = await new SignJWT({ email })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${PENDING_MAX_AGE}s`)
@@ -62,13 +62,13 @@ export async function createPendingSignup(phoneE164: string): Promise<void> {
   });
 }
 
-/** Returns the pending E.164 phone, or null if missing/expired/invalid. */
+/** Returns the pending (verified) email, or null if missing/expired/invalid. */
 export async function getPendingSignup(): Promise<string | null> {
   const token = (await cookies()).get(PENDING_COOKIE)?.value;
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secret());
-    return (payload.phoneE164 as string) || null;
+    return (payload.email as string) || null;
   } catch {
     return null;
   }
@@ -76,6 +76,42 @@ export async function getPendingSignup(): Promise<string | null> {
 
 export async function clearPendingSignup(): Promise<void> {
   (await cookies()).delete(PENDING_COOKIE);
+}
+
+// ---- OTP pending (phone awaiting WhatsApp verification, NOT yet verified) ----
+// Holds the E.164 phone between the phone-entry step and OTP verification. Only
+// after verify() succeeds do we upgrade this to a pending-signup cookie.
+const OTP_COOKIE = "wc26_otp";
+const OTP_MAX_AGE = 60 * 10; // 10 minutes
+
+export async function createOtpPending(email: string): Promise<void> {
+  const token = await new SignJWT({ email })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${OTP_MAX_AGE}s`)
+    .sign(secret());
+  (await cookies()).set(OTP_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: OTP_MAX_AGE,
+    path: "/",
+  });
+}
+
+export async function getOtpPending(): Promise<string | null> {
+  const token = (await cookies()).get(OTP_COOKIE)?.value;
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, secret());
+    return (payload.email as string) || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearOtpPending(): Promise<void> {
+  (await cookies()).delete(OTP_COOKIE);
 }
 
 /** Lightweight: trusts the signed cookie. Use in middleware / cheap checks. */

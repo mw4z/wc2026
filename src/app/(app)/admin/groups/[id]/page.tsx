@@ -15,19 +15,19 @@ export default async function AdminGroupDetail({ params }: { params: Promise<{ i
 
   const group = await prisma.group.findUnique({
     where: { id },
-    include: { leader: { select: { name: true, phoneE164: true, employeeId: true } } },
+    include: { leader: { select: { name: true, email: true } } },
   });
   if (!group) {
     return <p className="card p-6 text-center text-slate-400">{UI.groupNotFound}</p>;
   }
   const members = await getGroupMembers(id);
-  // Admin-only: phone identifiers for the member list (not exposed by getGroupMembers).
+  // Admin-only: email identifiers for the member list (not exposed by getGroupMembers).
   const identUsers = await prisma.user.findMany({
     where: { id: { in: members.map((m) => m.userId) } },
-    select: { id: true, phoneE164: true, employeeId: true },
+    select: { id: true, email: true },
   });
-  const identById = new Map(identUsers.map((u) => [u.id, u.phoneE164 ?? u.employeeId ?? "—"]));
-  const leaderIdent = group.leader.phoneE164 ?? group.leader.employeeId ?? "—";
+  const identById = new Map(identUsers.map((u) => [u.id, u.email ?? "—"]));
+  const leaderIdent = group.leader.email ?? "—";
 
   return (
     <div>
@@ -58,7 +58,7 @@ export default async function AdminGroupDetail({ params }: { params: Promise<{ i
           <thead className="border-b border-white/10 text-xs text-slate-400">
             <tr>
               <th className="p-3">{UI.name}</th>
-              <th className="p-3">{UI.phone}</th>
+              <th className="p-3">{UI.emailLabel}</th>
               <th className="p-3">{UI.roleColumn}</th>
             </tr>
           </thead>

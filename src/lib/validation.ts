@@ -14,23 +14,18 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
-// Phone login (Phase E). Phone is normalized + validated server-side via phone.ts.
-// `name` is optional: returning users sign in with phone only; it's required
-// (enforced in loginOrRegisterByPhone) only when creating a NEW account.
-export const phoneLoginSchema = z.object({
-  name: z.string().trim().max(80).optional().or(z.literal("")),
-  country: z.string().trim().length(2, "اختر الدولة"), // ISO 3166-1 alpha-2
-  phone: z.string().trim().min(3, "رقم الجوال مطلوب").max(20),
+// Step 1: email entry (no name). The server emails an OTP; on verify it logs in
+// if the email exists, else opens a pending signup. Email is the identity.
+export const emailStartSchema = z.object({
+  email: z.string().trim().email("البريد الإلكتروني غير صحيح").max(120),
 });
-export type PhoneLoginInput = z.infer<typeof phoneLoginSchema>;
+export type EmailStartInput = z.infer<typeof emailStartSchema>;
 
-// Step 1: phone entry (no name). Server logs in if the phone exists, else opens
-// a pending signup.
-export const phoneStartSchema = z.object({
-  country: z.string().trim().length(2, "اختر الدولة"),
-  phone: z.string().trim().min(3, "رقم الجوال مطلوب").max(20),
+// Email OTP code (Authentica). 4–8 digits to tolerate provider length changes.
+export const otpVerifySchema = z.object({
+  otp: z.string().trim().regex(/^\d{4,8}$/, "رمز التحقق غير صحيح"),
 });
-export type PhoneStartInput = z.infer<typeof phoneStartSchema>;
+export type OtpVerifyInput = z.infer<typeof otpVerifySchema>;
 
 // Step 2: complete signup (phone comes from the pending cookie, never the body).
 export const signupCompleteSchema = z.object({
