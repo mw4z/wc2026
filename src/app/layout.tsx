@@ -37,6 +37,9 @@ export const viewport: Viewport = {
   themeColor: "#070b15",
   width: "device-width",
   initialScale: 1,
+  // Lets `env(safe-area-inset-*)` resolve to real values on notched iPhones so
+  // the bottom tab bar clears the home indicator.
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
