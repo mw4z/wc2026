@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getPredictionLead, predictionOpensAt } from "@/lib/settings";
 import { pushConfigured, sendPush, type StoredSubscription, type PushPayload } from "@/lib/push";
+import { openedPayload, closingPayload, scoredPayload } from "@/lib/notifications";
 
 // Hourly reminder cron. Fires THREE kinds of push, each deduped per (user,
 // match, kind) via PushReminder so nothing repeats:
@@ -111,16 +112,7 @@ export async function GET(req: NextRequest) {
     // 1) Predictions just opened (digest)
     const opened = openMatches.filter((m) => !predicted(m.id) && !reminded(m.id, "open"));
     if (opened.length) {
-      const n = opened.length;
-      const ok = await deliver(userId, {
-        title: "🟢 فُتح باب التوقّع!",
-        body:
-          n === 1
-            ? "مباراة جديدة أصبحت متاحة للتوقّع الآن — سجّل توقعك! ⚽"
-            : `${n} مباريات فُتح التوقّع عليها — سجّل توقعاتك الآن! ⚽`,
-        url: "/matches",
-        tag: "wc26-open",
-      });
+      const ok = await deliver(userId, openedPayload(opened.length));
       if (ok) {
         counts.open++;
         for (const m of opened) reminderRows.push({ userId, matchId: m.id, kind: "open" });
@@ -130,16 +122,7 @@ export async function GET(req: NextRequest) {
     // 2) Closing soon, not predicted (digest)
     const closing = closingMatches.filter((m) => !predicted(m.id) && !reminded(m.id, "closing"));
     if (closing.length) {
-      const n = closing.length;
-      const ok = await deliver(userId, {
-        title: "⏰ آخر فرصة للتوقّع!",
-        body:
-          n === 1
-            ? "مباراة تُغلق قريبًا ولم تتوقّعها بعد — سارِع قبل صافرة البداية! 🔥"
-            : `${n} مباريات تُغلق قريبًا ولم تتوقّعها — لا تفوّت النقاط! 🔥`,
-        url: "/matches",
-        tag: "wc26-closing",
-      });
+      const ok = await deliver(userId, closingPayload(closing.length));
       if (ok) {
         counts.closing++;
         for (const m of closing) reminderRows.push({ userId, matchId: m.id, kind: "closing" });
@@ -152,15 +135,7 @@ export async function GET(req: NextRequest) {
       if (!pred || reminded(m.id, "scored")) continue;
       const pts = pred.pointsAwarded ?? 0;
       const line = `${tn(m.homeTeam)} ${m.homeScore}-${m.awayScore} ${tn(m.awayTeam)} ⚽`;
-      const ok = await deliver(userId, {
-        title: "🏁 صافرة النهاية!",
-        body:
-          pts > 0
-            ? `${line} — كسبت +${pts} نقطة! 🎯`
-            : `${line} — لم تُوفَّق هذه المرة، حظًا أوفر في القادمة! 💪`,
-        url: `/matches/${m.id}`,
-        tag: `wc26-scored-${m.id}`,
-      });
+      const ok = await deliver(userId, scoredPayload({ line, points: pts, matchId: m.id }));
       if (ok) {
         counts.scored++;
         reminderRows.push({ userId, matchId: m.id, kind: "scored" });
