@@ -112,7 +112,7 @@ export function MatchCard({
         >
           #{match.matchNumber} · {UI.stages[match.stage]}
         </Link>
-        <StatusPill status={match.status} locked={locked} finished={finished} />
+        <StatusPill status={match.status} locked={locked} finished={finished} notOpenYet={notOpenYet} />
       </div>
 
       {/* scoreline */}
@@ -268,12 +268,18 @@ function StatusPill({
   status,
   locked,
   finished,
+  notOpenYet,
 }: {
   status: SerializedMatch["status"];
   locked: boolean;
   finished: boolean;
+  notOpenYet: boolean;
 }) {
   const UI = useUI();
+  // Scheduled but the prediction window hasn't opened yet → don't show "open".
+  if (notOpenYet && !finished) {
+    return <span className="pill pill-locked">{UI.notOpenYet}</span>;
+  }
   const effective = finished
     ? "FINISHED"
     : status === "SCHEDULED" && locked
