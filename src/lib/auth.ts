@@ -114,6 +114,40 @@ export async function clearOtpPending(): Promise<void> {
   (await cookies()).delete(OTP_COOKIE);
 }
 
+// ---- Email change (logged-in user adding/changing their email, OTP-verified) --
+const EMAIL_CHANGE_COOKIE = "wc26_emailchg";
+const EMAIL_CHANGE_MAX_AGE = 60 * 10; // 10 minutes
+
+export async function createEmailChangePending(email: string): Promise<void> {
+  const token = await new SignJWT({ email })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${EMAIL_CHANGE_MAX_AGE}s`)
+    .sign(secret());
+  (await cookies()).set(EMAIL_CHANGE_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: EMAIL_CHANGE_MAX_AGE,
+    path: "/",
+  });
+}
+
+export async function getEmailChangePending(): Promise<string | null> {
+  const token = (await cookies()).get(EMAIL_CHANGE_COOKIE)?.value;
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, secret());
+    return (payload.email as string) || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearEmailChangePending(): Promise<void> {
+  (await cookies()).delete(EMAIL_CHANGE_COOKIE);
+}
+
 /** Lightweight: trusts the signed cookie. Use in middleware / cheap checks. */
 export async function getSession(): Promise<SessionPayload | null> {
   const token = (await cookies()).get(COOKIE)?.value;

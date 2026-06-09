@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getUI } from "@/lib/locale";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
 import { UserIcon, ShieldIcon } from "@/components/icons";
+import { EmailManager } from "@/components/EmailManager";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
 export const dynamic = "force-dynamic";
@@ -33,10 +34,11 @@ export default async function ProfilePage() {
 
       <div className="card mb-6 p-5">
         <Row label={UI.name} value={user.name} />
-        <Row label={UI.emailLabel} value={user.email ?? "—"} hint={UI.hiddenFromOthers} />
         <Row label={UI.department} value={user.department ?? "—"} />
         <Row label={UI.roleLabel} value={user.role === "ADMIN" ? UI.roleAdmin : UI.roleUser} />
       </div>
+
+      <EmailManager current={user.email} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stat(UI.rank, entry?.rank ?? "—")}
