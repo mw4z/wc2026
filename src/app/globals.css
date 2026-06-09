@@ -172,8 +172,9 @@
 
 /* Moving glass reflection sweeping across the tournament hero card. */
 @keyframes hero-sheen {
-  0% { transform: translateX(-140%) skewX(-14deg); }
-  60%, 100% { transform: translateX(260%) skewX(-14deg); }
+  0% { transform: translateX(-160%) skewX(-14deg); }
+  55% { transform: translateX(340%) skewX(-14deg); }
+  100% { transform: translateX(340%) skewX(-14deg); }
 }
 .hero-sheen {
   position: absolute;
@@ -196,8 +197,8 @@
     rgba(255, 255, 255, 0.04) 65%,
     transparent 100%
   );
-  transform: translateX(-140%) skewX(-14deg);
-  animation: hero-sheen 6s ease-in-out infinite;
+  transform: translateX(-160%) skewX(-14deg);
+  animation: hero-sheen 6s linear infinite;
 }
 
 /* Staggered page-load reveal. */
