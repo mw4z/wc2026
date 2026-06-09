@@ -31,14 +31,38 @@ export async function sendEmailOtp(email: string): Promise<void> {
   }
 }
 
-/** Verify a code for an email. Returns true only when Authentica confirms it. */
+/**
+ * Verify a code for an email. Authentica returns 200 for both right and wrong
+ * codes (wrong → `{ verified: false }`), and non-2xx for bad params. We accept a
+ * 2xx response UNLESS the body explicitly signals failure, which tolerates small
+ * success-shape differences (verified / success / valid / status) instead of
+ * rejecting a correct code. The raw response is logged when verification fails.
+ */
 export async function verifyOtp(email: string, otp: string): Promise<boolean> {
   const res = await fetch(`${API}/verify-otp`, {
     method: "POST",
     headers: headers(),
     body: JSON.stringify({ email, otp }),
   });
-  if (!res.ok) return false;
-  const data = (await res.json().catch(() => ({}))) as { verified?: boolean; success?: boolean };
-  return data.verified === true || data.success === true;
+  const text = await res.text().catch(() => "");
+  let data: Record<string, unknown> = {};
+  try {
+    data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+  } catch {
+    /* non-JSON body */
+  }
+
+  const explicitlyFalse =
+    data.verified === false ||
+    data.success === false ||
+    data.valid === false ||
+    data.status === false ||
+    data.status === "failed" ||
+    data.status === "invalid";
+
+  const verified = res.ok && !explicitlyFalse;
+  if (!verified) {
+    console.error("Authentica verify-otp not verified:", res.status, text.slice(0, 300));
+  }
+  return verified;
 }
