@@ -350,6 +350,12 @@ const ar = {
       "عدد توقعات الفائز/التعادل الصحيحة الأكثر.",
       "الأسبق في إرسال التوقعات.",
     ],
+    spiritTitle: "روح اللعبة — للمتعة فقط",
+    spirit: [
+      "هذه اللعبة للترفيه والمنافسة الودّية بين الأصدقاء فقط.",
+      "لا يقدّم التطبيق أي جوائز أو مكافآت — مالية كانت أو عينية — للفائزين.",
+      "إن رغبتم، يمكنكم أنتم وأعضاء مجموعتكم الاتفاق على جائزة خاصة بينكم خارج التطبيق، وهذا قراركم وحدكم ولا علاقة للتطبيق به.",
+    ],
   },
   stages: {
     GROUP: "دور المجموعات",
@@ -702,6 +708,12 @@ const en: Dict = {
       "Most exact scores.",
       "Most correct winner/draw predictions.",
       "Earliest prediction submitted.",
+    ],
+    spiritTitle: "Spirit of the game — just for fun",
+    spirit: [
+      "This game is purely for entertainment and friendly competition among friends.",
+      "The app does not offer any prizes or rewards — cash or otherwise — to winners.",
+      "If you wish, you and your group can agree on your own prize between yourselves outside the app — that's entirely your decision and has nothing to do with the app.",
     ],
   },
   stages: {

@@ -32,6 +32,14 @@ export default async function PublicRulesPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-extrabold text-white">{UI.rules}</h1>
+
+      <section className="card mb-4 border-accent-500/30 bg-accent-500/[0.06] p-5">
+        <h2 className="mb-2 font-bold text-accent-400">{r.spiritTitle}</h2>
+        <ul className="list-disc space-y-1.5 ps-5 text-sm text-slate-200">
+          {r.spirit.map((t) => <li key={t}>{t}</li>)}
+        </ul>
+      </section>
+
       <Section title={r.howToTitle} items={r.howTo} />
       <Section title={r.groupScoringTitle} items={r.groupScoring} />
       <section className="card mb-4 p-5">
