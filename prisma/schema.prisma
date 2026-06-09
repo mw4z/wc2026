@@ -139,6 +139,7 @@ model Match {
 
   predictions Prediction[]
   resultAudit MatchResultAuditLog[]
+  groupRules  GroupMatchRule[]
 
   @@index([status])
   @@index([kickoffAt])
@@ -243,14 +244,46 @@ model Group {
   code      String   @unique // normalized "CUP-XXXXX"
   leaderId  String
   isActive  Boolean  @default(true)
+
+  // Per-group scoring (leader-customizable). These are the group-wide defaults
+  // applied to every match; GroupMatchRule overrides specific matches. The
+  // GLOBAL leaderboard always uses the standard 3/1/+1 — these only affect this
+  // group's own leaderboard, computed live from the stored correctness flags.
+  pointsExact     Int     @default(3)
+  pointsOutcome   Int     @default(1)
+  pointsQualifier Int     @default(1)
+  // Winner-only mode: ignore the exact-score bonus — a correct result earns
+  // pointsOutcome whether or not the exact score matched.
+  winnerOnly      Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  leader  User          @relation("GroupLeader", fields: [leaderId], references: [id])
-  members GroupMember[]
+  leader     User             @relation("GroupLeader", fields: [leaderId], references: [id])
+  members    GroupMember[]
+  matchRules GroupMatchRule[]
 
   @@index([code])
   @@index([isActive])
+}
+
+// Per-match point overrides for a single group. A row exists only when the
+// leader customized that match; null fields fall back to the group default.
+model GroupMatchRule {
+  id              String   @id @default(cuid())
+  groupId         String
+  matchId         String
+  pointsExact     Int?
+  pointsOutcome   Int?
+  pointsQualifier Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, matchId])
+  @@index([groupId])
 }
 
 // ----------------------------------------------------------------------------

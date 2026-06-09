@@ -74,6 +74,28 @@ export const groupRenameSchema = z.object({
   name: z.string().trim().min(2, "اسم المجموعة قصير جدًا").max(60),
 });
 
+// Per-group scoring config saved by the leader. Point values are small ints;
+// `overrides` fully replaces the group's per-match rules (null = use default).
+const pts = z.coerce.number().int().min(0).max(50);
+export const groupScoringSchema = z.object({
+  winnerOnly: z.boolean(),
+  pointsExact: pts,
+  pointsOutcome: pts,
+  pointsQualifier: pts,
+  overrides: z
+    .array(
+      z.object({
+        matchId: z.string().min(1),
+        pointsExact: pts.nullable(),
+        pointsOutcome: pts.nullable(),
+        pointsQualifier: pts.nullable(),
+      }),
+    )
+    .max(300)
+    .default([]),
+});
+export type GroupScoringFormInput = z.infer<typeof groupScoringSchema>;
+
 export const matchUpsertSchema = z.object({
   matchNumber: z.coerce.number().int().positive(),
   stage: stageEnum,

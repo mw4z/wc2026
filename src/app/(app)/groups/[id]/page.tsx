@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { getGroupForMember, getGroupLeaderboard, GroupError } from "@/lib/groups";
 import { getUI } from "@/lib/locale";
 import { CopyCode } from "@/components/groups/CopyCode";
 import { GroupShareButtons } from "@/components/groups/GroupShareButtons";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
-import { UsersIcon, TrophyIcon } from "@/components/icons";
+import { UsersIcon, TrophyIcon, SlidersIcon } from "@/components/icons";
+import { isCustomScoring } from "@/lib/groupScoring";
 import { AdSlot } from "@/components/AdSlot";
 import { AD_SLOTS } from "@/lib/ads";
 
@@ -29,6 +31,25 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
   const myRow = board.find((r) => r.userId === user.id);
   const top5 = board.slice(0, 5);
   const isLeader = group.leaderId === user.id;
+
+  // Plain-language scoring summary shown to all members.
+  const cfg = {
+    pointsExact: group.pointsExact,
+    pointsOutcome: group.pointsOutcome,
+    pointsQualifier: group.pointsQualifier,
+    winnerOnly: group.winnerOnly,
+  };
+  const p = UI.gscore.pointShort;
+  const customMatchCount = await prisma.groupMatchRule.count({ where: { groupId: id } });
+  let scoringSummary: string | null = null;
+  if (group.winnerOnly) {
+    scoringSummary = `${UI.gscore.winnerOnlyNotice} (${cfg.pointsOutcome} ${p})`;
+  } else if (isCustomScoring(cfg)) {
+    scoringSummary = `${UI.gscore.exactLabel} ${cfg.pointsExact} ${p} · ${UI.gscore.outcomeLabel} ${cfg.pointsOutcome} ${p} · ${UI.gscore.qualifierLabel} +${cfg.pointsQualifier}`;
+  }
+  if (scoringSummary && customMatchCount > 0) {
+    scoringSummary += ` · ${customMatchCount} ${UI.gscore.perMatchCount}`;
+  }
 
   return (
     <div>
@@ -62,8 +83,20 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
             <UsersIcon className="ab-ic" />
             {UI.groupMembers}
           </Link>
+          {isLeader && (
+            <Link href={`/groups/${id}/scoring`} className="action-btn">
+              <SlidersIcon className="ab-ic" />
+              {UI.gscore.settingsBtn}
+            </Link>
+          )}
           <GroupShareButtons code={group.code} points={myRow?.totalPoints ?? 0} rank={myRow?.rank ?? null} />
         </div>
+
+        {scoringSummary && (
+          <p className="mt-4 border-t border-white/10 pt-4 text-center text-xs text-slate-400">
+            <span className="font-semibold text-accent-400">{UI.gscore.summaryTitle}:</span> {scoringSummary}
+          </p>
+        )}
 
         <p className="mt-4 border-t border-white/10 pt-4 text-sm text-slate-300">
           <span className="font-semibold text-gold-300">{UI.leaderboardUpdatedTitle}</span> —{" "}

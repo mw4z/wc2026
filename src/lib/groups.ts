@@ -1,4 +1,9 @@
 import { prisma } from "./prisma";
+import {
+  type GroupScoringConfig,
+  effectiveConfig,
+  pointsForFlags,
+} from "./groupScoring";
 
 export class GroupError extends Error {
   constructor(message: string, public code: string, public status = 400) {
@@ -152,31 +157,95 @@ export async function getGroupMembers(groupId: string) {
 }
 
 /**
- * Group leaderboard = global LeaderboardEntry filtered to this group's members,
- * re-ranked with the SAME tie-breakers. No per-group scoring data.
+ * Group leaderboard, computed LIVE from each member's scored predictions and
+ * this group's scoring config (defaults + per-match overrides + winner-only
+ * mode). Reuses the point-independent correctness flags written during global
+ * scoring, so points reflect the group's custom values without re-scoring.
+ * Same tie-breakers as the global board.
  */
 export async function getGroupLeaderboard(groupId: string) {
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    include: { matchRules: true },
+  });
+  const base: GroupScoringConfig = {
+    pointsExact: group?.pointsExact ?? 3,
+    pointsOutcome: group?.pointsOutcome ?? 1,
+    pointsQualifier: group?.pointsQualifier ?? 1,
+    winnerOnly: group?.winnerOnly ?? false,
+  };
+  const ruleByMatch = new Map((group?.matchRules ?? []).map((r) => [r.matchId, r]));
+
   const members = await prisma.groupMember.findMany({
     where: { groupId },
     include: { user: { select: { id: true, name: true, department: true } } },
   });
   const ids = members.map((m) => m.userId);
-  const entries = await prisma.leaderboardEntry.findMany({ where: { userId: { in: ids } } });
-  const byUser = new Map(entries.map((e) => [e.userId, e]));
+
+  // All of these members' predictions; points come from the scored subset, while
+  // totalPredictions / lastPredictionAt mirror the global board (count them all).
+  const preds = await prisma.prediction.findMany({
+    where: { userId: { in: ids } },
+    select: {
+      userId: true,
+      matchId: true,
+      pointsAwarded: true,
+      isExactScore: true,
+      isCorrectOutcome: true,
+      isCorrectQualifier: true,
+      submittedAt: true,
+    },
+  });
+
+  type Agg = {
+    totalPoints: number;
+    exactScores: number;
+    correctOutcomes: number;
+    correctQualifiers: number;
+    totalPredictions: number;
+    scoredPredictions: number;
+    lastPredictionAt: Date | null;
+  };
+  const agg = new Map<string, Agg>();
+  for (const id of ids) {
+    agg.set(id, {
+      totalPoints: 0,
+      exactScores: 0,
+      correctOutcomes: 0,
+      correctQualifiers: 0,
+      totalPredictions: 0,
+      scoredPredictions: 0,
+      lastPredictionAt: null,
+    });
+  }
+
+  for (const p of preds) {
+    const a = agg.get(p.userId);
+    if (!a) continue;
+    a.totalPredictions += 1;
+    if (!a.lastPredictionAt || p.submittedAt > a.lastPredictionAt) a.lastPredictionAt = p.submittedAt;
+    if (p.pointsAwarded == null) continue; // not scored yet
+    a.scoredPredictions += 1;
+    const cfg = effectiveConfig(base, ruleByMatch.get(p.matchId));
+    a.totalPoints += pointsForFlags(cfg, p);
+    if (p.isExactScore) a.exactScores += 1;
+    if (p.isCorrectOutcome) a.correctOutcomes += 1;
+    if (p.isCorrectQualifier) a.correctQualifiers += 1;
+  }
 
   const rows = members.map((m) => {
-    const e = byUser.get(m.userId);
+    const a = agg.get(m.userId)!;
     return {
       userId: m.userId,
       name: m.user.name,
       department: m.user.department,
-      totalPoints: e?.totalPoints ?? 0,
-      exactScores: e?.exactScores ?? 0,
-      correctOutcomes: e?.correctOutcomes ?? 0,
-      correctQualifiers: e?.correctQualifiers ?? 0,
-      totalPredictions: e?.totalPredictions ?? 0,
-      accuracy: e?.accuracy ?? 0,
-      lastPredictionAt: e?.lastPredictionAt ?? null,
+      totalPoints: a.totalPoints,
+      exactScores: a.exactScores,
+      correctOutcomes: a.correctOutcomes,
+      correctQualifiers: a.correctQualifiers,
+      totalPredictions: a.totalPredictions,
+      accuracy: a.scoredPredictions === 0 ? 0 : a.exactScores / a.scoredPredictions,
+      lastPredictionAt: a.lastPredictionAt,
     };
   });
 
@@ -202,4 +271,77 @@ export async function setGroupActive(groupId: string, isActive: boolean) {
   const group = await prisma.group.findUnique({ where: { id: groupId } });
   if (!group) throw new GroupError("المجموعة غير موجودة", "GROUP_NOT_FOUND", 404);
   return prisma.group.update({ where: { id: groupId }, data: { isActive } });
+}
+
+// ---- Per-group scoring (leader-customizable) --------------------------------
+
+export interface GroupScoringInput {
+  winnerOnly: boolean;
+  pointsExact: number;
+  pointsOutcome: number;
+  pointsQualifier: number;
+  overrides: Array<{
+    matchId: string;
+    pointsExact: number | null;
+    pointsOutcome: number | null;
+    pointsQualifier: number | null;
+  }>;
+}
+
+/** Group scoring config + per-match rules (for the leader's settings screen). */
+export async function getGroupScoring(groupId: string) {
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    include: { matchRules: true },
+  });
+  if (!group) throw new GroupError("المجموعة غير موجودة", "GROUP_NOT_FOUND", 404);
+  return {
+    winnerOnly: group.winnerOnly,
+    pointsExact: group.pointsExact,
+    pointsOutcome: group.pointsOutcome,
+    pointsQualifier: group.pointsQualifier,
+    rules: group.matchRules.map((r) => ({
+      matchId: r.matchId,
+      pointsExact: r.pointsExact,
+      pointsOutcome: r.pointsOutcome,
+      pointsQualifier: r.pointsQualifier,
+    })),
+  };
+}
+
+/**
+ * Leader saves the whole scoring config at once: group-wide defaults + mode, and
+ * a full replacement of the per-match overrides. Rules with no non-null value are
+ * dropped (they'd be identical to the default). Takes effect retroactively — the
+ * group leaderboard recomputes live on next read.
+ */
+export async function saveGroupScoring(userId: string, groupId: string, input: GroupScoringInput) {
+  await requireGroupLeader(userId, groupId);
+  const keep = input.overrides.filter(
+    (o) => o.pointsExact != null || o.pointsOutcome != null || o.pointsQualifier != null,
+  );
+  await prisma.$transaction(async (tx) => {
+    await tx.group.update({
+      where: { id: groupId },
+      data: {
+        winnerOnly: input.winnerOnly,
+        pointsExact: input.pointsExact,
+        pointsOutcome: input.pointsOutcome,
+        pointsQualifier: input.pointsQualifier,
+      },
+    });
+    await tx.groupMatchRule.deleteMany({ where: { groupId } });
+    if (keep.length) {
+      await tx.groupMatchRule.createMany({
+        data: keep.map((o) => ({
+          groupId,
+          matchId: o.matchId,
+          pointsExact: o.pointsExact,
+          pointsOutcome: o.pointsOutcome,
+          pointsQualifier: o.pointsQualifier,
+        })),
+      });
+    }
+  });
+  return { ok: true };
 }

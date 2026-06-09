@@ -23,6 +23,17 @@ function Base({ children, ...props }: IconProps & { children: React.ReactNode })
   );
 }
 
+export function SlidersIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M5 4v6M5 14v6M12 4v3M12 11v9M19 4v9M19 17v3" />
+      <circle cx="5" cy="12" r="2" />
+      <circle cx="12" cy="9" r="2" />
+      <circle cx="19" cy="15" r="2" />
+    </Base>
+  );
+}
+
 export function TrophyIcon(props: IconProps) {
   return (
     <Base {...props}>
