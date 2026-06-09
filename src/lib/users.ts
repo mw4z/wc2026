@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { isRegistrationOpen } from "./settings";
 import { normalizePhone } from "./phone";
+import { recalculateLeaderboard } from "./leaderboard";
 import type { LoginInput, PhoneLoginInput } from "./validation";
 
 export class LoginError extends Error {
@@ -58,10 +59,16 @@ export async function loginOrRegisterByPhone(input: PhoneLoginInput) {
     throw new LoginError("تم إغلاق تسجيل المشاركين الجدد.", "REGISTRATION_CLOSED", 403);
   }
 
+  // Creating a new account requires a name (returning users sign in by phone only).
+  const name = (input.name ?? "").trim();
+  if (name.length < 2) {
+    throw new LoginError("لا يوجد حساب بهذا الرقم. أنشئ حسابًا جديدًا بإدخال اسمك.", "NAME_REQUIRED", 422);
+  }
+
   return prisma.user.create({
     data: {
       phoneE164,
-      name: input.name.trim(),
+      name,
       role: isBootstrapAdmin ? "ADMIN" : "USER",
     },
   });
@@ -108,4 +115,53 @@ export async function loginOrRegister(input: LoginInput) {
       role: isBootstrapAdmin ? "ADMIN" : "USER",
     },
   });
+}
+
+/**
+ * Permanently delete a user account and everything tied to it.
+ *
+ * Cascades (schema `onDelete: Cascade`): predictions, prediction audit log,
+ * group memberships. Handled here manually:
+ *  - Groups the user LEADS are transferred to the earliest remaining member, or
+ *    deleted if the user was the only member (no leaderless groups left behind).
+ *  - LeaderboardEntry (no FK) and the user's admin result-audit rows (RESTRICT)
+ *    are removed so the delete succeeds.
+ * Leaderboard ranks are rebuilt afterwards.
+ */
+export async function deleteUserAccount(userId: string): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const ledGroups = await tx.group.findMany({
+      where: { leaderId: userId },
+      select: { id: true },
+    });
+    for (const g of ledGroups) {
+      const heir = await tx.groupMember.findFirst({
+        where: { groupId: g.id, userId: { not: userId } },
+        orderBy: { joinedAt: "asc" },
+        select: { id: true, userId: true },
+      });
+      if (heir) {
+        await tx.group.update({ where: { id: g.id }, data: { leaderId: heir.userId } });
+        await tx.groupMember.update({ where: { id: heir.id }, data: { role: "LEADER" } });
+      } else {
+        // Only the leaving user was in it — drop the empty group.
+        await tx.group.delete({ where: { id: g.id } });
+      }
+    }
+
+    await tx.leaderboardEntry.deleteMany({ where: { userId } });
+    await tx.matchResultAuditLog.deleteMany({ where: { adminUserId: userId } });
+    await tx.user.delete({ where: { id: userId } });
+  });
+
+  // Re-rank everyone now that this user's rows are gone.
+  await recalculateLeaderboard();
+}
+
+/** Active-admin count guard — prevents removing the last admin. */
+export async function isLastAdmin(userId: string): Promise<boolean> {
+  const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  if (target?.role !== "ADMIN") return false;
+  const admins = await prisma.user.count({ where: { role: "ADMIN" } });
+  return admins <= 1;
 }

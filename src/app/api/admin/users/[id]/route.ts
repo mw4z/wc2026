@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { deleteUserAccount, isLastAdmin } from "@/lib/users";
 import { errorResponse } from "@/lib/api";
 
 // Admin-controlled user edits: rename, (de)activate, change role.
@@ -29,6 +30,32 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
     const user = await prisma.user.update({ where: { id }, data });
     return NextResponse.json({ user });
+  } catch (e) {
+    return errorResponse(e);
+  }
+}
+
+// Permanently delete a user account (admin action).
+export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  try {
+    const admin = await requireAdmin();
+    const { id } = await ctx.params;
+
+    if (id === admin.id) {
+      return NextResponse.json(
+        { error: "لا يمكنك حذف حسابك من هنا. استخدم صفحة ملفك الشخصي." },
+        { status: 409 },
+      );
+    }
+    if (await isLastAdmin(id)) {
+      return NextResponse.json(
+        { error: "لا يمكن حذف آخر حساب مدير." },
+        { status: 409 },
+      );
+    }
+
+    await deleteUserAccount(id);
+    return NextResponse.json({ ok: true });
   } catch (e) {
     return errorResponse(e);
   }

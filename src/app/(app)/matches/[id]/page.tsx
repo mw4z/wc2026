@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { lockDueMatches } from "@/lib/matches";
 import { getPredictionStatsAfterLock } from "@/lib/predictions";
 import { isKickoffReached, formatDateTimeAr } from "@/lib/time";
-import { getUI } from "@/lib/locale";
+import { getUI, getLocale } from "@/lib/locale";
 import { MatchCard } from "@/components/MatchCard";
 import { PredictionDistribution } from "@/components/PredictionDistribution";
 import { TournamentHero } from "@/components/TournamentHero";
@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 
 export default async function MatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const UI = await getUI();
+  const locale = await getLocale();
   const user = await requireUser();
   const { id } = await params;
   await lockDueMatches(); // keep status badge accurate on load
@@ -51,8 +52,10 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
     actual = match.homeScore > match.awayScore ? "HOME" : match.homeScore < match.awayScore ? "AWAY" : "DRAW";
   }
 
-  const homeName = match.homeTeam?.nameAr ?? UI.tbd;
-  const awayName = match.awayTeam?.nameAr ?? UI.tbd;
+  const teamName = (t: { nameAr: string; nameEn: string } | null) =>
+    t ? (locale === "en" ? t.nameEn : t.nameAr) : UI.tbd;
+  const homeName = teamName(match.homeTeam);
+  const awayName = teamName(match.awayTeam);
 
   return (
     <div className="mx-auto max-w-lg">
@@ -71,7 +74,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
       />
 
       <MatchCard
-        match={serializeMatch(match)}
+        match={serializeMatch(match, locale)}
         prediction={serializePrediction(myPrediction ?? undefined)}
       />
 
@@ -83,8 +86,8 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
         {locked && stats ? (
           <PredictionDistribution
             stats={stats}
-            homeName={match.homeTeam?.nameAr ?? UI.home}
-            awayName={match.awayTeam?.nameAr ?? UI.away}
+            homeName={homeName}
+            awayName={awayName}
             actual={actual}
           />
         ) : (

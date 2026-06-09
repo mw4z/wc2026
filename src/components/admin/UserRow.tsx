@@ -35,6 +35,21 @@ export function UserRow({ user, isSelf }: { user: U; isSelf: boolean }) {
     }
   }
 
+  async function remove() {
+    if (
+      !confirm(`حذف حساب "${user.name}" نهائيًا؟ تُحذف توقعاته وعضوياته. لا يمكن التراجع.`)
+    )
+      return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
+      if (res.ok) router.refresh();
+      else alert((await res.json()).error || "تعذّر حذف الحساب");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <tr className="border-b border-navy-800">
       <td className="p-3 font-mono text-xs" dir="ltr">{user.identifier}</td>
@@ -67,6 +82,9 @@ export function UserRow({ user, isSelf }: { user: U; isSelf: boolean }) {
             </button>
             <button onClick={() => patch({ role: user.role === "ADMIN" ? "USER" : "ADMIN" })} disabled={busy} className="rounded border border-navy-600 px-2 py-1 text-xs">
               {user.role === "ADMIN" ? "إزالة الإدارة" : "ترقية لمدير"}
+            </button>
+            <button onClick={remove} disabled={busy} className="rounded border border-danger/50 px-2 py-1 text-xs text-red-300 hover:bg-danger/10">
+              حذف
             </button>
           </>
         )}

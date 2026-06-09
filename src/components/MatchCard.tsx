@@ -109,7 +109,7 @@ export function MatchCard({
 
       {/* scoreline */}
       <div className="flex items-center justify-between gap-2 px-4 py-5">
-        <TeamSide name={match.homeTeam?.nameAr ?? UI.tbd} flag={match.homeTeam?.flagUrl} win={homeWin} />
+        <TeamSide name={match.homeTeam?.name ?? UI.tbd} flag={match.homeTeam?.flagUrl} win={homeWin} />
         <div className="flex min-w-[72px] flex-col items-center">
           {finished ? (
             <div className="flex items-center gap-2 font-display text-4xl font-extrabold tnum leading-none">
@@ -123,7 +123,7 @@ export function MatchCard({
             </span>
           )}
         </div>
-        <TeamSide name={match.awayTeam?.nameAr ?? UI.tbd} flag={match.awayTeam?.flagUrl} win={awayWin} />
+        <TeamSide name={match.awayTeam?.name ?? UI.tbd} flag={match.awayTeam?.flagUrl} win={awayWin} />
       </div>
 
       {/* meta */}
@@ -155,9 +155,9 @@ export function MatchCard({
               {UI.closesAtKickoff}
             </p>
             <div className="flex items-center justify-center gap-3">
-              <ScoreInput value={home} onChange={setHome} label={match.homeTeam!.nameAr} />
+              <ScoreInput value={home} onChange={setHome} label={match.homeTeam!.name} />
               <span className="font-display text-xl text-slate-600">:</span>
-              <ScoreInput value={away} onChange={setAway} label={match.awayTeam!.nameAr} />
+              <ScoreInput value={away} onChange={setAway} label={match.awayTeam!.name} />
             </div>
 
             {isKnockout && (
@@ -175,7 +175,7 @@ export function MatchCard({
                           : "border-white/10 text-slate-300 hover:border-white/25"
                       }`}
                     >
-                      {t.nameAr}
+                      {t.name}
                     </button>
                   ))}
                 </div>
@@ -223,8 +223,8 @@ function LockedView({
   const winnerName =
     isKnockout && prediction.predictedWinnerTeamId
       ? prediction.predictedWinnerTeamId === match.homeTeam?.id
-        ? match.homeTeam?.nameAr
-        : match.awayTeam?.nameAr
+        ? match.homeTeam?.name
+        : match.awayTeam?.name
       : null;
   return (
     <div className="flex items-center justify-between gap-3">

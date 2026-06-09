@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getUI } from "@/lib/locale";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
 import { UserIcon, ShieldIcon } from "@/components/icons";
+import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,8 @@ export default async function ProfilePage() {
       </div>
 
       <p className="mt-6 text-center text-xs text-slate-500">{UI.changeNameNote}</p>
+
+      <DeleteAccountButton />
     </div>
   );
 }

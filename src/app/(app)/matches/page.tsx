@@ -4,7 +4,8 @@ import { requireUser } from "@/lib/auth";
 import { lockDueMatches } from "@/lib/matches";
 import { isSameDayInTz } from "@/lib/time";
 import { SAMPLE_DATA } from "@/lib/constants";
-import { getUI } from "@/lib/locale";
+import type { Locale } from "@/lib/i18n";
+import { getUI, getLocale } from "@/lib/locale";
 import { MatchCard } from "@/components/MatchCard";
 import { TournamentHero, EmptyState } from "@/components/TournamentHero";
 import { BallIcon } from "@/components/icons";
@@ -13,6 +14,7 @@ export const dynamic = "force-dynamic";
 
 export default async function MatchesPage() {
   const UI = await getUI();
+  const locale = await getLocale();
   const user = await requireUser();
   await lockDueMatches(); // keep status badges accurate on load
 
@@ -46,7 +48,7 @@ export default async function MatchesPage() {
           {list.map((m) => (
             <MatchCard
               key={m.id}
-              match={serializeMatch(m)}
+              match={serializeMatch(m, locale)}
               prediction={serializePrediction(predByMatch.get(m.id))}
             />
           ))}
@@ -71,9 +73,14 @@ export default async function MatchesPage() {
 }
 
 type MatchWithTeams = Prisma.MatchGetPayload<{ include: { homeTeam: true; awayTeam: true } }>;
+type TeamRow = MatchWithTeams["homeTeam"];
 
-// Serialize for the client component (Dates → ISO strings).
-export function serializeMatch(m: MatchWithTeams) {
+// Serialize for the client component (Dates → ISO strings). Team display name
+// is resolved to the active locale here (server-side) so the client component
+// stays locale-agnostic; a language toggle re-runs this via router.refresh().
+export function serializeMatch(m: MatchWithTeams, locale: Locale = "ar") {
+  const team = (t: TeamRow) =>
+    t ? { id: t.id, name: locale === "en" ? t.nameEn : t.nameAr, code: t.code, flagUrl: t.flagUrl } : null;
   return {
     id: m.id,
     matchNumber: m.matchNumber,
@@ -84,12 +91,8 @@ export function serializeMatch(m: MatchWithTeams) {
     stadium: m.stadium,
     homeScore: m.homeScore,
     awayScore: m.awayScore,
-    homeTeam: m.homeTeam
-      ? { id: m.homeTeam.id, nameAr: m.homeTeam.nameAr, code: m.homeTeam.code, flagUrl: m.homeTeam.flagUrl }
-      : null,
-    awayTeam: m.awayTeam
-      ? { id: m.awayTeam.id, nameAr: m.awayTeam.nameAr, code: m.awayTeam.code, flagUrl: m.awayTeam.flagUrl }
-      : null,
+    homeTeam: team(m.homeTeam),
+    awayTeam: team(m.awayTeam),
   };
 }
 export function serializePrediction(p?: { predictedHomeScore: number; predictedAwayScore: number; predictedWinnerTeamId: string | null; pointsAwarded: number | null }) {

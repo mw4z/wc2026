@@ -22,7 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/matches" className="shrink-0">
             <Logo />
           </Link>
-          <div className="mx-1 hidden h-6 w-px bg-white/10 sm:block" />
+          <div className="mx-1 hidden h-6 w-px bg-white/10 md:block" />
           <div className="min-w-0 flex-1">
             <AppNav isAdmin={user.role === "ADMIN"} />
           </div>
@@ -30,7 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <LogoutButton />
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+      <main className="mx-auto max-w-5xl px-4 py-6 pb-24 md:pb-6">{children}</main>
       <GroupNudge hasGroup={groupCount > 0} />
     </div>
   );

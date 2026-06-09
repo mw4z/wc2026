@@ -15,8 +15,10 @@ export const loginSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 
 // Phone login (Phase E). Phone is normalized + validated server-side via phone.ts.
+// `name` is optional: returning users sign in with phone only; it's required
+// (enforced in loginOrRegisterByPhone) only when creating a NEW account.
 export const phoneLoginSchema = z.object({
-  name: z.string().trim().min(2, "الاسم قصير جدًا").max(80),
+  name: z.string().trim().max(80).optional().or(z.literal("")),
   country: z.string().trim().length(2, "اختر الدولة"), // ISO 3166-1 alpha-2
   phone: z.string().trim().min(3, "رقم الجوال مطلوب").max(20),
 });

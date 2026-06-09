@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getUserGroups } from "@/lib/groups";
 import { STAGE_LABEL_AR } from "@/lib/constants";
 import { formatDateTimeAr } from "@/lib/time";
 
@@ -26,6 +27,7 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
   });
 
   const totalPoints = predictions.reduce((s, p) => s + (p.pointsAwarded ?? 0), 0);
+  const groups = await getUserGroups(id);
 
   return (
     <div>
@@ -34,11 +36,36 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
       </Link>
 
       <h1 className="mb-1 mt-2 text-2xl font-extrabold">{user.name}</h1>
-      <p className="mb-6 text-sm text-slate-400">
+      <p className="mb-2 text-sm text-slate-400">
         رقم الجوال: <span className="font-mono" dir="ltr">{user.phoneE164 ?? user.employeeId ?? "—"}</span>
         {user.department ? ` · ${user.department}` : ""} · {user.role === "ADMIN" ? "مدير" : "مشارك"}
+        {" · "}
+        <span className={user.isActive ? "text-ok" : "text-red-400"}>
+          {user.isActive ? "نشط" : "موقوف"}
+        </span>
         {" · "}عدد التوقعات: {predictions.length} · مجموع النقاط: {totalPoints}
+        {" · "}انضم في {formatDateTimeAr(user.createdAt)}
       </p>
+
+      <div className="mb-6">
+        <span className="text-xs font-bold text-slate-400">المجموعات المنضم إليها:</span>{" "}
+        {groups.length === 0 ? (
+          <span className="text-sm text-slate-500">لا توجد</span>
+        ) : (
+          <span className="inline-flex flex-wrap gap-1.5 align-middle">
+            {groups.map((g) => (
+              <Link
+                key={g.id}
+                href={`/admin/groups/${g.id}`}
+                className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs hover:border-gold-500/50"
+              >
+                {g.name}
+                <span className="text-slate-500"> · {g.role === "LEADER" ? "قائد" : "عضو"}</span>
+              </Link>
+            ))}
+          </span>
+        )}
+      </div>
 
       <div className="card overflow-x-auto">
         <table className="w-full text-right text-sm">

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { COUNTRIES, type Country } from "@/lib/countries";
-import { useUI } from "./I18nProvider";
+import { useUI, useLocale } from "./I18nProvider";
 
 export function isoToFlag(iso: string): string {
   return [...iso.toUpperCase()]
@@ -21,9 +21,11 @@ export function CountrySelect({
   compact?: boolean;
 }) {
   const UI = useUI();
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
 
+  const cname = (c: Country) => (locale === "en" ? c.nameEn : c.name);
   const selected = COUNTRIES.find((c) => c.iso === value) ?? COUNTRIES[0]!;
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -31,6 +33,7 @@ export function CountrySelect({
     return COUNTRIES.filter(
       (c) =>
         c.name.toLowerCase().includes(term) ||
+        c.nameEn.toLowerCase().includes(term) ||
         c.calling.includes(term.replace(/\D/g, "")) ||
         c.iso.toLowerCase().includes(term),
     );
@@ -57,7 +60,7 @@ export function CountrySelect({
         ) : (
           <span className="flex items-center gap-2">
             <span className="text-lg">{isoToFlag(selected.iso)}</span>
-            <span>{selected.name}</span>
+            <span>{cname(selected)}</span>
             <span className="text-slate-400" dir="ltr">+{selected.calling}</span>
           </span>
         )}
@@ -87,7 +90,7 @@ export function CountrySelect({
               className="flex w-full items-center gap-2 px-3 py-2 text-right text-sm hover:bg-white/10"
             >
               <span className="text-lg">{isoToFlag(c.iso)}</span>
-              <span className="flex-1">{c.name}</span>
+              <span className="flex-1">{cname(c)}</span>
               <span className="text-slate-400" dir="ltr">+{c.calling}</span>
             </button>
           ))}
