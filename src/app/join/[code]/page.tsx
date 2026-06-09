@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser, createInvitePending } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { getUI } from "@/lib/locale";
 import { BrandMark } from "@/components/Logo";
 import { AutoJoin } from "@/components/groups/AutoJoin";
@@ -7,15 +7,14 @@ import { AutoJoin } from "@/components/groups/AutoJoin";
 export const dynamic = "force-dynamic";
 
 // Invite link target: /join/CUP-12345. If logged in, AutoJoin joins immediately
-// and redirects to the group. If not, stash the code in a short-lived invite
-// cookie and send the user through login normally — after signing up they land
-// on /matches and the signup form pre-fills the code (rather than auto-joining
-// and dumping them on the group page).
+// and redirects to the group. Logged-out visitors never reach this render — the
+// middleware stashes the code in the wc26_invite cookie and redirects them to
+// /login (a server component can't set cookies). After signup they land on
+// /matches with the code pre-filled. This redirect is just a safety net.
 export default async function JoinPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const user = await getCurrentUser();
   if (!user || !user.isActive) {
-    await createInvitePending(code);
     redirect("/login");
   }
   const UI = await getUI();

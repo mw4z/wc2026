@@ -23,6 +23,32 @@ async function readSession(req: NextRequest) {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Invite links: /join/CODE. A logged-out visitor can't set a cookie from the
+  // page (server components can't write cookies), so do it here — stash the code
+  // in a short-lived cookie and send them through normal login. After signup
+  // they land on /matches and the form pre-fills the code. Logged-in users fall
+  // through to the page, where AutoJoin joins immediately.
+  const inviteMatch = pathname.match(/^\/join\/([^/]+)\/?$/);
+  if (inviteMatch) {
+    const code = inviteMatch[1] ?? "";
+    const session = await readSession(req);
+    if (!session) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/login";
+      url.search = "";
+      const res = NextResponse.redirect(url);
+      res.cookies.set("wc26_invite", decodeURIComponent(code), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 30, // 30 minutes
+        path: "/",
+      });
+      return res;
+    }
+    return NextResponse.next();
+  }
+
   const needsAuth = PROTECTED.some((p) => pathname === p || pathname.startsWith(p + "/"));
   if (!needsAuth) return NextResponse.next();
 
@@ -46,5 +72,5 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   // Apply to app routes only (skip static assets & API — API does its own checks).
-  matcher: ["/dashboard/:path*", "/matches/:path*", "/groups/:path*", "/leaderboard/:path*", "/profile/:path*", "/admin/:path*"],
+  matcher: ["/join/:path*", "/dashboard/:path*", "/matches/:path*", "/groups/:path*", "/leaderboard/:path*", "/profile/:path*", "/admin/:path*"],
 };
