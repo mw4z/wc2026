@@ -1,5 +1,6 @@
 import { getUI } from "@/lib/locale";
 import { BrandMark } from "@/components/Logo";
+import { LangToggle } from "@/components/LangToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -7,7 +8,10 @@ export const dynamic = "force-dynamic";
 export default async function LoginLayout({ children }: { children: React.ReactNode }) {
   const UI = await getUI();
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
+    <main className="relative mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
+      <div className="absolute end-4 top-4 z-10">
+        <LangToggle />
+      </div>
       <div className="mb-8 text-center">
         <BrandMark className="mx-auto mb-4 h-16 w-16 drop-shadow-[0_8px_30px_rgba(43,123,255,0.45)]" />
         <span className="font-display text-[11px] font-bold uppercase tracking-widest2 text-accent-400">
