@@ -9,6 +9,13 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+declare global {
+  interface Window {
+    __wc26InstallPrompt?: BeforeInstallPromptEvent | null;
+    __wc26Installed?: boolean;
+  }
+}
+
 const IOS_SEEN_KEY = "wc26_ios_install_seen";
 
 export function InstallPrompt() {
@@ -16,51 +23,68 @@ export function InstallPrompt() {
   const [mounted, setMounted] = useState(false);
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [isIOS, setIsIOS] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  // Android: reveal the manual how-to only after a short grace period, so we
+  // don't flash it when Chrome's native prompt is about to arrive.
+  const [androidGrace, setAndroidGrace] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     const standalone =
       window.matchMedia?.("(display-mode: standalone)").matches ||
       (navigator as unknown as { standalone?: boolean }).standalone === true;
-    if (standalone) {
+    if (standalone || window.__wc26Installed) {
       setInstalled(true);
       return;
     }
     const ua = navigator.userAgent || "";
     const ios = /iphone|ipad|ipod/i.test(ua);
+    const android = /android/i.test(ua);
     setIsIOS(ios);
+    setIsAndroid(android);
 
+    // The layout's inline script may have already captured the event before
+    // React hydrated — pick it up. Otherwise listen for the re-dispatched event.
+    if (window.__wc26InstallPrompt) setDeferred(window.__wc26InstallPrompt);
+    const onReady = () => setDeferred(window.__wc26InstallPrompt ?? null);
     const onPrompt = (e: Event) => {
-      e.preventDefault(); // stash it so we can trigger the native dialog on a tap
+      e.preventDefault();
       setDeferred(e as BeforeInstallPromptEvent);
     };
+    window.addEventListener("wc26:install-ready", onReady);
     window.addEventListener("beforeinstallprompt", onPrompt);
     window.addEventListener("appinstalled", () => setInstalled(true));
 
+    const timers: ReturnType<typeof setTimeout>[] = [];
     // iOS can't trigger install programmatically — auto-open the how-to once.
     if (ios && !localStorage.getItem(IOS_SEEN_KEY)) {
       localStorage.setItem(IOS_SEEN_KEY, "1");
-      const t = setTimeout(() => setSheetOpen(true), 1200);
-      return () => {
-        clearTimeout(t);
-        window.removeEventListener("beforeinstallprompt", onPrompt);
-      };
+      timers.push(setTimeout(() => setSheetOpen(true), 1200));
     }
-    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
+    // Android fallback: if no native prompt has arrived, offer manual steps.
+    if (android) timers.push(setTimeout(() => setAndroidGrace(true), 1500));
+
+    return () => {
+      timers.forEach(clearTimeout);
+      window.removeEventListener("wc26:install-ready", onReady);
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+    };
   }, []);
 
   async function nativeInstall() {
     if (!deferred) return;
     await deferred.prompt();
     await deferred.userChoice;
+    window.__wc26InstallPrompt = null;
     setDeferred(null);
   }
 
   if (!mounted || installed) return null;
-  // Show only when we can actually help: Android/desktop install, or iOS guide.
-  if (!deferred && !isIOS) return null;
+  // Show when we can actually help: native install, iOS guide, or — once the
+  // grace window passes with no native prompt — the Android manual guide.
+  if (!deferred && !isIOS && !(isAndroid && androidGrace)) return null;
 
   return (
     <>
@@ -92,15 +116,23 @@ export function InstallPrompt() {
           >
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
             <h3 className="mb-4 text-center font-display text-lg font-bold text-white">
-              {UI.installIosSheetTitle}
+              {isIOS ? UI.installIosSheetTitle : UI.installAndroidSheetTitle}
             </h3>
-            <ol className="space-y-3">
-              <Step n={1} text={UI.installIosStep1} icon={<ShareIosIcon className="text-xl text-accent-400" />} />
-              <Step n={2} text={UI.installIosStep2} icon={<AddSquareIcon className="text-xl text-accent-400" />} />
-              <Step n={3} text={UI.installIosStep3} />
-            </ol>
+            {isIOS ? (
+              <ol className="space-y-3">
+                <Step n={1} text={UI.installIosStep1} icon={<ShareIosIcon className="text-xl text-accent-400" />} />
+                <Step n={2} text={UI.installIosStep2} icon={<AddSquareIcon className="text-xl text-accent-400" />} />
+                <Step n={3} text={UI.installIosStep3} />
+              </ol>
+            ) : (
+              <ol className="space-y-3">
+                <Step n={1} text={UI.installAndroidStep1} icon={<MenuDotsIcon className="text-xl text-accent-400" />} />
+                <Step n={2} text={UI.installAndroidStep2} icon={<AddSquareIcon className="text-xl text-accent-400" />} />
+                <Step n={3} text={UI.installAndroidStep3} />
+              </ol>
+            )}
             <p className="mt-4 rounded-lg bg-white/[0.04] px-3 py-2 text-center text-xs text-slate-400">
-              {UI.installIosNote}
+              {isIOS ? UI.installIosNote : UI.installAndroidNote}
             </p>
             <button onClick={() => setSheetOpen(false)} className="btn-primary mt-4 w-full">
               {UI.installClose}
@@ -141,6 +173,17 @@ function AddSquareIcon(props: React.SVGProps<SVGSVGElement>) {
     <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
       <rect x="4" y="4" width="16" height="16" rx="4" />
       <path d="M12 8.5v7M8.5 12h7" />
+    </svg>
+  );
+}
+
+// Android overflow-menu glyph (three vertical dots).
+function MenuDotsIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true" {...props}>
+      <circle cx="12" cy="5" r="1.6" />
+      <circle cx="12" cy="12" r="1.6" />
+      <circle cx="12" cy="19" r="1.6" />
     </svg>
   );
 }

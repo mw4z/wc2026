@@ -47,6 +47,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={locale} dir={dirFor(locale)} className={`${display.variable} ${sans.variable}`}>
       <body className="min-h-screen">
+        {/* Capture Chrome's beforeinstallprompt the instant it fires — it often
+            arrives before React hydrates, so a listener added in a component's
+            effect would miss it (the "no Add to Home Screen button" bug). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__wc26InstallPrompt=e;window.dispatchEvent(new Event('wc26:install-ready'));});window.addEventListener('appinstalled',function(){window.__wc26InstallPrompt=null;window.__wc26Installed=true;});})();`,
+          }}
+        />
         <I18nProvider locale={locale}>{children}</I18nProvider>
         <AdScript />
       </body>
