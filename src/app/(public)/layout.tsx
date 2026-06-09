@@ -43,6 +43,7 @@ export default async function PublicLayout({ children }: { children: React.React
             ابدأ الآن
           </Link>
         </div>
+        <div className="h-[3px] w-full bg-gradient-to-l from-accent-500 via-[#7c5cff] to-lime-500" />
       </header>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">{children}</main>
