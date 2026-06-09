@@ -136,13 +136,34 @@ export async function removeGroupMember(leaderId: string, groupId: string, membe
   return { ok: true };
 }
 
-/** A non-leader member leaves the group. Leaders must transfer/deactivate instead. */
+/**
+ * A member leaves the group. If the LEADER leaves, leadership transfers to the
+ * earliest-joined remaining member; if they're the last member, the group is
+ * disbanded (deleted — cascades members + match rules).
+ */
 export async function leaveGroup(userId: string, groupId: string) {
   const group = await prisma.group.findUnique({ where: { id: groupId } });
   if (!group) throw new GroupError("المجموعة غير موجودة أو تم تعطيلها", "GROUP_NOT_FOUND", 404);
+
   if (group.leaderId === userId) {
-    throw new GroupError("قائد المجموعة لا يمكنه المغادرة", "LEADER_CANNOT_LEAVE", 409);
+    const next = await prisma.groupMember.findFirst({
+      where: { groupId, userId: { not: userId } },
+      orderBy: { joinedAt: "asc" },
+    });
+    if (!next) {
+      // Last member → disband the whole group.
+      await prisma.group.delete({ where: { id: groupId } });
+      return { ok: true, disbanded: true };
+    }
+    // Hand leadership to the next member, then remove the outgoing leader.
+    await prisma.$transaction([
+      prisma.group.update({ where: { id: groupId }, data: { leaderId: next.userId } }),
+      prisma.groupMember.update({ where: { id: next.id }, data: { role: "LEADER" } }),
+      prisma.groupMember.deleteMany({ where: { groupId, userId } }),
+    ]);
+    return { ok: true, transferredTo: next.userId };
   }
+
   await prisma.groupMember.deleteMany({ where: { groupId, userId } });
   return { ok: true };
 }

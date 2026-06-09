@@ -136,6 +136,7 @@ export function GroupMembersClient({
       {!isLeader && currentUserId !== leaderId && (
         <button
           onClick={async () => {
+            if (!confirm(UI.leaveGroupConfirm)) return;
             if (await call(`/api/groups/${groupId}/leave`, "POST")) {
               router.push("/groups");
               router.refresh();

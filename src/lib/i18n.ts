@@ -224,6 +224,9 @@ const ar = {
   loadingApp: "جارٍ التحميل",
   regenerateCode: "تجديد الكود",
   leaveGroup: "مغادرة المجموعة",
+  leaveGroupConfirm: "هل تريد مغادرة هذه المجموعة؟",
+  leaderLeaveConfirm:
+    "أنت قائد المجموعة. عند المغادرة ستُنقل القيادة لأقدم عضو، وإذا كنت العضو الوحيد فسيتم حذف المجموعة. هل تريد المتابعة؟",
   removeMember: "إزالة عضو",
   notGroupLeader: "لا تملك صلاحية إدارة هذه المجموعة",
   groupNotFound: "المجموعة غير موجودة أو تم تعطيلها",
@@ -615,6 +618,9 @@ const en: Dict = {
   loadingApp: "Loading",
   regenerateCode: "Regenerate code",
   leaveGroup: "Leave group",
+  leaveGroupConfirm: "Leave this group?",
+  leaderLeaveConfirm:
+    "You're the group leader. Leaving transfers leadership to the earliest-joined member, or deletes the group if you're the only member. Continue?",
   removeMember: "Remove member",
   notGroupLeader: "You can't manage this group",
   groupNotFound: "Group not found or has been disabled",

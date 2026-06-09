@@ -5,6 +5,7 @@ import { getGroupForMember, getGroupLeaderboard, GroupError } from "@/lib/groups
 import { getUI } from "@/lib/locale";
 import { CopyCode } from "@/components/groups/CopyCode";
 import { GroupShareButtons } from "@/components/groups/GroupShareButtons";
+import { LeaveGroupButton } from "@/components/groups/LeaveGroupButton";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
 import { UsersIcon, TrophyIcon, SlidersIcon } from "@/components/icons";
 import { isCustomScoring } from "@/lib/groupScoring";
@@ -136,6 +137,8 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
           </tbody>
         </table>
       </div>
+
+      <LeaveGroupButton groupId={id} isLeader={isLeader} />
     </div>
   );
 }
