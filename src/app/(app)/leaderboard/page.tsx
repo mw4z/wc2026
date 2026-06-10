@@ -61,6 +61,9 @@ export default async function LeaderboardPage({
   // Overall board is capped to the top 100; the user's own row is pinned below if
   // they fall outside it. Group boards are small → never capped.
   const isOverall = !activeGroup;
+  // Pre-results state: people are on the board but nobody has scored yet — show an
+  // explanation so the big zeros don't read as broken data.
+  const noPointsYet = rows.length > 0 && rows.every((r) => r.totalPoints === 0);
   const CAP = 100;
   const displayRows = isOverall ? rows.slice(0, CAP) : rows;
   const myPinned = isOverall && myRow && myRow.rank > CAP ? myRow : null;
@@ -81,22 +84,28 @@ export default async function LeaderboardPage({
   return (
     <div>
       <TournamentHero
-        title={activeGroup ? activeGroup.name : UI.leaderboard}
+        title={activeGroup ? activeGroup.name : UI.leaderboardTitle}
         subtitle={UI.leaderboardSubtitle}
         icon={<TrophyIcon />}
       >
         <HeroStat
-          label={activeGroup ? UI.groupRanking : UI.overallRank}
+          label={activeGroup ? UI.groupRanking : UI.yourRank}
           value={myRow ? `#${myRow.rank}` : "—"}
         />
         {activeGroup && (
           <HeroStat label={UI.overallRank} value={myOverall?.rank ? `#${myOverall.rank}` : "—"} />
         )}
-        <HeroStat label={UI.point} value={myRow?.totalPoints ?? 0} />
-        <HeroStat label={UI.participant} value={rows.length} />
+        <HeroStat label={UI.yourPoints} value={myRow?.totalPoints ?? 0} />
+        <HeroStat label={UI.participants} value={rows.length} />
       </TournamentHero>
 
       <AdSlot slotId={AD_SLOTS.leaderboardTop} slotName="leaderboard-top" />
+
+      {noPointsYet && (
+        <div className="mb-4 rounded-xl border border-accent-500/25 bg-accent-500/[0.07] px-4 py-3 text-center text-sm text-slate-200">
+          {UI.noPointsYet}
+        </div>
+      )}
 
       <p className="mb-5 text-center text-xs text-slate-400">{UI.leaderboardUpdatedTitle}</p>
 
@@ -107,13 +116,13 @@ export default async function LeaderboardPage({
             <Link
               key={s.id || "overall"}
               href={s.href}
-              className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${
+              className={`rounded-lg border px-3 py-1.5 text-sm font-semibold whitespace-nowrap transition ${
                 s.active
                   ? "border-accent-500 bg-accent-500/15 text-accent-400"
                   : "border-white/10 text-slate-300 hover:border-white/25 hover:bg-white/5"
               }`}
             >
-              {s.label}
+              <span className="inline-block max-w-[150px] truncate align-bottom">{s.label}</span>
             </Link>
           ))}
         </div>
@@ -132,7 +141,9 @@ export default async function LeaderboardPage({
                 } ${r.userId === me.id ? "ring-1 ring-accent-500/50" : ""}`}
               >
                 <RankMedallion place={place} size={place === 1 ? "lg" : "md"} />
-                <div className="mt-2 max-w-full truncate text-sm font-bold text-white">{r.name}</div>
+                <div className="mt-2 line-clamp-2 max-w-full break-words text-sm font-bold leading-tight text-white">
+                  {r.name}
+                </div>
                 <div
                   className={`font-display font-extrabold tnum text-gold-400 ${
                     place === 1 ? "text-3xl" : "text-2xl"
@@ -161,7 +172,7 @@ export default async function LeaderboardPage({
                 <th className="p-3 font-bold">{UI.rank}</th>
                 <th className="p-3 font-bold">{UI.name}</th>
                 <th className="hidden p-3 font-bold sm:table-cell">{UI.department}</th>
-                <th className="p-3 font-bold">{UI.totalPoints}</th>
+                <th className="p-3 font-bold">{UI.colPoints}</th>
                 <th className="hidden p-3 font-bold md:table-cell">{UI.colExact}</th>
                 <th className="hidden p-3 font-bold md:table-cell">{UI.colCorrect}</th>
                 <th className="hidden p-3 font-bold lg:table-cell">{UI.colQualifier}</th>
@@ -231,7 +242,7 @@ export default async function LeaderboardPage({
                   <th className="p-3 font-bold">{UI.members}</th>
                   <th className="p-3 font-bold">{UI.fairScore}</th>
                   <th className="hidden p-3 font-bold sm:table-cell">{UI.avgPerMember}</th>
-                  <th className="hidden p-3 font-bold md:table-cell">{UI.totalPoints}</th>
+                  <th className="hidden p-3 font-bold md:table-cell">{UI.colPoints}</th>
                 </tr>
               </thead>
               <tbody>
