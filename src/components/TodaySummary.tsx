@@ -38,25 +38,32 @@ export function TodaySummary({
 
   return (
     <div className="card edge-accent mb-6 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <div className="font-bold text-gold-400">{UI.todayMatches}</div>
-          <div className="text-sm text-slate-300">
-            {UI.summaryPredicted.replace("{s}", String(submitted)).replace("{t}", String(total))}
-          </div>
-        </div>
-        {missing > 0 && (
-          <div className="text-sm font-semibold text-amber-200">
-            {UI.summaryRemaining.replace("{m}", String(missing))}
-          </div>
+      {/* Header: title + nearest-lock countdown on the opposite side. */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="font-bold text-gold-400">{UI.todaySummaryTitle}</div>
+        {nextLockAt && ms > 0 && (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-gold-500/30 bg-gold-500/10 px-3 py-1 text-xs font-semibold text-gold-300">
+            <ClockIcon className="text-[13px]" />
+            {UI.summaryNearestLock.replace("{time}", fmt(ms))}
+          </span>
         )}
       </div>
-      {nextLockAt && ms > 0 && (
-        <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-gold-500/30 bg-gold-500/10 px-3 py-1 text-xs text-gold-300">
-          <ClockIcon className="text-[13px]" />
-          {UI.summaryNearestLock.replace("{time}", fmt(ms))}
-        </div>
-      )}
+      {/* Compact stat line — fills the card without dead space. */}
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+        <span className="text-slate-300">{UI.summaryTodayCount.replace("{n}", String(total))}</span>
+        <span className="text-slate-600">·</span>
+        <span className="font-semibold text-white">
+          {UI.summaryPredicted.replace("{s}", String(submitted)).replace("{t}", String(total))}
+        </span>
+        {missing > 0 && (
+          <>
+            <span className="text-slate-600">·</span>
+            <span className="font-semibold text-amber-200">
+              {UI.summaryRemaining.replace("{m}", String(missing))}
+            </span>
+          </>
+        )}
+      </div>
     </div>
   );
 }
