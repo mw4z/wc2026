@@ -1,0 +1,84 @@
+<svg width="1500" height="500" viewBox="0 0 1500 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2b7bff"/>
+      <stop offset="0.5" stop-color="#7c5cff"/>
+      <stop offset="1" stop-color="#aef000"/>
+    </linearGradient>
+    <linearGradient id="cup" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dbe4fb"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#3b6bff" stop-opacity="0.5"/>
+      <stop offset="0.6" stop-color="#5b4bff" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#5b4bff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="vignette" cx="0.5" cy="0.42" r="0.8">
+      <stop offset="0" stop-color="#0b1224" stop-opacity="0"/>
+      <stop offset="1" stop-color="#03060d" stop-opacity="0.92"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Base -->
+  <rect width="1500" height="500" fill="#070b15"/>
+
+  <!-- Faint pitch markings -->
+  <g stroke="#ffffff" stroke-opacity="0.045" stroke-width="2" fill="none">
+    <circle cx="750" cy="250" r="118"/>
+    <line x1="750" y1="40" x2="750" y2="460"/>
+    <line x1="120" y1="60" x2="120" y2="440"/>
+    <line x1="1380" y1="60" x2="1380" y2="440"/>
+  </g>
+
+  <!-- Huge faint "26" watermark on the right for depth -->
+  <text x="1440" y="430" text-anchor="end" font-family="Arial Black, Arial, sans-serif"
+        font-size="420" font-weight="900" fill="#ffffff" fill-opacity="0.03">26</text>
+
+  <!-- Glow behind the emblem -->
+  <ellipse cx="360" cy="250" rx="330" ry="280" fill="url(#glow)"/>
+  <rect width="1500" height="500" fill="url(#vignette)"/>
+
+  <!-- Championship trophy emblem (original geometry — not the FIFA mark) -->
+  <g transform="translate(355 250) scale(7.4)">
+    <g transform="translate(-24 -24)">
+      <g fill="none" stroke="#ffffff" stroke-width="2.1" stroke-linecap="round">
+        <path d="M16.6 14.2 C11.4 14.2 11.4 21.2 16.9 20.5"/>
+        <path d="M31.4 14.2 C36.6 14.2 36.6 21.2 31.1 20.5"/>
+      </g>
+      <g fill="url(#cup)">
+        <path d="M16.3 12.2 H31.7 V15.6 C31.7 22.2 28.3 26.2 24 26.2 C19.7 26.2 16.3 22.2 16.3 15.6 Z"/>
+        <rect x="22.6" y="25.6" width="2.8" height="4.8" rx="0.6"/>
+        <path d="M18.5 31 H29.5 L31 35 H17 Z"/>
+        <rect x="16.2" y="35.4" width="15.6" height="2.6" rx="1.1"/>
+      </g>
+      <path d="M19.8 14.3 C19.8 19 21.3 22 23 22.9" stroke="#ffffff" stroke-opacity="0.6" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- Centered wordmark lockup in the right 2/3 (clear of the bottom-left avatar) -->
+  <g text-anchor="middle" font-family="'Segoe UI', Tahoma, Arial, sans-serif">
+    <!-- kicker -->
+    <text x="945" y="138" font-size="30" font-weight="700" letter-spacing="8" fill="#aef000">GAMEPREDICT</text>
+
+    <!-- Arabic title (centered → robust against RTL anchor quirks) -->
+    <text x="945" y="232" font-size="72" font-weight="800" fill="#ffffff" direction="rtl">توقّعات كأس العالم 2026</text>
+
+    <!-- score-prediction chip -->
+    <g transform="translate(945 270)">
+      <rect x="-92" y="0" width="184" height="52" rx="26" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.14"/>
+      <circle cx="-58" cy="26" r="9" fill="#2b7bff"/>
+      <text x="0" y="38" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="30" font-weight="900" fill="#ffffff">2 : 1</text>
+      <circle cx="58" cy="26" r="9" fill="#aef000"/>
+    </g>
+
+    <!-- Arabic tagline -->
+    <text x="945" y="372" font-size="34" font-weight="600" fill="#cdd7ee" direction="rtl">توقّع النتائج · نافس أصدقاءك · تصدّر الترتيب</text>
+
+    <!-- English subline -->
+    <text x="945" y="418" font-size="24" font-weight="600" letter-spacing="3" fill="#7f8da8">FIFA WORLD CUP 2026 · PREDICTIONS GAME</text>
+  </g>
+
+  <!-- Brand accent bar -->
+  <rect x="0" y="492" width="1500" height="8" fill="url(#brand)"/>
+</svg>
