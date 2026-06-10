@@ -197,6 +197,29 @@ export async function leaveGroup(userId: string, groupId: string) {
 }
 
 // Member-facing: never exposes phone/employee identifiers.
+/**
+ * Rank groups by the SUM of their members' global points (from LeaderboardEntry).
+ * Tie-breaks: more members, then name. Used for the public "top groups" board.
+ */
+export async function getTopGroups(limit = 50) {
+  const [groups, entries] = await Promise.all([
+    prisma.group.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, members: { select: { userId: true } } },
+    }),
+    prisma.leaderboardEntry.findMany({ select: { userId: true, totalPoints: true } }),
+  ]);
+  const pts = new Map(entries.map((e) => [e.userId, e.totalPoints]));
+  const rows = groups.map((g) => ({
+    id: g.id,
+    name: g.name,
+    memberCount: g.members.length,
+    totalPoints: g.members.reduce((s, m) => s + (pts.get(m.userId) ?? 0), 0),
+  }));
+  rows.sort((a, b) => b.totalPoints - a.totalPoints || b.memberCount - a.memberCount || a.name.localeCompare(b.name));
+  return rows.slice(0, limit).map((r, i) => ({ ...r, rank: i + 1 }));
+}
+
 export async function getGroupMembers(groupId: string) {
   return prisma.groupMember.findMany({
     where: { groupId },

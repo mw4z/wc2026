@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getLeaderboard } from "@/lib/leaderboard";
-import { getUserGroups, getGroupLeaderboard } from "@/lib/groups";
+import { getUserGroups, getGroupLeaderboard, getTopGroups } from "@/lib/groups";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { getUI } from "@/lib/locale";
@@ -57,6 +57,16 @@ export default async function LeaderboardPage({
     where: { userId: me.id },
     select: { rank: true },
   });
+
+  // Overall board is capped to the top 100; the user's own row is pinned below if
+  // they fall outside it. Group boards are small → never capped.
+  const isOverall = !activeGroup;
+  const CAP = 100;
+  const displayRows = isOverall ? rows.slice(0, CAP) : rows;
+  const myPinned = isOverall && myRow && myRow.rank > CAP ? myRow : null;
+
+  // Top groups (by summed member points) — shown on the overall board only.
+  const topGroups = isOverall ? await getTopGroups(50) : [];
 
   const scopes = [
     { id: "", label: UI.overall, href: "/leaderboard", active: !activeGroup },
@@ -159,7 +169,7 @@ export default async function LeaderboardPage({
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {displayRows.map((r) => (
                 <tr
                   key={r.userId}
                   className={`border-b border-white/5 transition hover:bg-white/5 ${
@@ -182,8 +192,59 @@ export default async function LeaderboardPage({
                   <td className="hidden p-3 tnum lg:table-cell">{(r.accuracy * 100).toFixed(0)}%</td>
                 </tr>
               ))}
+              {myPinned && (
+                <tr className="border-t-2 border-accent-500/40 bg-accent-500/10">
+                  <td className="p-3">
+                    <span className="font-display font-bold tnum text-accent-300">{myPinned.rank}</span>
+                  </td>
+                  <td className="p-3 font-semibold text-white">{myPinned.name} <span className="text-[10px] text-accent-300">({UI.yourPosition})</span></td>
+                  <td className="hidden p-3 text-slate-400 sm:table-cell">{myPinned.department ?? "—"}</td>
+                  <td className="p-3 font-display font-extrabold tnum text-gold-400">{myPinned.totalPoints}</td>
+                  <td className="hidden p-3 tnum md:table-cell">{myPinned.exactScores}</td>
+                  <td className="hidden p-3 tnum md:table-cell">{myPinned.correctOutcomes}</td>
+                  <td className="hidden p-3 tnum lg:table-cell">{myPinned.correctQualifiers}</td>
+                  <td className="hidden p-3 tnum lg:table-cell">{(myPinned.accuracy * 100).toFixed(0)}%</td>
+                </tr>
+              )}
             </tbody>
           </table>
+          {isOverall && rows.length > CAP && (
+            <p className="border-t border-white/5 p-3 text-center text-xs text-slate-500">{UI.topCapNote}</p>
+          )}
+        </div>
+      )}
+
+      {/* Top groups — ranked by summed member points (overall board only) */}
+      {isOverall && topGroups.length > 0 && (
+        <div className="mt-8">
+          <div className="mb-3 flex items-center gap-2">
+            <TrophyIcon className="text-gold-400" />
+            <h2 className="text-lg font-bold text-gold-400">{UI.topGroups}</h2>
+          </div>
+          <div className="card overflow-x-auto">
+            <table className="w-full text-right text-sm">
+              <thead className="border-b border-white/10 text-[11px] text-slate-400">
+                <tr>
+                  <th className="p-3 font-bold">{UI.rank}</th>
+                  <th className="p-3 font-bold">{UI.name}</th>
+                  <th className="p-3 font-bold">{UI.members}</th>
+                  <th className="p-3 font-bold">{UI.totalPoints}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topGroups.map((g) => (
+                  <tr key={g.id} className="border-b border-white/5 hover:bg-white/5">
+                    <td className="p-3">
+                      {g.rank <= 3 ? <RankMedallion place={g.rank} size="sm" /> : <span className="font-display font-bold tnum text-slate-300">{g.rank}</span>}
+                    </td>
+                    <td className="p-3 font-semibold text-white">{g.name}</td>
+                    <td className="p-3 tnum text-slate-400">{g.memberCount}</td>
+                    <td className="p-3 font-display font-extrabold tnum text-gold-400">{g.totalPoints}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
