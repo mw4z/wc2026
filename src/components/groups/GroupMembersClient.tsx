@@ -17,7 +17,6 @@ export function GroupMembersClient({
   isLeader,
   leaderId,
   currentUserId,
-  groupName,
   code,
   members,
 }: {
@@ -25,13 +24,11 @@ export function GroupMembersClient({
   isLeader: boolean;
   leaderId: string;
   currentUserId: string;
-  groupName: string;
   code: string;
   members: Member[];
 }) {
   const UI = useUI();
   const router = useRouter();
-  const [name, setName] = useState(groupName);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -74,21 +71,6 @@ export function GroupMembersClient({
               </button>
             </div>
             <p className="mt-1 text-xs text-slate-500">{UI.regenerateNote}</p>
-          </div>
-          <div>
-            <label className="label">{UI.groupName}</label>
-            <div className="flex gap-2">
-              <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
-              <button
-                onClick={async () => {
-                  if (await call(`/api/groups/${groupId}`, "PATCH", { name })) router.refresh();
-                }}
-                disabled={busy || name.trim().length < 2}
-                className="btn-gold text-sm"
-              >
-                {UI.save}
-              </button>
-            </div>
           </div>
         </div>
       )}

@@ -6,6 +6,7 @@ import { getUI } from "@/lib/locale";
 import { CopyCode } from "@/components/groups/CopyCode";
 import { GroupShareButtons } from "@/components/groups/GroupShareButtons";
 import { AwardsToggle } from "@/components/groups/AwardsToggle";
+import { GroupRename } from "@/components/groups/GroupRename";
 import { LeaveGroupButton } from "@/components/groups/LeaveGroupButton";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
 import { UsersIcon, TrophyIcon, SlidersIcon, ListIcon } from "@/components/icons";
@@ -64,6 +65,12 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
         <HeroStat label={UI.groupRanking} value={myRow ? `#${myRow.rank}` : "—"} />
         <HeroStat label={UI.point} value={myRow?.totalPoints ?? 0} />
       </TournamentHero>
+
+      {isLeader && (
+        <div className="mb-4 text-center">
+          <GroupRename groupId={id} currentName={group.name} />
+        </div>
+      )}
 
       <div className="card card-accent mb-6 p-5">
         {/* Prominent group code */}

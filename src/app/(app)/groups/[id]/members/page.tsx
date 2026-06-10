@@ -32,7 +32,6 @@ export default async function GroupMembersPage({ params }: { params: Promise<{ i
         isLeader={isLeader}
         leaderId={group.leaderId}
         currentUserId={user.id}
-        groupName={group.name}
         code={group.code}
         members={members.map((m) => ({
           userId: m.userId,

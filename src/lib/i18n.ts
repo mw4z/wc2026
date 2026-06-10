@@ -317,6 +317,7 @@ const ar = {
   // generic
   save: "حفظ",
   cancel: "إلغاء",
+  renameGroup: "تعديل اسم المجموعة",
   home: "المضيف",
   away: "الضيف",
   city: "المدينة",
@@ -819,6 +820,7 @@ const en: Dict = {
   later: "Later",
   save: "Save",
   cancel: "Cancel",
+  renameGroup: "Rename group",
   home: "Home",
   away: "Away",
   city: "City",
