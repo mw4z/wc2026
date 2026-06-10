@@ -97,6 +97,16 @@ export default async function GroupPredictionsPage({ params }: { params: Promise
   const upcoming = views.filter((v) => !v.locked); // already asc by kickoff
   const revealed = views.filter((v) => v.locked).reverse(); // most recent first
 
+  // Member-centric roster: how many upcoming matches each member has predicted.
+  // Makes "who hasn't voted" obvious at a glance (sorted most-behind first).
+  const upcomingIds = upcoming.map((v) => v.id);
+  const roster = members
+    .map((mem) => {
+      const predicted = upcomingIds.filter((mid) => byMatch.get(mid)?.has(mem.id)).length;
+      return { name: mem.name, predicted, total: upcomingIds.length, missing: upcomingIds.length - predicted };
+    })
+    .sort((a, b) => b.missing - a.missing);
+
   return (
     <GroupPredictions
       groupId={id}
@@ -105,6 +115,7 @@ export default async function GroupPredictionsPage({ params }: { params: Promise
       isLeader={isLeader}
       upcoming={upcoming}
       revealed={revealed}
+      roster={roster}
     />
   );
 }

@@ -25,6 +25,8 @@ export interface MatchView {
   pending: string[] | null;
 }
 
+interface RosterEntry { name: string; predicted: number; total: number; missing: number }
+
 export function GroupPredictions({
   groupId,
   groupName,
@@ -32,6 +34,7 @@ export function GroupPredictions({
   isLeader,
   upcoming,
   revealed,
+  roster,
 }: {
   groupId: string;
   groupName: string;
@@ -39,14 +42,37 @@ export function GroupPredictions({
   isLeader: boolean;
   upcoming: MatchView[];
   revealed: MatchView[];
+  roster: RosterEntry[];
 }) {
   const UI = useUI();
+  const [notifyMsg, setNotifyMsg] = useState<string | null>(null);
+  const [notifying, setNotifying] = useState(false);
 
   function remind() {
     const link = `${window.location.origin}/join/${groupCode}`;
     const msg = `تذكير ⚽\nلا تنسوا تسجيل توقعاتكم قبل بداية المباريات!\nرابط المجموعة:\n${link}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
   }
+
+  async function notifyPending() {
+    setNotifying(true);
+    setNotifyMsg(null);
+    try {
+      const res = await fetch(`/api/groups/${groupId}/nudge`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setNotifyMsg(data.error || UI.notifyFailed);
+        return;
+      }
+      setNotifyMsg(UI.notifySent.replace("{n}", String(data.notified ?? 0)));
+    } catch {
+      setNotifyMsg(UI.notifyFailed);
+    } finally {
+      setNotifying(false);
+    }
+  }
+
+  const behind = roster.filter((r) => r.missing > 0);
 
   return (
     <div>
@@ -55,16 +81,42 @@ export function GroupPredictions({
           <h1 className="text-xl font-extrabold">{UI.groupPredictions}</h1>
           <p className="text-sm text-slate-400">{groupName}</p>
         </div>
-        <div className="flex gap-2">
-          <Link href={`/groups/${groupId}`} className="btn-ghost px-3 py-1.5 text-sm">{UI.backToGroup}</Link>
+        <Link href={`/groups/${groupId}`} className="btn-ghost px-3 py-1.5 text-sm">{UI.backToGroup}</Link>
+      </div>
+
+      {/* Roster: who is behind on upcoming predictions (clear who hasn't voted). */}
+      {roster.length > 0 && upcoming.length > 0 && (
+        <div className="card mb-6 p-4">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <span className="eyebrow">{UI.predictionStatus}</span>
+            {isLeader && (
+              <div className="flex flex-wrap items-center gap-2">
+                <button onClick={remind} className="action-btn is-wa w-auto px-3 py-1.5">
+                  <WhatsAppIcon className="ab-ic" />
+                  {UI.remindToPredict}
+                </button>
+                <button onClick={notifyPending} disabled={notifying || behind.length === 0} className="btn-primary px-3 py-1.5 text-sm">
+                  {notifying ? UI.notifying : UI.notifyPending}
+                </button>
+              </div>
+            )}
+          </div>
+          {notifyMsg && <p className="mb-2 text-sm text-accent-300">{notifyMsg}</p>}
+          <div className="space-y-1.5">
+            {roster.map((r, i) => (
+              <div key={i} className="flex items-center justify-between gap-2 text-sm">
+                <span className="truncate text-slate-200">{r.name}</span>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${r.missing === 0 ? "bg-lime-500/20 text-lime-300" : "bg-warn/20 text-amber-300"}`}>
+                  {r.missing === 0 ? UI.allDone : UI.missingCount.replace("{n}", String(r.missing))}
+                </span>
+              </div>
+            ))}
+          </div>
           {isLeader && (
-            <button onClick={remind} className="action-btn is-wa w-auto px-3 py-1.5">
-              <WhatsAppIcon className="ab-ic" />
-              {UI.remindToPredict}
-            </button>
+            <p className="mt-2 text-xs text-slate-500">{UI.notifyHint}</p>
           )}
         </div>
-      </div>
+      )}
 
       {/* Upcoming — status only (who predicted / who didn't). Picks stay hidden. */}
       <section className="mb-8">
