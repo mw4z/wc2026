@@ -198,10 +198,12 @@ export async function leaveGroup(userId: string, groupId: string) {
 
 // Member-facing: never exposes phone/employee identifiers.
 /**
- * Rank groups by the SUM of their members' global points (from LeaderboardEntry).
- * Tie-breaks: more members, then name. Used for the public "top groups" board.
+ * Rank groups by AVERAGE points per member (total ÷ members) so group size is
+ * fair — a sharp small group can beat a larger mediocre one. Solo groups (< 2
+ * members) are excluded so it's a genuine group competition, not an individual.
+ * Tie-breaks: total points, then more members, then name.
  */
-export async function getTopGroups(limit = 50) {
+export async function getTopGroups(limit = 50, minMembers = 2) {
   const [groups, entries] = await Promise.all([
     prisma.group.findMany({
       where: { isActive: true },
@@ -210,13 +212,17 @@ export async function getTopGroups(limit = 50) {
     prisma.leaderboardEntry.findMany({ select: { userId: true, totalPoints: true } }),
   ]);
   const pts = new Map(entries.map((e) => [e.userId, e.totalPoints]));
-  const rows = groups.map((g) => ({
-    id: g.id,
-    name: g.name,
-    memberCount: g.members.length,
-    totalPoints: g.members.reduce((s, m) => s + (pts.get(m.userId) ?? 0), 0),
-  }));
-  rows.sort((a, b) => b.totalPoints - a.totalPoints || b.memberCount - a.memberCount || a.name.localeCompare(b.name));
+  const rows = groups
+    .map((g) => {
+      const memberCount = g.members.length;
+      const totalPoints = g.members.reduce((s, m) => s + (pts.get(m.userId) ?? 0), 0);
+      const avgPoints = memberCount > 0 ? Math.round((totalPoints / memberCount) * 10) / 10 : 0;
+      return { id: g.id, name: g.name, memberCount, totalPoints, avgPoints };
+    })
+    .filter((r) => r.memberCount >= minMembers);
+  rows.sort(
+    (a, b) => b.avgPoints - a.avgPoints || b.totalPoints - a.totalPoints || b.memberCount - a.memberCount || a.name.localeCompare(b.name),
+  );
   return rows.slice(0, limit).map((r, i) => ({ ...r, rank: i + 1 }));
 }
 

@@ -217,10 +217,11 @@ export default async function LeaderboardPage({
       {/* Top groups — ranked by summed member points (overall board only) */}
       {isOverall && topGroups.length > 0 && (
         <div className="mt-8">
-          <div className="mb-3 flex items-center gap-2">
+          <div className="mb-1 flex items-center gap-2">
             <TrophyIcon className="text-gold-400" />
             <h2 className="text-lg font-bold text-gold-400">{UI.topGroups}</h2>
           </div>
+          <p className="mb-3 text-xs text-slate-500">{UI.topGroupsHint}</p>
           <div className="card overflow-x-auto">
             <table className="w-full text-right text-sm">
               <thead className="border-b border-white/10 text-[11px] text-slate-400">
@@ -228,7 +229,8 @@ export default async function LeaderboardPage({
                   <th className="p-3 font-bold">{UI.rank}</th>
                   <th className="p-3 font-bold">{UI.name}</th>
                   <th className="p-3 font-bold">{UI.members}</th>
-                  <th className="p-3 font-bold">{UI.totalPoints}</th>
+                  <th className="p-3 font-bold">{UI.avgPerMember}</th>
+                  <th className="hidden p-3 font-bold sm:table-cell">{UI.totalPoints}</th>
                 </tr>
               </thead>
               <tbody>
@@ -239,7 +241,8 @@ export default async function LeaderboardPage({
                     </td>
                     <td className="p-3 font-semibold text-white">{g.name}</td>
                     <td className="p-3 tnum text-slate-400">{g.memberCount}</td>
-                    <td className="p-3 font-display font-extrabold tnum text-gold-400">{g.totalPoints}</td>
+                    <td className="p-3 font-display font-extrabold tnum text-gold-400">{g.avgPoints}</td>
+                    <td className="hidden p-3 tnum text-slate-400 sm:table-cell">{g.totalPoints}</td>
                   </tr>
                 ))}
               </tbody>
