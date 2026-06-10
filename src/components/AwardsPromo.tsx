@@ -11,7 +11,6 @@ export async function AwardsPromo({ locked }: { locked: boolean }) {
       href="/awards"
       className="group relative mb-5 block overflow-hidden rounded-2xl border border-gold-500/40 bg-gradient-to-l from-gold-500/20 via-[#7c5cff]/12 to-accent-500/15 p-4 transition hover:border-gold-400/70"
     >
-      <span className="hero-sheen" aria-hidden />
       <div className="relative flex items-center gap-4">
         <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-gold-500/20 text-3xl text-gold-300 ring-1 ring-gold-400/40">
           <TrophyIcon className="loader-bob" />
