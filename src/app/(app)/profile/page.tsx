@@ -4,6 +4,7 @@ import { getUI } from "@/lib/locale";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
 import { UserIcon, ShieldIcon } from "@/components/icons";
 import { EmailManager } from "@/components/EmailManager";
+import { ReminderToggle } from "@/components/ReminderToggle";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,10 @@ export default async function ProfilePage() {
       </div>
 
       <EmailManager current={user.email} />
+
+      <div className="mt-6">
+        <ReminderToggle manage />
+      </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stat(UI.rank, entry?.rank ?? "—")}

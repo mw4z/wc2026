@@ -18,7 +18,10 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
 
 type State = "loading" | "unsupported" | "ios-install" | "blocked" | "off" | "on";
 
-export function ReminderToggle() {
+// `manage` mode (profile page) keeps the card visible when reminders are ON and
+// offers a turn-off button. The default (matches page) is a nudge: it shows only
+// while reminders are OFF and disappears once enabled.
+export function ReminderToggle({ manage = false }: { manage?: boolean }) {
   const UI = useUI();
   const [state, setState] = useState<State>("loading");
   const [busy, setBusy] = useState(false);
@@ -108,9 +111,12 @@ export function ReminderToggle() {
     }
   }
 
-  // "ios-install" is handled by the dedicated InstallPrompt guide, so don't show
-  // a redundant reminders card here — it reappears (functional) once installed.
+  // Never show while loading/unsupported, or for "ios-install" (the dedicated
+  // InstallPrompt guide handles that). On the matches page (nudge mode) also hide
+  // once reminders are ON — no point nudging someone who already enabled them.
+  // The profile page (manage mode) keeps it visible so they can turn it off.
   if (state === "loading" || state === "unsupported" || state === "ios-install") return null;
+  if (!manage && state === "on") return null;
 
   return (
     <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
