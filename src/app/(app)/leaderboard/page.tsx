@@ -229,8 +229,9 @@ export default async function LeaderboardPage({
                   <th className="p-3 font-bold">{UI.rank}</th>
                   <th className="p-3 font-bold">{UI.name}</th>
                   <th className="p-3 font-bold">{UI.members}</th>
-                  <th className="p-3 font-bold">{UI.avgPerMember}</th>
-                  <th className="hidden p-3 font-bold sm:table-cell">{UI.totalPoints}</th>
+                  <th className="p-3 font-bold">{UI.fairScore}</th>
+                  <th className="hidden p-3 font-bold sm:table-cell">{UI.avgPerMember}</th>
+                  <th className="hidden p-3 font-bold md:table-cell">{UI.totalPoints}</th>
                 </tr>
               </thead>
               <tbody>
@@ -241,8 +242,9 @@ export default async function LeaderboardPage({
                     </td>
                     <td className="p-3 font-semibold text-white">{g.name}</td>
                     <td className="p-3 tnum text-slate-400">{g.memberCount}</td>
-                    <td className="p-3 font-display font-extrabold tnum text-gold-400">{g.avgPoints}</td>
-                    <td className="hidden p-3 tnum text-slate-400 sm:table-cell">{g.totalPoints}</td>
+                    <td className="p-3 font-display font-extrabold tnum text-gold-400">{g.fairScore}</td>
+                    <td className="hidden p-3 tnum text-slate-400 sm:table-cell">{g.avgPoints}</td>
+                    <td className="hidden p-3 tnum text-slate-400 md:table-cell">{g.totalPoints}</td>
                   </tr>
                 ))}
               </tbody>

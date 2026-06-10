@@ -197,11 +197,18 @@ export async function leaveGroup(userId: string, groupId: string) {
 }
 
 // Member-facing: never exposes phone/employee identifiers.
+// Shrinkage strength: how many "pseudo-members" (each scoring the global average)
+// to blend in. Higher = small groups pulled harder toward the mean. 5 ≈ a typical
+// small group, so a 2-person fluke can't top a large consistent group.
+const TOP_GROUPS_K = 5;
+
 /**
- * Rank groups by AVERAGE points per member (total ÷ members) so group size is
- * fair — a sharp small group can beat a larger mediocre one. Solo groups (< 2
- * members) are excluded so it's a genuine group competition, not an individual.
- * Tie-breaks: total points, then more members, then name.
+ * Rank groups FAIRLY across sizes using a Bayesian (shrinkage) average — the same
+ * method as IMDb's weighted rating:
+ *   fairScore = (sumMemberPoints + K·globalAvg) / (members + K)
+ * Small groups are pulled toward the global average (no small-sample flukes);
+ * large groups converge to their true average. Solo groups (< 2 members) are
+ * excluded — that's an individual, not a group. Tie-breaks: total, members, name.
  */
 export async function getTopGroups(limit = 50, minMembers = 2) {
   const [groups, entries] = await Promise.all([
@@ -212,16 +219,20 @@ export async function getTopGroups(limit = 50, minMembers = 2) {
     prisma.leaderboardEntry.findMany({ select: { userId: true, totalPoints: true } }),
   ]);
   const pts = new Map(entries.map((e) => [e.userId, e.totalPoints]));
+  const globalAvg = entries.length ? entries.reduce((s, e) => s + e.totalPoints, 0) / entries.length : 0;
+  const round1 = (n: number) => Math.round(n * 10) / 10;
+
   const rows = groups
     .map((g) => {
       const memberCount = g.members.length;
       const totalPoints = g.members.reduce((s, m) => s + (pts.get(m.userId) ?? 0), 0);
-      const avgPoints = memberCount > 0 ? Math.round((totalPoints / memberCount) * 10) / 10 : 0;
-      return { id: g.id, name: g.name, memberCount, totalPoints, avgPoints };
+      const avgPoints = memberCount > 0 ? round1(totalPoints / memberCount) : 0;
+      const fairScore = round1((totalPoints + TOP_GROUPS_K * globalAvg) / (memberCount + TOP_GROUPS_K));
+      return { id: g.id, name: g.name, memberCount, totalPoints, avgPoints, fairScore };
     })
     .filter((r) => r.memberCount >= minMembers);
   rows.sort(
-    (a, b) => b.avgPoints - a.avgPoints || b.totalPoints - a.totalPoints || b.memberCount - a.memberCount || a.name.localeCompare(b.name),
+    (a, b) => b.fairScore - a.fairScore || b.totalPoints - a.totalPoints || b.memberCount - a.memberCount || a.name.localeCompare(b.name),
   );
   return rows.slice(0, limit).map((r, i) => ({ ...r, rank: i + 1 }));
 }
