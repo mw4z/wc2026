@@ -25,7 +25,7 @@ export interface MatchView {
   pending: string[] | null;
 }
 
-interface RosterEntry { name: string; predicted: number; total: number; missing: number }
+interface RosterEntry { name: string; predicted: number; total: number; missing: number; missingMatches: string[] }
 
 export function GroupPredictions({
   groupId,
@@ -102,15 +102,8 @@ export function GroupPredictions({
             )}
           </div>
           {notifyMsg && <p className="mb-2 text-sm text-accent-300">{notifyMsg}</p>}
-          <div className="space-y-1.5">
-            {roster.map((r, i) => (
-              <div key={i} className="flex items-center justify-between gap-2 text-sm">
-                <span className="truncate text-slate-200">{r.name}</span>
-                <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${r.missing === 0 ? "bg-lime-500/20 text-lime-300" : "bg-warn/20 text-amber-300"}`}>
-                  {r.missing === 0 ? UI.allDone : UI.missingCount.replace("{n}", String(r.missing))}
-                </span>
-              </div>
-            ))}
+          <div className="space-y-1">
+            {roster.map((r, i) => <RosterRow key={i} r={r} />)}
           </div>
           {isLeader && (
             <p className="mt-2 text-xs text-slate-500">{UI.notifyHint}</p>
@@ -146,6 +139,37 @@ export function GroupPredictions({
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function RosterRow({ r }: { r: RosterEntry }) {
+  const UI = useUI();
+  const [open, setOpen] = useState(false);
+  const done = r.missing === 0;
+  return (
+    <div className="rounded-lg border border-white/[0.05]">
+      <button
+        onClick={() => !done && setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-start text-sm"
+      >
+        <span className="truncate text-slate-200">{r.name}</span>
+        <span className="flex shrink-0 items-center gap-1.5">
+          <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${done ? "bg-lime-500/20 text-lime-300" : "bg-warn/20 text-amber-300"}`}>
+            {done ? UI.allDone : UI.missingCount.replace("{n}", String(r.missing))}
+          </span>
+          {!done && <span className="text-xs text-slate-500">{open ? "▲" : "▼"}</span>}
+        </span>
+      </button>
+      {open && !done && (
+        <ul className="space-y-1 border-t border-white/[0.05] px-3 py-2 text-xs text-amber-200/90">
+          {r.missingMatches.map((mm, i) => (
+            <li key={i} className="flex items-center gap-1.5">
+              <span className="text-slate-600">•</span> {mm}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

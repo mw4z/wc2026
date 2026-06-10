@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getGroupForMember, getGroupMembers, GroupError } from "@/lib/groups";
 import { lockDueMatches } from "@/lib/matches";
+import { getPredictionLead, predictionOpensAt } from "@/lib/settings";
 import { getUI, getLocale } from "@/lib/locale";
 import { GroupPredictions } from "@/components/groups/GroupPredictions";
 
@@ -47,63 +48,77 @@ export default async function GroupPredictionsPage({ params }: { params: Promise
   }
 
   const now = Date.now();
+  const lead = await getPredictionLead();
   const tn = (t: { nameAr: string; nameEn: string } | null) => (t ? (locale === "en" ? t.nameEn : t.nameAr) : UI.tbd);
+  const label = (m: (typeof matches)[number]) => `${tn(m.homeTeam)} × ${tn(m.awayTeam)}`;
 
-  const views = matches.map((m) => {
-    // Mirror the server lock: predictions reveal only AFTER kickoff (anti-cheat).
-    const locked = m.status !== "SCHEDULED" || m.kickoffAt.getTime() <= now;
+  const base = (m: (typeof matches)[number]) => ({
+    id: m.id,
+    matchNumber: m.matchNumber,
+    stage: m.stage as string,
+    kickoffAt: m.kickoffAt.toISOString(),
+    home: tn(m.homeTeam),
+    away: tn(m.awayTeam),
+    homeFlag: m.homeTeam?.flagUrl ?? null,
+    awayFlag: m.awayTeam?.flagUrl ?? null,
+    homeScore: m.homeScore,
+    awayScore: m.awayScore,
+    total: members.length,
+  });
+
+  // OPEN = currently predictable: scheduled, teams known, kickoff ahead, and the
+  // global prediction window has opened. LOCKED = kicked off / past SCHEDULED.
+  const isOpen = (m: (typeof matches)[number]) => {
+    if (m.status !== "SCHEDULED" || !m.homeTeamId || !m.awayTeamId) return false;
+    if (m.kickoffAt.getTime() <= now) return false;
+    const o = predictionOpensAt(m.kickoffAt, lead);
+    return !o || o.getTime() <= now;
+  };
+  const isLocked = (m: (typeof matches)[number]) => m.status !== "SCHEDULED" || m.kickoffAt.getTime() <= now;
+
+  const openMatches = matches.filter(isOpen);
+  const lockedMatches = matches.filter(isLocked);
+
+  // Upcoming = OPEN-to-predict matches only; show who has / hasn't predicted (no scores).
+  const upcoming = openMatches.map((m) => {
     const pm = byMatch.get(m.id) ?? new Map();
-
-    const base = {
-      id: m.id,
-      matchNumber: m.matchNumber,
-      stage: m.stage as string,
-      kickoffAt: m.kickoffAt.toISOString(),
-      home: tn(m.homeTeam),
-      away: tn(m.awayTeam),
-      homeFlag: m.homeTeam?.flagUrl ?? null,
-      awayFlag: m.awayTeam?.flagUrl ?? null,
-      homeScore: m.homeScore,
-      awayScore: m.awayScore,
-      locked,
-      predictedCount: pm.size,
-      total: members.length,
-    };
-
-    if (locked) {
-      // Reveal everyone's picks (frozen) + points.
-      return {
-        ...base,
-        picks: members.map((mem) => {
-          const p = pm.get(mem.id);
-          return {
-            name: mem.name,
-            home: p ? p.predictedHomeScore : null,
-            away: p ? p.predictedAwayScore : null,
-            points: p?.pointsAwarded ?? null,
-          };
-        }),
-        pending: null as string[] | null,
-      };
-    }
-    // Upcoming: NEVER expose scores. Only who has / hasn't predicted.
     return {
-      ...base,
-      picks: null,
+      ...base(m),
+      locked: false,
+      predictedCount: pm.size,
+      picks: null as null,
       pending: members.filter((mem) => !pm.has(mem.id)).map((mem) => mem.name),
     };
   });
 
-  const upcoming = views.filter((v) => !v.locked); // already asc by kickoff
-  const revealed = views.filter((v) => v.locked).reverse(); // most recent first
+  // Revealed = locked/finished matches; show everyone's frozen picks + points.
+  const revealed = lockedMatches
+    .map((m) => {
+      const pm = byMatch.get(m.id) ?? new Map();
+      return {
+        ...base(m),
+        locked: true,
+        predictedCount: pm.size,
+        pending: null as null,
+        picks: members.map((mem) => {
+          const p = pm.get(mem.id);
+          return { name: mem.name, home: p ? p.predictedHomeScore : null, away: p ? p.predictedAwayScore : null, points: p?.pointsAwarded ?? null };
+        }),
+      };
+    })
+    .reverse();
 
-  // Member-centric roster: how many upcoming matches each member has predicted.
-  // Makes "who hasn't voted" obvious at a glance (sorted most-behind first).
-  const upcomingIds = upcoming.map((v) => v.id);
+  // Roster: per member, exactly WHICH open matches are still unpredicted.
   const roster = members
     .map((mem) => {
-      const predicted = upcomingIds.filter((mid) => byMatch.get(mid)?.has(mem.id)).length;
-      return { name: mem.name, predicted, total: upcomingIds.length, missing: upcomingIds.length - predicted };
+      const missingMatches = openMatches.filter((m) => !byMatch.get(m.id)?.has(mem.id)).map(label);
+      return {
+        name: mem.name,
+        predicted: openMatches.length - missingMatches.length,
+        total: openMatches.length,
+        missing: missingMatches.length,
+        missingMatches,
+      };
     })
     .sort((a, b) => b.missing - a.missing);
 
