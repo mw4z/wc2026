@@ -22,7 +22,7 @@ export default function LandingPage() {
         <span className="font-display text-xs font-bold uppercase tracking-widest text-accent-400">
           GamePredict · Football Predictions
         </span>
-        <h1 className="hero-title mt-2 text-4xl font-black leading-tight">توقّع، نافس، واصعد في الترتيب</h1>
+        <h1 className="hero-title mt-2 text-4xl font-black leading-tight">توقّع، نافس، واصعد للصدارة</h1>
         <p className="mx-auto mt-3 max-w-xl text-slate-300">
           لعبة مجانية لتوقّع نتائج المباريات: توقّع قبل انطلاق كل مباراة، اجمع النقاط حسب دقّتك، ونافس
           أصدقاءك على الصدارة.
