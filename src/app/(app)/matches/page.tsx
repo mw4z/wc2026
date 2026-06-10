@@ -12,6 +12,8 @@ import { TournamentHero, EmptyState } from "@/components/TournamentHero";
 import { TodaySummary } from "@/components/TodaySummary";
 import { ReminderToggle } from "@/components/ReminderToggle";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { AwardsPromo } from "@/components/AwardsPromo";
+import { userCanUseAwards, isAwardsLocked } from "@/lib/awards";
 import { BallIcon, ClockIcon } from "@/components/icons";
 import { AdSlot } from "@/components/AdSlot";
 import { AD_SLOTS } from "@/lib/ads";
@@ -36,6 +38,7 @@ export default async function MatchesPage() {
     }),
   ]);
   const lead = await getPredictionLead();
+  const [canAwards, awardsLocked] = await Promise.all([userCanUseAwards(user.id), isAwardsLocked()]);
 
   // Show the goal-free result picker only when EVERY group the user belongs to is
   // winner-only (no group needs exact goals). Mixed membership keeps score inputs.
@@ -109,6 +112,7 @@ export default async function MatchesPage() {
         <ClockIcon className="text-sm text-accent-400" />
         {UI.timezoneNote}
       </p>
+      {canAwards && <AwardsPromo locked={awardsLocked} />}
       <InstallPrompt />
       <ReminderToggle />
       {summary.total > 0 && (
