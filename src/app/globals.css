@@ -23,9 +23,9 @@
     background-image:
       radial-gradient(120% 80% at 50% -10%, rgba(43, 123, 255, 0.16), transparent 55%),
       radial-gradient(80% 60% at 100% 0%, rgba(174, 240, 0, 0.06), transparent 50%),
-      linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+      linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 48px 48px, 48px 48px;
     background-position: 0 0, 0 0, center top, center top;
     background-attachment: fixed;
   }
@@ -49,7 +49,7 @@
   }
   .edge-accent::before {
     content: "";
-    @apply absolute inset-y-0 right-0 w-1;
+    @apply absolute inset-y-0 right-0 w-1 opacity-75;
     background: linear-gradient(180deg, var(--accent), #7c5cff 60%, var(--lime));
   }
 
@@ -139,7 +139,7 @@
   /* ---- Legacy aliases (kept so untouched pages stay themed) -------------- */
   .card-accent::before {
     content: "";
-    @apply absolute inset-x-0 top-0 h-1 rounded-t-xl;
+    @apply absolute inset-x-0 top-0 h-1 rounded-t-xl opacity-75;
     background: linear-gradient(90deg, var(--accent), #7c5cff 55%, var(--lime));
   }
   .badge {

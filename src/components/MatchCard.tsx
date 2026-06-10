@@ -178,7 +178,7 @@ export function MatchCard({
       </div>
 
       {/* meta */}
-      <div className="flex flex-wrap items-center justify-center gap-2 px-4 pb-1 text-center text-xs text-slate-400">
+      <div className="flex flex-wrap items-center justify-center gap-2 px-4 pb-1 text-center text-xs text-slate-300">
         {match.stadium && (
           <span>
             {match.stadium}
@@ -214,7 +214,7 @@ export function MatchCard({
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">
+            <p className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-300">
               <LockIcon className="text-sm" />
               {UI.closesAtKickoff}
             </p>
@@ -239,10 +239,24 @@ export function MatchCard({
               </div>
             ) : (
               <>
-                <div className="flex items-center justify-center gap-3">
-                  <ScoreInput value={home} onChange={setHome} label={match.homeTeam!.name} />
-                  <span className="font-display text-xl text-slate-600">:</span>
-                  <ScoreInput value={away} onChange={setAway} label={match.awayTeam!.name} />
+                {/* Each score input sits directly under its team (mirrors the
+                    scoreline above), so it's unambiguous which score is whose. */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-1 flex-col items-center gap-1.5">
+                    <ScoreInput value={home} onChange={setHome} label={match.homeTeam!.name} />
+                    <span className="max-w-full truncate text-[11px] font-semibold text-slate-400">
+                      {match.homeTeam!.name}
+                    </span>
+                  </div>
+                  <div className="flex min-w-[72px] items-center justify-center pt-3">
+                    <span className="font-display text-xl text-slate-600">:</span>
+                  </div>
+                  <div className="flex flex-1 flex-col items-center gap-1.5">
+                    <ScoreInput value={away} onChange={setAway} label={match.awayTeam!.name} />
+                    <span className="max-w-full truncate text-[11px] font-semibold text-slate-400">
+                      {match.awayTeam!.name}
+                    </span>
+                  </div>
                 </div>
 
                 {isKnockout && (
@@ -258,7 +272,7 @@ export function MatchCard({
               </>
             )}
 
-            {msg && (
+            {msg ? (
               <p
                 className={`flex items-center justify-center gap-1.5 text-center text-sm ${
                   msg.type === "ok" ? "text-lime-400" : "text-red-300"
@@ -267,6 +281,14 @@ export function MatchCard({
                 {msg.type === "ok" && <CheckIcon className="text-base" />}
                 {msg.text}
               </p>
+            ) : (
+              submitted && (
+                // Persistent reassurance that a prediction is on record (also on reload).
+                <p className="flex items-center justify-center gap-1.5 text-center text-xs font-semibold text-lime-400">
+                  <CheckIcon className="text-sm" />
+                  {UI.predictionSaved}
+                </p>
+              )
             )}
 
             <button

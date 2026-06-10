@@ -14,7 +14,8 @@ import { ReminderToggle } from "@/components/ReminderToggle";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { AwardsPromo } from "@/components/AwardsPromo";
 import { userCanUseAwards, isAwardsLocked } from "@/lib/awards";
-import { BallIcon, ClockIcon } from "@/components/icons";
+import { tournamentName } from "@/lib/tournament";
+import { BallIcon, ClockIcon, TrophyIcon } from "@/components/icons";
 import { AdSlot } from "@/components/AdSlot";
 import { AD_SLOTS } from "@/lib/ads";
 
@@ -85,7 +86,7 @@ export default async function MatchesPage() {
       <section className="mb-8">
         <div className="mb-3 flex items-baseline justify-between">
           <span className="eyebrow">{title}</span>
-          <span className="font-display text-xs text-slate-500">{list.length}</span>
+          <span className="font-display text-xs text-slate-400">{list.length} {UI.matchUnit}</span>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           {list.map((m) => (
@@ -107,8 +108,13 @@ export default async function MatchesPage() {
           {UI.sampleNotice}
         </div>
       )}
-      <TournamentHero title={UI.appName} subtitle={UI.matchesHeroSubtitle} icon={<BallIcon />} />
-      <p className="-mt-2 mb-5 flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">
+      <TournamentHero title={UI.appName} subtitle={UI.matchesHeroSubtitle} icon={<BallIcon />}>
+        <span className="pill pill-scheduled gap-1.5">
+          <TrophyIcon className="text-[13px]" />
+          {UI.activeTournament}: {tournamentName(locale)}
+        </span>
+      </TournamentHero>
+      <p className="-mt-2 mb-5 flex items-center justify-center gap-1.5 text-center text-xs text-slate-300">
         <ClockIcon className="text-sm text-accent-400" />
         {UI.timezoneNote}
       </p>

@@ -68,11 +68,11 @@ export default async function PublicLayout({ children }: { children: React.React
               <XIcon className="text-sm" /> X
             </a>
           </nav>
-          <p className="text-xs text-slate-500">
-            هذا الموقع لعبة توقعات للترفيه والمنافسة بين الأصدقاء، وغير مرتبط رسميًا بالاتحاد الدولي لكرة القدم
-            (FIFA). جميع العلامات التجارية تعود لأصحابها.
+          <p className="text-xs text-slate-400">
+            التطبيق مجاني وللترفيه والمنافسة الودية فقط — بدون جوائز. التطبيق مستقل وغير تابع رسميًا لـ FIFA
+            أو أي جهة رياضية رسمية. جميع العلامات التجارية تعود لأصحابها.
           </p>
-          <p className="mt-2 text-xs text-slate-600">© 2026 توقعات كأس 2026</p>
+          <p className="mt-2 text-xs text-slate-500">© 2026 GamePredict</p>
         </div>
       </footer>
     </div>

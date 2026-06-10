@@ -16,10 +16,10 @@ export function navItems(UI: Dict, isAdmin: boolean): NavItem[] {
   const items: NavItem[] = [
     { href: "/matches", label: UI.matches, Icon: BallIcon },
     { href: "/groups", label: UI.groups, Icon: UsersIcon },
-    { href: "/leaderboard", label: UI.leaderboard, Icon: TrophyIcon },
+    { href: "/leaderboard", label: UI.navLeaderboard, Icon: TrophyIcon },
     { href: "/rules", label: UI.rules, Icon: ListIcon },
     { href: "/profile", label: UI.profile, Icon: UserIcon },
   ];
-  if (isAdmin) items.push({ href: "/admin", label: UI.adminPanel, Icon: ShieldIcon });
+  if (isAdmin) items.push({ href: "/admin", label: UI.navAdmin, Icon: ShieldIcon });
   return items;
 }

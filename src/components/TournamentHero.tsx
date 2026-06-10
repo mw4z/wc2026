@@ -11,7 +11,7 @@ import { BallIcon } from "./icons";
 export function TournamentHero({
   title,
   subtitle,
-  kicker = "World Cup 26",
+  kicker = "FOOTBALL PREDICTIONS",
   icon,
   children,
 }: {
@@ -31,13 +31,13 @@ export function TournamentHero({
             "radial-gradient(130% 130% at 100% 0%, rgba(43,123,255,0.38), transparent 55%), linear-gradient(135deg, #0a1124 0%, #0e1c39 60%, #0a1430 100%)",
         }}
       />
-      {/* diagonal line texture */}
+      {/* diagonal line texture (subtle) */}
       <div
-        className="absolute inset-0 opacity-[0.10]"
-        style={{ backgroundImage: "repeating-linear-gradient(115deg, #fff 0 1px, transparent 1px 15px)" }}
+        className="absolute inset-0 opacity-[0.06]"
+        style={{ backgroundImage: "repeating-linear-gradient(115deg, #fff 0 1px, transparent 1px 16px)" }}
       />
-      {/* leading color shard */}
-      <div className="absolute -left-12 -top-6 h-[160%] w-28 -skew-x-12 bg-gradient-to-b from-accent-500/50 via-[#7c5cff]/30 to-lime-500/40 blur-[1px]" />
+      {/* leading color shard (toned down) */}
+      <div className="absolute -left-12 -top-6 h-[160%] w-24 -skew-x-12 bg-gradient-to-b from-accent-500/35 via-[#7c5cff]/20 to-lime-500/25 blur-[2px]" />
       {/* emblem watermark (vector) */}
       <LogoMark className="pointer-events-none absolute -left-6 bottom-[-1.5rem] h-40 w-40 opacity-[0.10]" />
       {/* official mascot art — appears only if /public/art/mascot.png exists */}
