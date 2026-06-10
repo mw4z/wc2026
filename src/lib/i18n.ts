@@ -392,6 +392,15 @@ const ar = {
       "لا يقدّم التطبيق أي جوائز أو مكافآت — مالية كانت أو عينية — للفائزين.",
       "إن رغبتم، يمكنكم أنتم وأعضاء مجموعتكم الاتفاق على جائزة خاصة بينكم خارج التطبيق، وهذا قراركم وحدكم ولا علاقة للتطبيق به.",
     ],
+    customTitle: "نقاط مخصّصة لكل مجموعة",
+    custom: [
+      "النقاط الموضّحة أعلاه هي النظام القياسي، ويُستخدم دائمًا في الترتيب العام.",
+      "يمكن لقائد أي مجموعة تعديل قيم النقاط الخاصة بمجموعته: النتيجة الدقيقة، توقّع الفائز/التعادل، ونقاط الفريق المتأهل.",
+      "يمكن للقائد تفعيل نمط «الفائز فقط» حيث يكفي توقّع الفائز دون النتيجة الدقيقة.",
+      "يمكن تخصيص نقاط مباريات بعينها (مثل مضاعفة نقاط النهائي).",
+      "توقّعك واحد لكل مباراة ويُحتسب في جميع مجموعاتك وفي الترتيب العام؛ التخصيص يغيّر طريقة احتساب النقاط فقط لا التوقّع نفسه.",
+      "تظهر طريقة احتساب النقاط الخاصة بكل مجموعة في صفحتها.",
+    ],
   },
   stages: {
     GROUP: "دور المجموعات",
@@ -786,6 +795,15 @@ const en: Dict = {
       "This game is purely for entertainment and friendly competition among friends.",
       "The app does not offer any prizes or rewards — cash or otherwise — to winners.",
       "If you wish, you and your group can agree on your own prize between yourselves outside the app — that's entirely your decision and has nothing to do with the app.",
+    ],
+    customTitle: "Custom scoring per group",
+    custom: [
+      "The points above are the standard system, always used for the global leaderboard.",
+      "Any group leader can change their group's point values: exact score, correct winner/draw, and qualifying-team points.",
+      "Leaders can switch on a “winner only” mode where predicting the winner is enough — the exact score doesn't matter.",
+      "Specific matches can be customized (e.g. double points for the final).",
+      "You make one prediction per match; it counts in all your groups and the global board — customization changes how points are counted, not the prediction itself.",
+      "Each group's scoring is shown on its own page.",
     ],
   },
   stages: {

@@ -51,6 +51,13 @@ export default async function PublicRulesPage() {
       </section>
       <Section title={r.tieTitle} items={r.tie} ordered />
 
+      <section className="card mb-4 border-accent-500/30 bg-accent-500/[0.06] p-5">
+        <h2 className="mb-2 font-bold text-accent-400">{r.customTitle}</h2>
+        <ul className="list-disc space-y-1.5 ps-5 text-sm text-slate-200">
+          {r.custom.map((t) => <li key={t}>{t}</li>)}
+        </ul>
+      </section>
+
       <AdSlot slotId={AD_SLOTS.rulesBottom} slotName="rules-bottom" />
     </div>
   );
