@@ -1,18 +1,18 @@
 import { prisma } from "./prisma";
 import { calculateMatchPoints } from "./matches";
-import { fetchFixturesByIds, footballApiConfigured, footballProvider, rateLimitRemaining, type RawFixture } from "./footballApi";
-import { parseFixture, deriveMatchResult } from "./resultSyncCore";
+import { fetchAllFixtures, footballApiConfigured, footballProvider, rateLimitRemaining } from "./footballApi";
+import { deriveMatchResult, orientToMatch, type ParsedFixture } from "./resultSyncCore";
 
 // Re-export the pure layer so existing import sites keep working.
 export * from "./resultSyncCore";
 
 // ---------------------------------------------------------------------------
-// ORCHESTRATION layer (DB + provider). Reuses calculateMatchPoints for scoring —
-// scoring rules, locking, predictions, leaderboard logic are untouched.
+// ORCHESTRATION (DB + provider). Reuses calculateMatchPoints for scoring — the
+// scoring rules, locking, predictions, and leaderboard logic are untouched.
 // ---------------------------------------------------------------------------
 
-const STARTING_SOON_MS = 5 * 60_000; // include matches about to start
-const MAX_PER_RUN = 60; // quota guard (3 batches of 20)
+const STARTING_SOON_MS = 5 * 60_000;
+const MAX_PER_RUN = 120;
 
 export interface SyncReport {
   provider: string;
@@ -28,9 +28,9 @@ export interface SyncReport {
 }
 
 /**
- * Fetch results for relevant matches and score the finished ones.
+ * Fetch results and score the finished ones.
  * @param opts.matchIds  restrict to these matches (admin single-match sync)
- * @param opts.force     re-sync even already-SCORED / needs-review matches (admin only)
+ * @param opts.force     re-sync even already-SCORED / needs-review matches (admin)
  */
 export async function syncResults(opts: { matchIds?: string[]; force?: boolean } = {}): Promise<SyncReport> {
   const report: SyncReport = {
@@ -45,9 +45,7 @@ export async function syncResults(opts: { matchIds?: string[]; force?: boolean }
     rateLimitRemaining: null,
   };
 
-  if (!footballApiConfigured) {
-    return { ...report, skippedReason: "provider not configured" };
-  }
+  if (!footballApiConfigured) return { ...report, skippedReason: "provider not configured" };
 
   const now = new Date();
   const candidates = await prisma.match.findMany({
@@ -60,36 +58,58 @@ export async function syncResults(opts: { matchIds?: string[]; force?: boolean }
           kickoffAt: { lte: new Date(now.getTime() + STARTING_SOON_MS) },
           ...(opts.matchIds ? { id: { in: opts.matchIds } } : {}),
         },
+    include: { homeTeam: true, awayTeam: true },
     orderBy: { kickoffAt: "asc" },
   });
-
   if (candidates.length === 0) return report;
 
   const limited = candidates.slice(0, MAX_PER_RUN);
   report.truncated = candidates.length > limited.length;
 
-  let fixtures: Map<string, RawFixture>;
+  // One provider call returns every fixture; index by provider fixture id.
+  let byId: Map<string, ParsedFixture>;
   try {
-    fixtures = await fetchFixturesByIds(limited.map((m) => m.externalFixtureId!));
+    const all = await fetchAllFixtures();
+    byId = new Map(all.map((f) => [f.fixtureId, f]));
   } catch (e) {
-    // Provider failure must never break the app — log and report, don't throw.
     console.error("[result-sync] provider fetch failed:", (e as Error).message);
     return { ...report, errors: 1, rateLimitRemaining: rateLimitRemaining() };
   }
 
   for (const match of limited) {
-    const raw = fixtures.get(match.externalFixtureId!);
     report.checked++;
+    const raw = byId.get(match.externalFixtureId!);
     if (!raw) {
       report.missingFromProvider++;
       continue;
     }
     try {
-      const parsed = parseFixture(raw);
-      const derived = deriveMatchResult(match, parsed);
+      // Not over yet → record we checked, change nothing.
+      if (!raw.isFinal) {
+        await prisma.match.update({
+          where: { id: match.id },
+          data: { lastSyncedAt: now, externalStatus: raw.statusRaw, externalProvider: footballProvider },
+        });
+        report.skipped++;
+        continue;
+      }
 
+      // Align provider home/away to OUR schedule so scores map correctly.
+      if (!match.homeTeam || !match.awayTeam) {
+        await flagReview(match.id, raw.statusRaw, now);
+        report.review++;
+        continue;
+      }
+      const { fixture, orientation } = orientToMatch(raw, match.homeTeam.nameEn, match.awayTeam.nameEn);
+      if (orientation === "unknown") {
+        // Teams don't line up (e.g. a remapped knockout slot) → never guess.
+        await flagReview(match.id, raw.statusRaw, now);
+        report.review++;
+        continue;
+      }
+
+      const derived = deriveMatchResult(match, fixture);
       if (derived.action === "skip") {
-        // Record that we checked, but change nothing else.
         await prisma.match.update({
           where: { id: match.id },
           data: { lastSyncedAt: now, externalStatus: derived.externalStatus, externalProvider: footballProvider },
@@ -117,8 +137,7 @@ export async function syncResults(opts: { matchIds?: string[]; force?: boolean }
       });
 
       if (derived.action === "score") {
-        // Reuse the EXACT existing scoring path (idempotent; recalcs leaderboard).
-        await calculateMatchPoints(match.id);
+        await calculateMatchPoints(match.id); // EXACT existing scoring path
         report.scored++;
       } else {
         report.review++;
@@ -131,4 +150,12 @@ export async function syncResults(opts: { matchIds?: string[]; force?: boolean }
 
   report.rateLimitRemaining = rateLimitRemaining();
   return report;
+}
+
+/** Mark a final match as needing admin review (store status, don't score). */
+async function flagReview(matchId: string, status: string, now: Date) {
+  await prisma.match.update({
+    where: { id: matchId },
+    data: { needsReview: true, lastSyncedAt: now, externalStatus: status, externalProvider: footballProvider },
+  });
 }

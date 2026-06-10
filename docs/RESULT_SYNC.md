@@ -1,8 +1,18 @@
 # Auto Results Sync
 
-Automatically pulls **final** match results from a trusted football provider
-(API-Football / API-Sports) and scores predictions through the **existing**
-scoring path — no manual admin entry required after every match.
+Automatically pulls **final** match results from a trusted football provider and
+scores predictions through the **existing** scoring path — no manual admin entry
+required after every match.
+
+**Two providers are supported** (set `FOOTBALL_API_PROVIDER`):
+- **`football-data`** → [football-data.org](https://www.football-data.org) — the
+  **free** tier covers the World Cup 2026 season (verified: returns all 104
+  fixtures). **This is the active/recommended provider.**
+- **`api-football`** → API-Football / API-Sports — also supported, but its **free
+  plan does NOT include season 2026** (only 2022–2024); it needs a paid plan.
+
+Each provider's response is normalized internally, so scoring, knockout-penalty
+handling, mapping, admin review, and the cron are identical regardless of provider.
 
 Manual admin result entry is **unchanged** and remains the fallback + override.
 Nothing about prediction submission, locking, scoring rules, leaderboard, groups,
@@ -10,28 +20,34 @@ auth, ads, WhatsApp links, or push opt-in is modified by this phase.
 
 ---
 
-## 1. Provider setup
+## 1. Provider setup (football-data.org — free)
 
-1. Create an account at **https://www.api-football.com/** (or API-Sports). The
-   free plan works but is rate-limited (~100 requests/day) — fine for hourly sync.
-2. Copy your API key.
-3. Confirm the **league id** and **season** for the 2026 World Cup in the
-   provider dashboard. The defaults here assume `league=1`, `season=2026` — verify
-   and adjust if the provider uses different ids.
+1. Register at **https://www.football-data.org/client/register** — you get a free
+   API token instantly.
+2. The World Cup competition code is **`WC`** and the season is **`2026`** (no need
+   to look up numeric ids).
+3. Free-tier limit is ~10 requests/minute — the sync uses **1 request per run**
+   (it fetches all 104 fixtures at once), so this is ample.
 
 ## 2. Required env vars
 
 Set these in **Vercel → Settings → Environment Variables** (Production) and in
 local `.env`. **None are `NEXT_PUBLIC`** — they stay server-only.
 
-| Variable | Example | Notes |
+**For football-data.org (active):**
+
+| Variable | Value | Notes |
 |---|---|---|
-| `FOOTBALL_API_PROVIDER` | `api-football` | label only |
-| `FOOTBALL_API_KEY` | `your-key` | **secret** |
-| `FOOTBALL_API_BASE_URL` | `https://v3.football.api-sports.io` | direct API-Sports host (uses `x-apisports-key` header) |
-| `FOOTBALL_API_WORLD_CUP_LEAGUE_ID` | `1` | verify in provider |
-| `FOOTBALL_API_WORLD_CUP_SEASON` | `2026` | verify in provider |
+| `FOOTBALL_API_PROVIDER` | `football-data` | selects the adapter |
+| `FOOTBALL_API_KEY` | your token | **secret** (sent as `X-Auth-Token`) |
+| `FOOTBALL_API_BASE_URL` | `https://api.football-data.org/v4` | |
+| `FOOTBALL_API_WORLD_CUP_LEAGUE_ID` | `WC` | competition code |
+| `FOOTBALL_API_WORLD_CUP_SEASON` | `2026` | |
 | `RESULT_SYNC_SECRET` | `K31sGVdK1caGOLeFkpOXOFiBDeWwVG2x` | protects the sync endpoint |
+
+**If you ever switch to API-Football (paid):** set `FOOTBALL_API_PROVIDER=api-football`,
+`FOOTBALL_API_BASE_URL=https://v3.football.api-sports.io`,
+`FOOTBALL_API_WORLD_CUP_LEAGUE_ID=1`, and use your API-Sports key. No code change needed.
 
 > If `FOOTBALL_API_KEY` is empty, the sync is a safe no-op (`skipped: provider not configured`).
 

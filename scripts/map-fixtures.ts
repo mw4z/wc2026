@@ -8,7 +8,7 @@
 export {};
 
 import { prisma } from "../src/lib/prisma";
-import { fetchLeagueFixtures, footballApiConfigured, footballProvider } from "../src/lib/footballApi";
+import { fetchAllFixtures, footballApiConfigured, footballProvider } from "../src/lib/footballApi";
 import { evaluateMapping, type FixtureCandidate } from "../src/lib/fixtureMapping";
 
 const APPLY = process.argv.includes("--apply");
@@ -22,13 +22,13 @@ async function main() {
 
   console.log(`Provider: ${footballProvider}  |  mode: ${APPLY ? "APPLY" : "dry-run"}\n`);
 
-  const raw = await fetchLeagueFixtures();
-  const fixtures: FixtureCandidate[] = raw.map((f) => ({
-    fixtureId: String(f.fixture.id),
-    dateISO: f.fixture.date,
-    homeName: f.teams.home.name,
-    awayName: f.teams.away.name,
-    venue: f.fixture.venue?.name ?? null,
+  const parsed = await fetchAllFixtures();
+  const fixtures: FixtureCandidate[] = parsed.map((f) => ({
+    fixtureId: f.fixtureId,
+    dateISO: f.dateISO,
+    homeName: f.homeName,
+    awayName: f.awayName,
+    venue: f.venue,
   }));
   console.log(`Fetched ${fixtures.length} provider fixtures.\n`);
 

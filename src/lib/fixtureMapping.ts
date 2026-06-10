@@ -30,6 +30,7 @@ const TEAM_ALIASES: Record<string, string> = {
   cotedivoire: "ivorycoast",
   czechrepublic: "czechia",
   bosniaandherzegovina: "bosnia",
+  bosniaherzegovina: "bosnia",
   trinidadandtobago: "trinidad",
   capeverde: "caboverde",
   northmacedonia: "macedonia",
@@ -68,6 +69,10 @@ export interface MappingDecision {
 
 /**
  * Decide a mapping for one of our matches against provider fixtures. PURE.
+ * Matches by the unordered team pair near kickoff. Home/away ORIENTATION is
+ * resolved later at sync time (scores are swapped to our schedule if needed), so
+ * a reversed-orientation fixture is still a valid 1:1 mapping here — only true
+ * ambiguity (2+ candidate fixtures) is withheld.
  * @param toleranceMin allowed kickoff difference in minutes (schedules drift).
  */
 export function evaluateMapping(
@@ -81,29 +86,19 @@ export function evaluateMapping(
     return Number.isFinite(ft) && Math.abs(ft - kt) <= toleranceMin * 60_000;
   });
 
-  const direct = near.filter(
-    (f) => teamsEqual(f.homeName, match.homeName) && teamsEqual(f.awayName, match.awayName),
-  );
-  const reversed = near.filter(
+  // Same team pair, either orientation.
+  const pair = near.filter(
     (f) =>
-      !direct.includes(f) &&
-      teamsEqual(f.homeName, match.awayName) &&
-      teamsEqual(f.awayName, match.homeName),
+      (teamsEqual(f.homeName, match.homeName) && teamsEqual(f.awayName, match.awayName)) ||
+      (teamsEqual(f.homeName, match.awayName) && teamsEqual(f.awayName, match.homeName)),
   );
 
-  if (direct.length === 1) {
-    const only = direct[0]!;
-    return { status: "mapped", fixtureId: only.fixtureId, note: "exact teams + time", candidateIds: [only.fixtureId] };
+  if (pair.length === 1) {
+    const only = pair[0]!;
+    return { status: "mapped", fixtureId: only.fixtureId, note: "team pair + time", candidateIds: [only.fixtureId] };
   }
-  if (direct.length > 1) {
-    return { status: "ambiguous", note: `${direct.length} same-orientation candidates`, candidateIds: direct.map((f) => f.fixtureId) };
-  }
-  if (reversed.length >= 1) {
-    return {
-      status: "ambiguous",
-      note: "only reversed home/away orientation found — not auto-applied",
-      candidateIds: reversed.map((f) => f.fixtureId),
-    };
+  if (pair.length > 1) {
+    return { status: "ambiguous", note: `${pair.length} candidate fixtures for the same pair`, candidateIds: pair.map((f) => f.fixtureId) };
   }
   return { status: "unmapped", note: near.length ? "no team match within time window" : "no fixture near kickoff", candidateIds: [] };
 }
