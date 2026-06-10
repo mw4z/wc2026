@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { lockDueMatches } from "@/lib/matches";
+import { getPredictionLead } from "@/lib/settings";
+import { effectiveMatchStatus } from "@/lib/matchStatus";
 import { getUI, getLocale } from "@/lib/locale";
 import { formatDateTimeAr } from "@/lib/time";
 
@@ -12,6 +14,8 @@ export default async function AdminPredictionsPage() {
   const locale = await getLocale();
   await requireAdmin();
   await lockDueMatches(); // keep the per-match status badge accurate (mirror the public matches page)
+  const lead = await getPredictionLead();
+  const now = new Date();
   const matches = await prisma.match.findMany({
     orderBy: { matchNumber: "asc" },
     include: {
@@ -41,6 +45,8 @@ export default async function AdminPredictionsPage() {
           </thead>
           <tbody>
             {matches.map((m) => {
+              const eff = effectiveMatchStatus(m, lead, now);
+              const statusText = eff === "NOT_OPEN_YET" ? UI.notOpenYet : UI.statuses[eff];
               return (
                 <tr key={m.id} className="border-b border-white/5">
                   <td className="p-3 text-slate-400">{m.matchNumber}</td>
@@ -52,7 +58,7 @@ export default async function AdminPredictionsPage() {
                     {formatDateTimeAr(m.kickoffAt)}
                   </td>
                   <td className="p-3">
-                    <span className="badge bg-navy-700 text-slate-300">{UI.statuses[m.status]}</span>
+                    <span className="badge bg-navy-700 text-slate-300">{statusText}</span>
                   </td>
                   <td className="p-3 font-bold text-gold-400">{m._count.predictions}</td>
                   <td className="p-3">

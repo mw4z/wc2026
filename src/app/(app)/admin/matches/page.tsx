@@ -2,6 +2,8 @@ import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isKnockoutStage } from "@/lib/constants";
 import { lockDueMatches } from "@/lib/matches";
+import { getPredictionLead } from "@/lib/settings";
+import { effectiveMatchStatus } from "@/lib/matchStatus";
 import { getUI, getLocale } from "@/lib/locale";
 import { formatDateTimeAr } from "@/lib/time";
 import { ResultForm } from "@/components/admin/ResultForm";
@@ -15,6 +17,8 @@ export default async function AdminMatchesPage() {
   const locale = await getLocale();
   await requireAdmin();
   await lockDueMatches(); // flip SCHEDULED→LOCKED for kicked-off matches so the status is accurate
+  const lead = await getPredictionLead();
+  const now = new Date();
   const matches = await prisma.match.findMany({
     include: { homeTeam: true, awayTeam: true },
     orderBy: { matchNumber: "asc" },
@@ -32,7 +36,14 @@ export default async function AdminMatchesPage() {
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
               <span>#{m.matchNumber} · {UI.stages[m.stage]}</span>
               <span>{formatDateTimeAr(m.kickoffAt)}</span>
-              <span className="badge bg-navy-700 text-slate-300">{UI.statuses[m.status]}</span>
+              {(() => {
+                const eff = effectiveMatchStatus(m, lead, now);
+                return (
+                  <span className="badge bg-navy-700 text-slate-300">
+                    {eff === "NOT_OPEN_YET" ? UI.notOpenYet : UI.statuses[eff]}
+                  </span>
+                );
+              })()}
             </div>
             <div className="mb-3 text-center font-bold">
               {tn(m.homeTeam)} × {tn(m.awayTeam)}
