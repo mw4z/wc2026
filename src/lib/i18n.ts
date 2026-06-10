@@ -12,8 +12,8 @@ export function dirFor(locale: Locale): "rtl" | "ltr" {
 }
 
 const ar = {
-  appName: "توقعات كأس العالم 2026",
-  worldCup26: "World Cup 26",
+  appName: "GamePredict — توقّعات الكرة",
+  worldCup26: "FOOTBALL PREDICTIONS",
   sampleNotice:
     "⚠️ بيانات تجريبية: المباريات المعروضة حالياً للاختبار فقط وليست الجدول الرسمي لكأس العالم.",
   // nav
@@ -516,8 +516,8 @@ const ar = {
 type Dict = typeof ar;
 
 const en: Dict = {
-  appName: "FIFA World Cup 2026 Predictions",
-  worldCup26: "World Cup 26",
+  appName: "GamePredict — Football Predictions",
+  worldCup26: "FOOTBALL PREDICTIONS",
   sampleNotice:
     "⚠️ Sample data: the matches shown are for testing only and are not the official World Cup schedule.",
   matches: "Matches",

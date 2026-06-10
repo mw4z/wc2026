@@ -31,10 +31,6 @@
     <line x1="1380" y1="60" x2="1380" y2="440"/>
   </g>
 
-  <!-- Huge faint "26" watermark on the right for depth -->
-  <text x="1440" y="430" text-anchor="end" font-family="Arial Black, Arial, sans-serif"
-        font-size="420" font-weight="900" fill="#ffffff" fill-opacity="0.03">26</text>
-
   <!-- Glow behind the emblem -->
   <ellipse cx="360" cy="250" rx="330" ry="280" fill="url(#glow)"/>
   <rect width="1500" height="500" fill="url(#vignette)"/>
@@ -62,7 +58,7 @@
     <text x="945" y="138" font-size="30" font-weight="700" letter-spacing="8" fill="#aef000">GAMEPREDICT</text>
 
     <!-- Arabic title (centered → robust against RTL anchor quirks) -->
-    <text x="945" y="232" font-size="72" font-weight="800" fill="#ffffff" direction="rtl">توقّعات كأس العالم 2026</text>
+    <text x="945" y="236" font-size="84" font-weight="800" fill="#ffffff" direction="rtl">توقّعات الكرة</text>
 
     <!-- score-prediction chip -->
     <g transform="translate(945 270)">
@@ -76,7 +72,7 @@
     <text x="945" y="372" font-size="34" font-weight="600" fill="#cdd7ee" direction="rtl">توقّع النتائج · نافس أصدقاءك · تصدّر الترتيب</text>
 
     <!-- English subline -->
-    <text x="945" y="418" font-size="24" font-weight="600" letter-spacing="3" fill="#7f8da8">FIFA WORLD CUP 2026 · PREDICTIONS GAME</text>
+    <text x="945" y="418" font-size="24" font-weight="600" letter-spacing="3" fill="#7f8da8">FOOTBALL PREDICTIONS · PREDICT · COMPETE · WIN</text>
   </g>
 
   <!-- Brand accent bar -->
