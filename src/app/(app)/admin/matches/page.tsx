@@ -4,6 +4,7 @@ import { isKnockoutStage } from "@/lib/constants";
 import { getUI, getLocale } from "@/lib/locale";
 import { formatDateTimeAr } from "@/lib/time";
 import { ResultForm } from "@/components/admin/ResultForm";
+import { SyncMatchButton } from "@/components/admin/SyncMatchButton";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,34 @@ export default async function AdminMatchesPage() {
             <div className="mb-3 text-center font-bold">
               {tn(m.homeTeam)} × {tn(m.awayTeam)}
             </div>
+
+            {/* Result-sync metadata (read-only). Manual entry below still overrides. */}
+            <div className="mb-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-slate-400">
+              <span>
+                {UI.admin.resultSource}:{" "}
+                <span className="font-semibold text-slate-300">
+                  {m.resultSource === "manual"
+                    ? UI.admin.sourceManual
+                    : m.resultSource
+                      ? UI.admin.sourceApi
+                      : "—"}
+                </span>
+              </span>
+              {m.externalFixtureId ? (
+                <>
+                  <span>{UI.admin.fixtureId}: <span className="font-mono text-slate-300">{m.externalFixtureId}</span></span>
+                  {m.externalStatus && <span>{UI.admin.providerStatus}: <span className="font-mono text-slate-300">{m.externalStatus}</span></span>}
+                  {m.lastSyncedAt && <span>{UI.admin.lastSynced}: {formatDateTimeAr(m.lastSyncedAt)}</span>}
+                  <SyncMatchButton matchId={m.id} />
+                </>
+              ) : (
+                <span className="text-amber-300/80">{UI.admin.notMapped}</span>
+              )}
+              {m.needsReview && (
+                <span className="badge bg-warn/20 text-amber-300">{UI.admin.needsReview}</span>
+              )}
+            </div>
+
             {m.homeTeam && m.awayTeam ? (
               <ResultForm
                 matchId={m.id}

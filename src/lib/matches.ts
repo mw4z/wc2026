@@ -69,7 +69,9 @@ export async function updateMatchResult(
   await prisma.$transaction([
     prisma.match.update({
       where: { id: matchId },
-      data: { ...newValue, resultConfirmedAt: new Date() },
+      // Manual entry is the override path: stamp the source and clear any
+      // provider "needs review" flag. (Scoring itself is unchanged.)
+      data: { ...newValue, resultConfirmedAt: new Date(), resultSource: "manual", needsReview: false },
     }),
     prisma.matchResultAuditLog.create({
       data: {

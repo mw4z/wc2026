@@ -130,6 +130,16 @@ model Match {
   winnerTeamId     String?
   resultConfirmedAt DateTime?
 
+  // ---- Auto result sync (Phase: result-sync) ----
+  // Mapping to a trusted provider fixture (e.g. API-Football). Manual admin entry
+  // remains the fallback/override; these are metadata only and never change scoring.
+  externalProvider  String? // e.g. "api-football"
+  externalFixtureId String? // provider fixture id (string)
+  resultSource      String? // "manual" | "api-football" — who wrote the current result
+  lastSyncedAt      DateTime? // last time the sync checked this match
+  externalStatus    String? // raw provider status short, e.g. "FT" | "AET" | "PEN"
+  needsReview       Boolean  @default(false) // provider final but qualifier unclear → admin must confirm
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -144,6 +154,7 @@ model Match {
   @@index([status])
   @@index([kickoffAt])
   @@index([stage])
+  @@index([externalFixtureId])
 }
 
 model Prediction {
