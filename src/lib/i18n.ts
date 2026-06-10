@@ -478,6 +478,15 @@ const ar = {
       "توقّعك واحد لكل مباراة ويُحتسب في جميع مجموعاتك وفي الترتيب العام؛ التخصيص يغيّر طريقة احتساب النقاط فقط لا التوقّع نفسه.",
       "تظهر طريقة احتساب النقاط الخاصة بكل مجموعة في صفحتها.",
     ],
+    awardsTitle: "توقعات جوائز البطولة (اختياري)",
+    awards: [
+      "ميزة اختيارية يفعّلها قائد المجموعة: توقّع الفائزين بجوائز كأس العالم الفردية.",
+      "الجوائز: الكرة الذهبية (أفضل لاعب)، الحذاء الذهبي (الهداف)، القفاز الذهبي (أفضل حارس)، وأفضل لاعب شاب.",
+      "تختار لاعبًا واحدًا لكل جائزة من قائمة جاهزة، ويمكنك تعديل اختيارك حتى انطلاق البطولة.",
+      "تُغلق توقعات الجوائز مع بداية أول مباراة في البطولة.",
+      "كل توقّع صحيح = 3 نقاط، وتُعلَن النتائج بعد المباراة النهائية.",
+      "نقاط الجوائز تُحتسب في «ترتيب جوائز البطولة» المنفصل، ولا تؤثّر إطلاقًا على ترتيب المباريات.",
+    ],
   },
   stages: {
     GROUP: "دور المجموعات",
@@ -958,6 +967,15 @@ const en: Dict = {
       "Specific matches can be customized (e.g. double points for the final).",
       "You make one prediction per match; it counts in all your groups and the global board — customization changes how points are counted, not the prediction itself.",
       "Each group's scoring is shown on its own page.",
+    ],
+    awardsTitle: "Tournament award predictions (optional)",
+    awards: [
+      "An optional feature the group leader enables: predict the winners of the individual World Cup awards.",
+      "Awards: Golden Ball (best player), Golden Boot (top scorer), Golden Glove (best goalkeeper), and Best Young Player.",
+      "You pick one player per award from a ready-made list, and can edit your picks until the tournament starts.",
+      "Award predictions lock at the first match's kickoff.",
+      "Each correct pick = 3 points, announced after the final match.",
+      "Award points count on a separate “Tournament awards” board and never affect the match standings.",
     ],
   },
   stages: {

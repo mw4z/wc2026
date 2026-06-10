@@ -58,6 +58,13 @@ export default async function PublicRulesPage() {
         </ul>
       </section>
 
+      <section className="card mb-4 border-gold-500/30 bg-gold-500/[0.06] p-5">
+        <h2 className="mb-2 font-bold text-gold-400">{r.awardsTitle}</h2>
+        <ul className="list-disc space-y-1.5 ps-5 text-sm text-slate-200">
+          {r.awards.map((t) => <li key={t}>{t}</li>)}
+        </ul>
+      </section>
+
       <AdSlot slotId={AD_SLOTS.rulesBottom} slotName="rules-bottom" />
     </div>
   );
