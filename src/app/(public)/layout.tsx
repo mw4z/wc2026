@@ -32,7 +32,7 @@ export default async function PublicLayout({ children }: { children: React.React
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
           <Link href="/" className="flex items-center gap-2">
             <BrandMark className="h-8 w-8" />
-            <span className="font-extrabold text-white">توقعات كأس 2026</span>
+            <span className="font-extrabold text-white">GamePredict</span>
           </Link>
           <nav className="ms-auto hidden items-center gap-1 text-sm font-semibold md:flex">
             {NAV.map((l) => (

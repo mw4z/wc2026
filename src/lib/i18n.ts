@@ -13,6 +13,7 @@ export function dirFor(locale: Locale): "rtl" | "ltr" {
 
 const ar = {
   appName: "GamePredict — توقعات المباريات",
+  appTagline: "توقعات المباريات",
   worldCup26: "FOOTBALL PREDICTIONS",
   activeTournament: "البطولة الحالية",
   matchUnit: "مباراة",
@@ -33,6 +34,7 @@ const ar = {
   todayMatches: "مباريات اليوم",
   upcomingMatches: "المباريات القادمة",
   finishedMatches: "المباريات المنتهية",
+  matchesHeroTitle: "توقّع، نافس، واصعد في الترتيب",
   matchesHeroSubtitle: "توقّع النتائج قبل بداية المباريات، واجمع النقاط حسب دقّة توقعاتك.",
   timezoneNote: "جميع الأوقات بتوقيت السعودية (UTC+3).",
   noMatchesTitle: "لا توجد مباريات بعد",
@@ -310,7 +312,7 @@ const ar = {
   // group nudge
   nudgeTitle: "نافِس أصدقاءك في مجموعة",
   nudgeBody:
-    "أنشئ مجموعة خاصة أو انضم بكود لمتابعة ترتيبك بين زملائك على لوحة خاصة بكم. توقعاتك ونقاطك تبقى كما هي — المجموعة مجرد لوحة تنافس إضافية.",
+    "أنشئ مجموعة خاصة أو انضم بكود لمتابعة ترتيبك بين أصدقائك على لوحة خاصة بكم. توقعاتك ونقاطك تبقى كما هي — المجموعة مجرد لوحة تنافس إضافية.",
   later: "لاحقًا",
   // generic
   save: "حفظ",
@@ -522,6 +524,7 @@ type Dict = typeof ar;
 
 const en: Dict = {
   appName: "GamePredict — Football Predictions",
+  appTagline: "Match Predictions",
   worldCup26: "FOOTBALL PREDICTIONS",
   activeTournament: "Current tournament",
   matchUnit: "matches",
@@ -540,6 +543,7 @@ const en: Dict = {
   todayMatches: "Today's matches",
   upcomingMatches: "Upcoming matches",
   finishedMatches: "Finished matches",
+  matchesHeroTitle: "Predict, compete, climb the table",
   matchesHeroSubtitle: "Predict results before kickoff and earn points for how accurate you are.",
   timezoneNote: "All times in Saudi time (UTC+3).",
   noMatchesTitle: "No matches yet",

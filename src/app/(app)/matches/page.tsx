@@ -84,9 +84,11 @@ export default async function MatchesPage() {
   const section = (title: string, list: typeof matches) =>
     list.length > 0 && (
       <section className="mb-8">
-        <div className="mb-3 flex items-baseline justify-between">
+        <div className="mb-3 flex items-center justify-between">
           <span className="eyebrow">{title}</span>
-          <span className="font-display text-xs text-slate-400">{list.length} {UI.matchUnit}</span>
+          <span className="rounded-full bg-white/[0.06] px-2.5 py-0.5 font-display text-[11px] font-bold text-slate-300">
+            {list.length} {UI.matchUnit}
+          </span>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           {list.map((m) => (
@@ -108,10 +110,11 @@ export default async function MatchesPage() {
           {UI.sampleNotice}
         </div>
       )}
-      <TournamentHero title={UI.appName} subtitle={UI.matchesHeroSubtitle} icon={<BallIcon />}>
-        <span className="pill pill-scheduled gap-1.5">
-          <TrophyIcon className="text-[13px]" />
-          {UI.activeTournament}: {tournamentName(locale)}
+      <TournamentHero title={UI.matchesHeroTitle} subtitle={UI.matchesHeroSubtitle} icon={<BallIcon />}>
+        <span className="inline-flex items-center gap-2 rounded-full border border-accent-500/30 bg-accent-500/10 px-3.5 py-1.5 text-sm font-semibold text-accent-200">
+          <TrophyIcon className="text-[15px]" />
+          <span className="text-accent-200/70">{UI.activeTournament}:</span>
+          <span className="font-bold text-white">{tournamentName(locale)}</span>
         </span>
       </TournamentHero>
       <p className="-mt-2 mb-5 flex items-center justify-center gap-1.5 text-center text-xs text-slate-300">

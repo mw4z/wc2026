@@ -283,9 +283,9 @@ export function MatchCard({
               </p>
             ) : (
               submitted && (
-                // Persistent reassurance that a prediction is on record (also on reload).
-                <p className="flex items-center justify-center gap-1.5 text-center text-xs font-semibold text-lime-400">
-                  <CheckIcon className="text-sm" />
+                // Persistent, quiet reassurance — clear but doesn't compete with the CTA.
+                <p className="flex items-center justify-center gap-1 text-center text-[11px] font-medium text-lime-300/75">
+                  <CheckIcon className="text-xs" />
                   {UI.predictionSaved}
                 </p>
               )

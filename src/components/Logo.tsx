@@ -76,11 +76,9 @@ export function Logo({ className = "" }: { className?: string }) {
   return (
     <span className={`flex min-w-0 items-center gap-2.5 ${className}`}>
       <BrandMark className="h-9 w-9 shrink-0" />
-      <span className="flex min-w-0 flex-col leading-none">
-        <span className="truncate text-sm font-extrabold text-white">{UI.appName}</span>
-        <span className="font-display text-[11px] font-bold uppercase tracking-widest2 text-accent-400">
-          {UI.worldCup26}
-        </span>
+      <span className="flex min-w-0 flex-col leading-tight">
+        <span className="truncate font-display text-base font-extrabold text-white">GamePredict</span>
+        <span className="truncate text-[11px] font-semibold text-accent-400">{UI.appTagline}</span>
       </span>
     </span>
   );

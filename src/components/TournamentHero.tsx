@@ -52,7 +52,7 @@ export function TournamentHero({
             </span>
           )}
           <div className="min-w-0">
-            <h1 className="text-2xl font-extrabold leading-tight text-white sm:text-3xl">{title}</h1>
+            <h1 className="text-xl font-extrabold leading-tight text-white sm:text-2xl">{title}</h1>
             {subtitle && <p className="mt-1 max-w-xl text-sm text-slate-300">{subtitle}</p>}
           </div>
         </div>
