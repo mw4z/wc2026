@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isKnockoutStage } from "@/lib/constants";
+import { lockDueMatches } from "@/lib/matches";
 import { getUI, getLocale } from "@/lib/locale";
 import { formatDateTimeAr } from "@/lib/time";
 import { ResultForm } from "@/components/admin/ResultForm";
@@ -13,6 +14,7 @@ export default async function AdminMatchesPage() {
   const UI = await getUI();
   const locale = await getLocale();
   await requireAdmin();
+  await lockDueMatches(); // flip SCHEDULED→LOCKED for kicked-off matches so the status is accurate
   const matches = await prisma.match.findMany({
     include: { homeTeam: true, awayTeam: true },
     orderBy: { matchNumber: "asc" },

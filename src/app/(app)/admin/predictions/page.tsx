@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { lockDueMatches } from "@/lib/matches";
 import { getUI, getLocale } from "@/lib/locale";
 import { formatDateTimeAr } from "@/lib/time";
 
@@ -10,6 +11,7 @@ export default async function AdminPredictionsPage() {
   const UI = await getUI();
   const locale = await getLocale();
   await requireAdmin();
+  await lockDueMatches(); // keep the per-match status badge accurate (mirror the public matches page)
   const matches = await prisma.match.findMany({
     orderBy: { matchNumber: "asc" },
     include: {
