@@ -26,9 +26,28 @@ export function AwardsToggle({ groupId, enabled }: { groupId: string; enabled: b
   }
 
   return (
-    <button onClick={toggle} disabled={busy} className="action-btn w-auto">
-      <TrophyIcon className="ab-ic" />
-      {enabled ? UI.awardsDisableLeader : UI.awardsEnableLeader}
+    <button
+      onClick={toggle}
+      disabled={busy}
+      role="switch"
+      aria-checked={enabled}
+      className="action-btn w-auto justify-between gap-3"
+    >
+      <span className="flex items-center gap-2">
+        <TrophyIcon className="ab-ic" />
+        {UI.awardsToggleLabel}
+      </span>
+      <span
+        className={`relative inline-block h-5 w-9 shrink-0 rounded-full transition-colors ${
+          enabled ? "bg-lime-500" : "bg-white/20"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${
+            enabled ? "end-0.5" : "start-0.5"
+          }`}
+        />
+      </span>
     </button>
   );
 }
