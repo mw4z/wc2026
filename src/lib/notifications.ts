@@ -27,6 +27,15 @@ export function closingPayload(n: number): PushPayload {
   };
 }
 
+export function memberJoinedPayload(name: string, groupName: string, groupId: string): PushPayload {
+  return {
+    title: "🎉 عضو جديد في مجموعتك!",
+    body: `${name} انضم إلى «${groupName}» — رحّب به!`,
+    url: `/groups/${groupId}/members`,
+    tag: `wc26-join-${groupId}`,
+  };
+}
+
 export function revealedPayload(n: number, groupId: string): PushPayload {
   return {
     title: "👀 ظهرت توقعات مجموعتك!",

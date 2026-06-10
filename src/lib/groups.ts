@@ -4,6 +4,27 @@ import {
   effectiveConfig,
   pointsForFlags,
 } from "./groupScoring";
+import { pushConfigured, sendPush } from "./push";
+import { memberJoinedPayload } from "./notifications";
+
+/**
+ * Notify a group's leader (via Web Push) that a new member joined. Best-effort:
+ * never throws, never blocks the join from succeeding.
+ */
+async function notifyLeaderOfJoin(group: { id: string; name: string; leaderId: string }, joinerId: string) {
+  if (!pushConfigured || group.leaderId === joinerId) return;
+  try {
+    const [subs, joiner] = await Promise.all([
+      prisma.pushSubscription.findMany({ where: { userId: group.leaderId } }),
+      prisma.user.findUnique({ where: { id: joinerId }, select: { name: true } }),
+    ]);
+    if (subs.length === 0) return;
+    const payload = memberJoinedPayload(joiner?.name ?? "عضو جديد", group.name, group.id);
+    for (const s of subs) await sendPush({ endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth }, payload);
+  } catch (e) {
+    console.error("notifyLeaderOfJoin failed:", (e as Error).message);
+  }
+}
 
 export class GroupError extends Error {
   constructor(message: string, public code: string, public status = 400) {
@@ -63,6 +84,7 @@ export async function joinGroupByCode(userId: string, codeInput: string) {
     return { group, alreadyMember: true };
   }
   await prisma.groupMember.create({ data: { groupId: group.id, userId, role: "MEMBER" } });
+  await notifyLeaderOfJoin(group, userId);
   return { group, alreadyMember: false };
 }
 
