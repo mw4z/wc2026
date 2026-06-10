@@ -5,6 +5,7 @@ import { getUI, getLocale } from "@/lib/locale";
 import { formatDateTimeAr } from "@/lib/time";
 import { ResultForm } from "@/components/admin/ResultForm";
 import { SyncMatchButton } from "@/components/admin/SyncMatchButton";
+import { MapFixturesButton } from "@/components/admin/MapFixturesButton";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ export default async function AdminMatchesPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-extrabold">{UI.admin.manageMatches}</h1>
+      <MapFixturesButton />
       <div className="space-y-3">
         {matches.map((m) => (
           <div key={m.id} className="card p-4">

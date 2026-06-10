@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 import { calculateMatchPoints } from "./matches";
 import { fetchAllFixtures, footballApiConfigured, footballProvider, rateLimitRemaining } from "./footballApi";
 import { deriveMatchResult, orientToMatch, type ParsedFixture } from "./resultSyncCore";
+import { evaluateMapping } from "./fixtureMapping";
 
 // Re-export the pure layer so existing import sites keep working.
 export * from "./resultSyncCore";
@@ -149,6 +150,51 @@ export async function syncResults(opts: { matchIds?: string[]; force?: boolean }
   }
 
   report.rateLimitRemaining = rateLimitRemaining();
+  return report;
+}
+
+// ---------------------------------------------------------------------------
+// Fixture mapping (server-side). Same logic as scripts/map-fixtures.ts but runs
+// from the deployed app (which can reach the DB) — exposed to admins via a button.
+// ---------------------------------------------------------------------------
+
+export interface MapReport {
+  applied: boolean;
+  provider: string;
+  mapped: { label: string; fixtureId: string }[];
+  ambiguous: { label: string; note: string }[];
+  unmapped: { label: string; note: string }[];
+}
+
+export async function runFixtureMapping(opts: { apply?: boolean } = {}): Promise<MapReport> {
+  const report: MapReport = { applied: !!opts.apply, provider: footballProvider, mapped: [], ambiguous: [], unmapped: [] };
+  if (!footballApiConfigured) throw new Error("provider not configured");
+
+  const all = await fetchAllFixtures();
+  const fixtures = all.map((f) => ({ fixtureId: f.fixtureId, dateISO: f.dateISO, homeName: f.homeName, awayName: f.awayName, venue: f.venue }));
+
+  const matches = await prisma.match.findMany({ include: { homeTeam: true, awayTeam: true }, orderBy: { matchNumber: "asc" } });
+  for (const m of matches) {
+    const label = `#${m.matchNumber} ${m.homeTeam?.nameEn ?? "TBD"} vs ${m.awayTeam?.nameEn ?? "TBD"}`;
+    if (!m.homeTeam || !m.awayTeam) {
+      report.unmapped.push({ label, note: "teams not decided" });
+      continue;
+    }
+    const d = evaluateMapping(
+      { kickoffAt: m.kickoffAt, homeName: m.homeTeam.nameEn, awayName: m.awayTeam.nameEn, venue: m.stadium },
+      fixtures,
+    );
+    if (d.status === "mapped") {
+      report.mapped.push({ label, fixtureId: d.fixtureId! });
+      if (opts.apply && m.externalFixtureId !== d.fixtureId) {
+        await prisma.match.update({ where: { id: m.id }, data: { externalProvider: footballProvider, externalFixtureId: d.fixtureId } });
+      }
+    } else if (d.status === "ambiguous") {
+      report.ambiguous.push({ label, note: d.note });
+    } else {
+      report.unmapped.push({ label, note: d.note });
+    }
+  }
   return report;
 }
 
