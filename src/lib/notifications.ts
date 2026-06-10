@@ -27,6 +27,18 @@ export function closingPayload(n: number): PushPayload {
   };
 }
 
+export function revealedPayload(n: number, groupId: string): PushPayload {
+  return {
+    title: "👀 ظهرت توقعات مجموعتك!",
+    body:
+      n === 1
+        ? "بدأت مباراة — شاهد ماذا توقّع بقية أعضاء مجموعتك! 🔮"
+        : `بدأت ${n} مباريات — شاهد توقعات أعضاء مجموعتك الآن! 🔮`,
+    url: `/groups/${groupId}/predictions`,
+    tag: "wc26-revealed",
+  };
+}
+
 export function scoredPayload(opts: { line: string; points: number; matchId: string }): PushPayload {
   return {
     title: "🏁 صافرة النهاية!",

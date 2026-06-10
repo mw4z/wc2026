@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getPredictionLead, predictionOpensAt } from "@/lib/settings";
 import { pushConfigured, sendPush, type StoredSubscription, type PushPayload } from "@/lib/push";
-import { openedPayload, closingPayload, scoredPayload } from "@/lib/notifications";
+import { openedPayload, closingPayload, scoredPayload, revealedPayload } from "@/lib/notifications";
 
 // Hourly reminder cron. Fires THREE kinds of push, each deduped per (user,
 // match, kind) via PushReminder so nothing repeats:
@@ -18,6 +18,7 @@ export const runtime = "nodejs"; // web-push needs Node crypto, not the edge run
 const WINDOW_H = Number(process.env.REMINDER_WINDOW_HOURS || 6); // "closing soon" window
 const OPEN_LOOKBACK_H = Number(process.env.REMINDER_OPEN_LOOKBACK_HOURS || 24);
 const SCORED_LOOKBACK_H = Number(process.env.REMINDER_SCORED_LOOKBACK_HOURS || 24);
+const REVEAL_LOOKBACK_H = Number(process.env.REMINDER_REVEAL_LOOKBACK_HOURS || 3); // just-kicked-off window
 
 function authorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
@@ -73,12 +74,35 @@ export async function GET(req: NextRequest) {
     select: { id: true, homeScore: true, awayScore: true, homeTeam: true, awayTeam: true },
   });
 
+  // Matches that just kicked off → group picks are now revealed for members.
+  const revealedMatches = await prisma.match.findMany({
+    where: {
+      homeTeamId: { not: null },
+      awayTeamId: { not: null },
+      kickoffAt: { lte: now, gte: new Date(nowMs - REVEAL_LOOKBACK_H * 3600_000) },
+    },
+    select: { id: true },
+  });
+
+  // Map each push-user to one of their active groups (with ≥2 members) for the link.
+  const memberships = await prisma.groupMember.findMany({
+    where: { userId: { in: userIds }, group: { isActive: true } },
+    select: { userId: true, groupId: true },
+  });
+  const groupSize = new Map<string, number>();
+  for (const m of memberships) groupSize.set(m.groupId, (groupSize.get(m.groupId) ?? 0) + 1);
+  const userGroup = new Map<string, string>(); // userId → groupId (first group with ≥2 members)
+  for (const m of memberships) {
+    if (!userGroup.has(m.userId) && (groupSize.get(m.groupId) ?? 0) >= 2) userGroup.set(m.userId, m.groupId);
+  }
+
   const allMatchIds = [
     ...openMatches.map((m) => m.id),
     ...closingMatches.map((m) => m.id),
     ...scoredMatches.map((m) => m.id),
+    ...revealedMatches.map((m) => m.id),
   ];
-  if (allMatchIds.length === 0) return NextResponse.json({ reason: "nothing to notify", open: 0, closing: 0, scored: 0 });
+  if (allMatchIds.length === 0) return NextResponse.json({ reason: "nothing to notify", open: 0, closing: 0, scored: 0, revealed: 0 });
 
   // Predictions (for "already predicted" checks + scored points) and prior reminders.
   const [preds, reminders] = await Promise.all([
@@ -95,7 +119,7 @@ export async function GET(req: NextRequest) {
   const remSet = new Set(reminders.map((r) => `${r.userId}:${r.matchId}:${r.kind}`));
 
   let pushed = 0;
-  const counts = { open: 0, closing: 0, scored: 0 };
+  const counts = { open: 0, closing: 0, scored: 0, revealed: 0 };
   const reminderRows: { userId: string; matchId: string; kind: string }[] = [];
 
   async function deliver(userId: string, payload: PushPayload): Promise<boolean> {
@@ -141,6 +165,19 @@ export async function GET(req: NextRequest) {
         reminderRows.push({ userId, matchId: m.id, kind: "scored" });
       }
     }
+
+    // 4) Revealed — to group members, once a match kicks off (picks now visible).
+    const myGroup = userGroup.get(userId);
+    if (myGroup) {
+      const newlyRevealed = revealedMatches.filter((m) => !reminded(m.id, "revealed"));
+      if (newlyRevealed.length) {
+        const ok = await deliver(userId, revealedPayload(newlyRevealed.length, myGroup));
+        if (ok) {
+          counts.revealed++;
+          for (const m of newlyRevealed) reminderRows.push({ userId, matchId: m.id, kind: "revealed" });
+        }
+      }
+    }
   }
 
   if (reminderRows.length) {
@@ -150,6 +187,11 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     pushed,
     ...counts,
-    candidates: { open: openMatches.length, closing: closingMatches.length, scored: scoredMatches.length },
+    candidates: {
+      open: openMatches.length,
+      closing: closingMatches.length,
+      scored: scoredMatches.length,
+      revealed: revealedMatches.length,
+    },
   });
 }
