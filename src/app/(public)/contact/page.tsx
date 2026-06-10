@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { CONTACT_WHATSAPP, CONTACT_WHATSAPP_LINK } from "@/lib/ads";
+import { CONTACT_WHATSAPP, CONTACT_WHATSAPP_LINK, SOCIAL_X_URL, SOCIAL_X_HANDLE } from "@/lib/ads";
+import { XIcon } from "@/components/icons";
 
 export const metadata: Metadata = {
   title: "تواصل معنا — توقعات كأس 2026",
@@ -25,6 +26,17 @@ export default function ContactPage() {
           {CONTACT_WHATSAPP}
         </a>
       </div>
+
+      <p>تابعنا على منصّة X لآخر التحديثات والأخبار:</p>
+      <a
+        href={SOCIAL_X_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="card flex items-center justify-center gap-2.5 p-4 font-bold text-white transition hover:border-white/25"
+      >
+        <XIcon className="text-lg" />
+        <span dir="ltr">{SOCIAL_X_HANDLE}</span>
+      </a>
     </article>
   );
 }

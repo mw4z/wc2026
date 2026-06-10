@@ -19,3 +19,7 @@ export const AD_SLOTS = {
 // readability; the wa.me link uses the digits only.
 export const CONTACT_WHATSAPP = process.env.NEXT_PUBLIC_CONTACT_WHATSAPP || "+966 55 789 7925";
 export const CONTACT_WHATSAPP_LINK = `https://wa.me/${CONTACT_WHATSAPP.replace(/\D/g, "")}`;
+
+// Official X (Twitter) account.
+export const SOCIAL_X_URL = process.env.NEXT_PUBLIC_X_URL || "https://x.com/gamepredictt";
+export const SOCIAL_X_HANDLE = "@gamepredictt";

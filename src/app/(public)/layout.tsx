@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { BrandMark } from "@/components/Logo";
 import { AppShell } from "@/components/AppShell";
+import { XIcon } from "@/components/icons";
+import { SOCIAL_X_URL } from "@/lib/ads";
 
 export const dynamic = "force-dynamic";
 
@@ -50,12 +52,21 @@ export default async function PublicLayout({ children }: { children: React.React
 
       <footer className="border-t border-white/10 bg-navy-950/60">
         <div className="mx-auto max-w-5xl px-4 pt-8 pb-16 text-sm text-slate-400">
-          <nav className="mb-4 flex flex-wrap gap-x-4 gap-y-2">
+          <nav className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
             {NAV.map((l) => (
               <Link key={l.href} href={l.href} className="hover:text-white">
                 {l.label}
               </Link>
             ))}
+            <a
+              href={SOCIAL_X_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="X"
+              className="inline-flex items-center gap-1.5 hover:text-white"
+            >
+              <XIcon className="text-sm" /> X
+            </a>
           </nav>
           <p className="text-xs text-slate-500">
             هذا الموقع لعبة توقعات للترفيه والمنافسة بين الأصدقاء، وغير مرتبط رسميًا بالاتحاد الدولي لكرة القدم
