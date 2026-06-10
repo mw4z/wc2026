@@ -35,6 +35,7 @@ const ar = {
   noMatchesHint: "سيتم عرض المباريات هنا فور توفّر الجدول.",
   // match card / prediction
   submitPrediction: "أرسل توقعك",
+  updatePrediction: "تعديل التوقع",
   predictionClosed: "تم إغلاق التوقع",
   closesAtKickoff: "يُغلق التوقع عند بداية المباراة",
   predictedWinner: "الفائز المتوقع",
@@ -536,6 +537,7 @@ const en: Dict = {
   noMatchesTitle: "No matches yet",
   noMatchesHint: "Matches will appear here as soon as the schedule is available.",
   submitPrediction: "Submit prediction",
+  updatePrediction: "Update prediction",
   predictionClosed: "Prediction closed",
   closesAtKickoff: "Predictions close at kickoff",
   predictedWinner: "Predicted winner",

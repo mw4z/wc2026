@@ -80,6 +80,9 @@ export function MatchCard({
   });
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  // True once this match has a saved prediction (prop or just-saved), so the
+  // button reads "update" instead of "submit" and users aren't confused.
+  const [submitted, setSubmitted] = useState(prediction != null);
 
   async function save() {
     setMsg(null);
@@ -133,6 +136,7 @@ export function MatchCard({
         return;
       }
       setMsg({ type: "ok", text: UI.predictionSaved });
+      setSubmitted(true);
       router.refresh();
     } catch {
       setMsg({ type: "err", text: UI.connError });
@@ -273,7 +277,7 @@ export function MatchCard({
               }
               className="btn-primary w-full"
             >
-              {saving ? <Spinner /> : UI.submitPrediction}
+              {saving ? <Spinner /> : submitted ? UI.updatePrediction : UI.submitPrediction}
             </button>
           </div>
         )}
