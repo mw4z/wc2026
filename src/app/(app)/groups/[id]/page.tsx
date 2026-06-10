@@ -5,6 +5,7 @@ import { getGroupForMember, getGroupLeaderboard, GroupError } from "@/lib/groups
 import { getUI } from "@/lib/locale";
 import { CopyCode } from "@/components/groups/CopyCode";
 import { GroupShareButtons } from "@/components/groups/GroupShareButtons";
+import { AwardsToggle } from "@/components/groups/AwardsToggle";
 import { LeaveGroupButton } from "@/components/groups/LeaveGroupButton";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
 import { UsersIcon, TrophyIcon, SlidersIcon, ListIcon } from "@/components/icons";
@@ -94,6 +95,19 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
               {UI.gscore.settingsBtn}
             </Link>
           )}
+          {group.awardsEnabled && (
+            <>
+              <Link href="/awards" className="action-btn">
+                <TrophyIcon className="ab-ic" />
+                {UI.awardsPredict}
+              </Link>
+              <Link href={`/groups/${id}/awards`} className="action-btn">
+                <TrophyIcon className="ab-ic" />
+                {UI.awardsBoard}
+              </Link>
+            </>
+          )}
+          {isLeader && <AwardsToggle groupId={id} enabled={group.awardsEnabled} />}
           <GroupShareButtons code={group.code} points={myRow?.totalPoints ?? 0} rank={myRow?.rank ?? null} />
         </div>
 

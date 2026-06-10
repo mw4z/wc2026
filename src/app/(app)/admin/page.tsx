@@ -5,7 +5,7 @@ import { isRegistrationOpen, getPredictionLead } from "@/lib/settings";
 import { getUI } from "@/lib/locale";
 import { AdminControls } from "@/components/admin/AdminControls";
 import { PushTestButton } from "@/components/admin/PushTestButton";
-import { BallIcon, ListIcon, UsersIcon, UserIcon, DownloadIcon, ArrowIcon } from "@/components/icons";
+import { BallIcon, ListIcon, UsersIcon, UserIcon, DownloadIcon, ArrowIcon, TrophyIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +58,11 @@ export default async function AdminHome() {
         <Link href="/admin/users" className="tile">
           <span className="tile-ic"><UserIcon /></span>
           <span className="tile-label">{UI.admin.manageUsers}</span>
+          <ArrowIcon className="tile-chev" />
+        </Link>
+        <Link href="/admin/awards" className="tile">
+          <span className="tile-ic"><TrophyIcon /></span>
+          <span className="tile-label">{UI.admin.manageAwards}</span>
           <ArrowIcon className="tile-chev" />
         </Link>
       </div>

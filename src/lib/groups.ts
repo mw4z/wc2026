@@ -138,6 +138,12 @@ export async function requireGroupLeader(userId: string, groupId: string) {
   return group;
 }
 
+/** Leader toggles tournament-award predictions for their group. */
+export async function setGroupAwardsEnabled(userId: string, groupId: string, enabled: boolean) {
+  await requireGroupLeader(userId, groupId);
+  return prisma.group.update({ where: { id: groupId }, data: { awardsEnabled: enabled } });
+}
+
 export async function regenerateGroupCode(userId: string, groupId: string) {
   await requireGroupLeader(userId, groupId);
   const code = await generateGroupCode(); // new code; old one stops working immediately

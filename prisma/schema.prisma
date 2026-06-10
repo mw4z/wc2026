@@ -79,6 +79,7 @@ model User {
   ledGroups          Group[]               @relation("GroupLeader")
   groupMemberships   GroupMember[]
   pushSubscriptions  PushSubscription[]
+  awardPredictions   AwardPrediction[]
 
   @@index([role])
   @@index([isActive])
@@ -103,9 +104,9 @@ model Team {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  homeMatches   Match[] @relation("HomeTeam")
-  awayMatches   Match[] @relation("AwayTeam")
-  wonMatches    Match[] @relation("WinnerTeam")
+  homeMatches   Match[]      @relation("HomeTeam")
+  awayMatches   Match[]      @relation("AwayTeam")
+  wonMatches    Match[]      @relation("WinnerTeam")
   predictedWins Prediction[] @relation("PredictedWinner")
 
   @@index([groupName])
@@ -123,11 +124,11 @@ model Match {
   status      MatchStatus @default(SCHEDULED)
 
   // Result (filled by admin). homeScore/awayScore = result BEFORE penalties.
-  homeScore        Int?
-  awayScore        Int?
-  wentToPenalties  Boolean   @default(false)
+  homeScore         Int?
+  awayScore         Int?
+  wentToPenalties   Boolean   @default(false)
   // For knockout matches: the team that advanced (may differ from score winner on penalties).
-  winnerTeamId     String?
+  winnerTeamId      String?
   resultConfirmedAt DateTime?
 
   // ---- Auto result sync (Phase: result-sync) ----
@@ -138,7 +139,7 @@ model Match {
   resultSource      String? // "manual" | "api-football" — who wrote the current result
   lastSyncedAt      DateTime? // last time the sync checked this match
   externalStatus    String? // raw provider status short, e.g. "FT" | "AET" | "PEN"
-  needsReview       Boolean  @default(false) // provider final but qualifier unclear → admin must confirm
+  needsReview       Boolean   @default(false) // provider final but qualifier unclear → admin must confirm
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -158,11 +159,11 @@ model Match {
 }
 
 model Prediction {
-  id                   String  @id @default(cuid())
-  userId               String
-  matchId              String
-  predictedHomeScore   Int
-  predictedAwayScore   Int
+  id                    String  @id @default(cuid())
+  userId                String
+  matchId               String
+  predictedHomeScore    Int
+  predictedAwayScore    Int
   // Knockout only: which team the user thinks advances.
   predictedWinnerTeamId String?
 
@@ -225,20 +226,20 @@ model MatchResultAuditLog {
 // ----------------------------------------------------------------------------
 
 model LeaderboardEntry {
-  id                 String   @id @default(cuid())
-  userId             String   @unique
-  name               String
-  department         String?
-  totalPoints        Int      @default(0)
-  exactScores        Int      @default(0)
-  correctOutcomes    Int      @default(0)
-  correctQualifiers  Int      @default(0)
-  totalPredictions   Int      @default(0)
-  scoredPredictions  Int      @default(0)
-  accuracy           Float    @default(0) // exactScores / scoredPredictions
-  lastPredictionAt   DateTime? // tie-break #4
-  rank               Int      @default(0)
-  updatedAt          DateTime @updatedAt
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  name              String
+  department        String?
+  totalPoints       Int       @default(0)
+  exactScores       Int       @default(0)
+  correctOutcomes   Int       @default(0)
+  correctQualifiers Int       @default(0)
+  totalPredictions  Int       @default(0)
+  scoredPredictions Int       @default(0)
+  accuracy          Float     @default(0) // exactScores / scoredPredictions
+  lastPredictionAt  DateTime? // tie-break #4
+  rank              Int       @default(0)
+  updatedAt         DateTime  @updatedAt
 
   @@index([rank])
   @@index([totalPoints])
@@ -250,11 +251,11 @@ model LeaderboardEntry {
 // ----------------------------------------------------------------------------
 
 model Group {
-  id        String   @id @default(cuid())
-  name      String
-  code      String   @unique // normalized "CUP-XXXXX"
-  leaderId  String
-  isActive  Boolean  @default(true)
+  id       String  @id @default(cuid())
+  name     String
+  code     String  @unique // normalized "CUP-XXXXX"
+  leaderId String
+  isActive Boolean @default(true)
 
   // Per-group scoring (leader-customizable). These are the group-wide defaults
   // applied to every match; GroupMatchRule overrides specific matches. The
@@ -266,6 +267,11 @@ model Group {
   // Winner-only mode: ignore the exact-score bonus — a correct result earns
   // pointsOutcome whether or not the exact score matched.
   winnerOnly      Boolean @default(false)
+
+  // Optional tournament-award predictions (Golden Ball etc.). Leader-toggled.
+  // Predictions themselves are GLOBAL; this only controls visibility + the
+  // group's separate awards board. Does NOT affect the match leaderboard.
+  awardsEnabled Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -343,4 +349,59 @@ model GroupMember {
   @@unique([groupId, userId])
   @@index([userId])
   @@index([groupId])
+}
+
+// ----------------------------------------------------------------------------
+// Tournament awards (Golden Ball / Boot / Glove / Young Player). OPTIONAL and
+// separate from match predictions: own predictions, own per-group board, fixed
+// 3 points per correct pick. Predictions are GLOBAL (one per user per award) and
+// lock at tournament start. Never touch the match leaderboard.
+// ----------------------------------------------------------------------------
+
+model Award {
+  id                String   @id @default(cuid())
+  key               String   @unique // "golden_ball" | "golden_boot" | ...
+  nameAr            String
+  nameEn            String
+  sortOrder         Int      @default(0)
+  isActive          Boolean  @default(true)
+  winnerCandidateId String? // set by admin after the final → triggers scoring
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  candidates  AwardCandidate[]
+  predictions AwardPrediction[]
+}
+
+model AwardCandidate {
+  id        String   @id @default(cuid())
+  awardId   String
+  nameAr    String
+  nameEn    String
+  team      String? // optional country/club label
+  createdAt DateTime @default(now())
+
+  award       Award             @relation(fields: [awardId], references: [id], onDelete: Cascade)
+  predictions AwardPrediction[]
+
+  @@index([awardId])
+}
+
+model AwardPrediction {
+  id            String   @id @default(cuid())
+  userId        String
+  awardId       String
+  candidateId   String
+  pointsAwarded Int? // null until scored; 3 if correct, else 0
+  isCorrect     Boolean  @default(false)
+  submittedAt   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  award     Award          @relation(fields: [awardId], references: [id], onDelete: Cascade)
+  candidate AwardCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, awardId])
+  @@index([awardId])
+  @@index([userId])
 }
