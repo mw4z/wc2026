@@ -33,7 +33,6 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
 
   const board = await getGroupLeaderboard(id);
   const myRow = board.find((r) => r.userId === user.id);
-  const top5 = board.slice(0, 5);
   const isLeader = group.leaderId === user.id;
 
   // Plain-language scoring summary shown to all members.
@@ -86,10 +85,6 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
         {/* Unified, uniform action grid */}
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
           <CopyCode code={group.code} />
-          <Link href={`/groups/${id}/leaderboard`} className="action-btn">
-            <TrophyIcon className="ab-ic" />
-            {UI.groupRanking}
-          </Link>
           <Link href={`/groups/${id}/members`} className="action-btn">
             <UsersIcon className="ab-ic" />
             {UI.groupMembers}
@@ -126,17 +121,17 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
           </p>
         )}
 
-        <p className="mt-4 border-t border-white/10 pt-4 text-sm text-slate-300">
-          <span className="font-semibold text-gold-300">{UI.leaderboardUpdatedTitle}</span> —{" "}
-          <Link href={`/groups/${id}/leaderboard`} className="text-accent-400 hover:underline">
-            {UI.seeYourRank}
-          </Link>
+        <p className="mt-4 border-t border-white/10 pt-4 text-center text-xs text-slate-400">
+          {UI.leaderboardUpdatedTitle}
         </p>
       </div>
 
       <AdSlot slotId={AD_SLOTS.groupTop} slotName="group-top" />
 
-      <h2 className="mb-3 text-lg font-bold text-gold-400">{UI.topFive}</h2>
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2 className="text-lg font-bold text-gold-400">{UI.groupRanking}</h2>
+        <span className="text-xs text-slate-500">{board.length} {UI.members}</span>
+      </div>
       <div className="card overflow-x-auto">
         <table className="w-full text-right text-sm">
           <thead className="border-b border-white/10 text-xs text-slate-400">
@@ -147,7 +142,7 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
             </tr>
           </thead>
           <tbody>
-            {top5.map((r) => (
+            {board.map((r) => (
               <tr key={r.userId} className={`border-b border-white/5 ${r.userId === user.id ? "bg-gold-500/15" : ""}`}>
                 <td className="p-3">
                   <span className={`font-display font-bold tnum ${r.rank === 1 ? "text-gold-400" : "text-slate-300"}`}>
