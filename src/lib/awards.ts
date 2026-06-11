@@ -55,6 +55,16 @@ export async function getMyAwardPredictions(userId: string) {
   return new Map(rows.map((r) => [r.awardId, r]));
 }
 
+/** How many active awards the user has picked, out of the total — for the promo CTA. */
+export async function getAwardsProgress(userId: string): Promise<{ predicted: number; total: number }> {
+  const awards = await prisma.award.findMany({ where: { isActive: true }, select: { id: true } });
+  const ids = awards.map((a) => a.id);
+  const predicted = ids.length
+    ? await prisma.awardPrediction.count({ where: { userId, awardId: { in: ids } } })
+    : 0;
+  return { predicted, total: awards.length };
+}
+
 /** Submit/replace a member's pick for one award. Server-enforces the lock. */
 export async function submitAwardPrediction(userId: string, awardId: string, candidateId: string) {
   if (await isAwardsLocked()) {

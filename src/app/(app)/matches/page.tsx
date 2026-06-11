@@ -13,7 +13,7 @@ import { TodaySummary } from "@/components/TodaySummary";
 import { ReminderToggle } from "@/components/ReminderToggle";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { AwardsPromo } from "@/components/AwardsPromo";
-import { userCanUseAwards, isAwardsLocked } from "@/lib/awards";
+import { userCanUseAwards, isAwardsLocked, getAwardsProgress } from "@/lib/awards";
 import { tournamentName } from "@/lib/tournament";
 import { BallIcon, ClockIcon, TrophyIcon } from "@/components/icons";
 import { AdSlot } from "@/components/AdSlot";
@@ -39,7 +39,11 @@ export default async function MatchesPage() {
     }),
   ]);
   const lead = await getPredictionLead();
-  const [canAwards, awardsLocked] = await Promise.all([userCanUseAwards(user.id), isAwardsLocked()]);
+  const [canAwards, awardsLocked, awardsProgress] = await Promise.all([
+    userCanUseAwards(user.id),
+    isAwardsLocked(),
+    getAwardsProgress(user.id),
+  ]);
 
   // Show the goal-free result picker only when EVERY group the user belongs to is
   // winner-only (no group needs exact goals). Mixed membership keeps score inputs.
@@ -121,7 +125,9 @@ export default async function MatchesPage() {
         <ClockIcon className="text-sm text-accent-400" />
         {UI.timezoneNote}
       </p>
-      {canAwards && <AwardsPromo locked={awardsLocked} />}
+      {canAwards && (
+        <AwardsPromo locked={awardsLocked} predicted={awardsProgress.predicted} total={awardsProgress.total} />
+      )}
       <InstallPrompt />
       <ReminderToggle />
       {summary.total > 0 && (

@@ -4,8 +4,30 @@ import { TrophyIcon, ArrowIcon } from "@/components/icons";
 
 // Eye-catching promo for the tournament-awards feature, shown on /matches to
 // members whose group enabled awards. Gold/violet gradient + animated sheen.
-export async function AwardsPromo({ locked }: { locked: boolean }) {
+// The CTA reflects the user's progress so it never says "predict now" once done.
+export async function AwardsPromo({
+  locked,
+  predicted = 0,
+  total = 0,
+}: {
+  locked: boolean;
+  predicted?: number;
+  total?: number;
+}) {
   const UI = await getUI();
+  const allDone = total > 0 && predicted >= total;
+  const cta = locked
+    ? UI.awardsPromoView
+    : allDone
+      ? UI.awardsPromoEdit
+      : predicted > 0
+        ? UI.awardsPromoContinue
+        : UI.awardsPromoCta;
+  // Show progress once they've started; otherwise the feature pitch.
+  const desc =
+    !locked && predicted > 0
+      ? UI.awardsProgress.replace("{done}", String(predicted)).replace("{total}", String(total))
+      : UI.awardsPromoDesc;
   return (
     <Link
       href="/awards"
@@ -20,14 +42,14 @@ export async function AwardsPromo({ locked }: { locked: boolean }) {
             {UI.awardsPromoTag}
           </span>
           <h3 className="font-display text-base font-extrabold leading-tight text-white">{UI.awardsPromoTitle}</h3>
-          <p className="mt-0.5 truncate text-xs text-gold-200/90">{UI.awardsPromoDesc}</p>
+          <p className="mt-0.5 truncate text-xs text-gold-200/90">{desc}</p>
         </div>
         <span className="flex shrink-0 items-center gap-1 rounded-lg bg-gold-500 px-3 py-2 text-sm font-bold text-navy-950 transition group-hover:gap-2">
-          {locked ? UI.awardsPromoView : UI.awardsPromoCta}
+          {cta}
           <ArrowIcon className="text-base" />
         </span>
       </div>
-      {!locked && (
+      {!locked && !allDone && (
         <p className="relative mt-2 text-center text-[11px] font-semibold text-amber-200/80">
           ⏳ {UI.awardsPromoLockHint}
         </p>
