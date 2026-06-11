@@ -10,7 +10,9 @@ export function AdScript() {
     <Script
       id="adsbygoogle-lib"
       src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`}
-      strategy="afterInteractive"
+      // beforeInteractive → emitted into the server-rendered <head>, so AdSense's
+      // crawler finds the snippet in the raw HTML (the script-method check).
+      strategy="beforeInteractive"
       crossOrigin="anonymous"
     />
   );
