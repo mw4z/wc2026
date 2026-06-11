@@ -1,9 +1,13 @@
 // AdSense configuration. All flags come from NEXT_PUBLIC_* env vars (inlined at
 // build time). Ads are OFF unless explicitly enabled AND a client id is present.
 export const ADS_ENABLED = process.env.NEXT_PUBLIC_ENABLE_ADS === "true";
-export const ADSENSE_CLIENT_ID = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || "";
+// Publisher id. Defaults to the site's AdSense client so the loader + ownership
+// meta tag are always present for verification, even before ad units are turned on.
+export const ADSENSE_CLIENT_ID =
+  process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || "ca-pub-1652319526796223";
 
-// Ads only render when explicitly enabled and a client id exists.
+// Actual ad UNITS only render when explicitly enabled (and a client id exists).
+// The loader script/meta are separate and load whenever a client id is present.
 export const adsActive = ADS_ENABLED && ADSENSE_CLIENT_ID.length > 0;
 
 // Slot ids (a missing slot renders nothing — see AdSlot).

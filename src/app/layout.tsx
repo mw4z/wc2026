@@ -5,6 +5,7 @@ import { dirFor } from "@/lib/i18n";
 import { getLocale, getUI } from "@/lib/locale";
 import { I18nProvider } from "@/components/I18nProvider";
 import { AdScript } from "@/components/AdScript";
+import { ADSENSE_CLIENT_ID } from "@/lib/ads";
 
 // Display / numerals (Latin): broadcast-grade grotesque with heavy weights.
 const display = Archivo({
@@ -30,6 +31,8 @@ export async function generateMetadata(): Promise<Metadata> {
     // iOS only allows Web Push when the site is installed to the Home Screen as a
     // standalone PWA — these tags make that possible.
     appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: ui.appName },
+    // AdSense site-ownership verification (static <meta> in <head>).
+    ...(ADSENSE_CLIENT_ID ? { other: { "google-adsense-account": ADSENSE_CLIENT_ID } } : {}),
   };
 }
 
