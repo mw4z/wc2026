@@ -19,20 +19,20 @@ export function newUserPayload(name: string): PushPayload {
 // match (personalized with their points), the moment results are calculated —
 // rather than waiting for the hourly reminder cron. Deduped via PushReminder
 // (kind="scored"), so the cron never sends a duplicate. Never throws.
-export async function notifyMatchScored(matchId: string): Promise<void> {
-  if (!pushConfigured) return;
+export async function notifyMatchScored(matchId: string): Promise<number> {
+  if (!pushConfigured) return 0;
   try {
     const match = await prisma.match.findUnique({
       where: { id: matchId },
       include: { homeTeam: true, awayTeam: true },
     });
-    if (!match || match.homeScore == null || match.awayScore == null) return;
+    if (!match || match.homeScore == null || match.awayScore == null) return 0;
 
     const preds = await prisma.prediction.findMany({
       where: { matchId },
       select: { userId: true, pointsAwarded: true },
     });
-    if (preds.length === 0) return;
+    if (preds.length === 0) return 0;
     const userIds = preds.map((p) => p.userId);
 
     const [subs, already] = await Promise.all([
@@ -42,7 +42,7 @@ export async function notifyMatchScored(matchId: string): Promise<void> {
         select: { userId: true },
       }),
     ]);
-    if (subs.length === 0) return;
+    if (subs.length === 0) return 0;
 
     const alreadySet = new Set(already.map((r) => r.userId));
     const subsByUser = new Map<string, StoredSubscription[]>();
@@ -68,8 +68,10 @@ export async function notifyMatchScored(matchId: string): Promise<void> {
     if (recorded.length) {
       await prisma.pushReminder.createMany({ data: recorded, skipDuplicates: true });
     }
+    return recorded.length;
   } catch (e) {
     console.error("notifyMatchScored failed:", (e as Error).message);
+    return 0;
   }
 }
 

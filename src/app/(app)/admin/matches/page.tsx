@@ -9,6 +9,7 @@ import { formatDateTimeAr } from "@/lib/time";
 import { ResultForm } from "@/components/admin/ResultForm";
 import { SyncMatchButton } from "@/components/admin/SyncMatchButton";
 import { MapFixturesButton } from "@/components/admin/MapFixturesButton";
+import { SendScoredButton } from "@/components/admin/SendScoredButton";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +93,8 @@ export default async function AdminMatchesPage() {
             ) : (
               <p className="text-center text-sm text-slate-500">{UI.admin.cannotEnterResult}</p>
             )}
+
+            {m.status === "SCORED" && <SendScoredButton matchId={m.id} />}
           </div>
         ))}
       </div>
