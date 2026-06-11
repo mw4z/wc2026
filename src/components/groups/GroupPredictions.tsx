@@ -32,6 +32,7 @@ export function GroupPredictions({
   groupName,
   groupCode,
   isLeader,
+  winnerOnly,
   upcoming,
   revealed,
   roster,
@@ -40,6 +41,7 @@ export function GroupPredictions({
   groupName: string;
   groupCode: string;
   isLeader: boolean;
+  winnerOnly: boolean;
   upcoming: MatchView[];
   revealed: MatchView[];
   roster: RosterEntry[];
@@ -135,7 +137,7 @@ export function GroupPredictions({
           <p className="card p-4 text-center text-sm text-slate-500">{UI.noRevealedYet}</p>
         ) : (
           <div className="space-y-2">
-            {revealed.map((m) => <RevealedRow key={m.id} m={m} />)}
+            {revealed.map((m) => <RevealedRow key={m.id} m={m} winnerOnly={winnerOnly} />)}
           </div>
         )}
       </section>
@@ -226,9 +228,17 @@ function UpcomingRow({ m }: { m: MatchView }) {
   );
 }
 
-function RevealedRow({ m }: { m: MatchView }) {
+function RevealedRow({ m, winnerOnly }: { m: MatchView; winnerOnly: boolean }) {
   const UI = useUI();
   const [open, setOpen] = useState(false);
+  // Winner-only groups store placeholder scores (1-0 / 0-0 / 0-1) — show the
+  // picked side/result, not the goals.
+  const outcome = (home: number | null, away: number | null) => {
+    if (home == null || away == null) return null;
+    if (home > away) return m.home;
+    if (home < away) return m.away;
+    return UI.outcomeDraw;
+  };
   return (
     <div className="card p-3">
       <button onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between gap-3 text-start">
@@ -239,17 +249,21 @@ function RevealedRow({ m }: { m: MatchView }) {
         <div className="mt-2 border-t border-white/[0.06] pt-2">
           <table className="w-full text-sm">
             <thead>
-              {/* Make the score orientation explicit: which side is which team. */}
               <tr className="border-b border-white/[0.06] text-[11px] text-slate-400">
                 <th className="py-1 text-start font-semibold">{UI.name}</th>
                 <th className="py-1 text-center font-semibold">
-                  <span className="inline-flex items-center justify-center gap-1">
-                    <Flag src={m.homeFlag} className="h-4 w-4" />
-                    <span className="max-w-[4.5rem] truncate">{m.home}</span>
-                    <span className="text-slate-600">-</span>
-                    <span className="max-w-[4.5rem] truncate">{m.away}</span>
-                    <Flag src={m.awayFlag} className="h-4 w-4" />
-                  </span>
+                  {winnerOnly ? (
+                    UI.predictedWinner
+                  ) : (
+                    // Make the score orientation explicit: which side is which team.
+                    <span className="inline-flex items-center justify-center gap-1">
+                      <Flag src={m.homeFlag} className="h-4 w-4" />
+                      <span className="max-w-[4.5rem] truncate">{m.home}</span>
+                      <span className="text-slate-600">-</span>
+                      <span className="max-w-[4.5rem] truncate">{m.away}</span>
+                      <Flag src={m.awayFlag} className="h-4 w-4" />
+                    </span>
+                  )}
                 </th>
                 <th className="py-1 text-end font-semibold">{UI.point}</th>
               </tr>
@@ -259,7 +273,11 @@ function RevealedRow({ m }: { m: MatchView }) {
                 <tr key={i} className="border-b border-white/[0.04] last:border-0">
                   <td className="py-1.5 text-slate-200">{p.name}</td>
                   <td className="py-1.5 text-center font-display tnum">
-                    {p.home != null && p.away != null ? (
+                    {p.home == null || p.away == null ? (
+                      <span className="text-slate-600">—</span>
+                    ) : winnerOnly ? (
+                      <span className="font-sans font-semibold text-slate-100">{outcome(p.home, p.away)}</span>
+                    ) : (
                       // Flex spans (not a string) so the home number follows the
                       // header's RTL order — home on the right, away on the left.
                       <span className="inline-flex items-center justify-center gap-1">
@@ -267,8 +285,6 @@ function RevealedRow({ m }: { m: MatchView }) {
                         <span className="text-slate-600">-</span>
                         <span>{p.away}</span>
                       </span>
-                    ) : (
-                      <span className="text-slate-600">—</span>
                     )}
                   </td>
                   <td className="py-1.5 text-end">

@@ -128,6 +128,7 @@ export default async function GroupPredictionsPage({ params }: { params: Promise
       groupName={group.name}
       groupCode={group.code}
       isLeader={isLeader}
+      winnerOnly={group.winnerOnly}
       upcoming={upcoming}
       revealed={revealed}
       roster={roster}
