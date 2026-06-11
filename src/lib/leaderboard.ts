@@ -117,6 +117,47 @@ function lastPredCompare(a: Date | null, b: Date | null): number {
   return a.getTime() - b.getTime();
 }
 
+/**
+ * The overall leaderboard, built LIVE over EVERY active user merged with their
+ * denormalized stats (zeros for users with no scored predictions yet). This is
+ * the source of truth for display: the LeaderboardEntry snapshot is only rebuilt
+ * when a match is scored, so reading it directly would drop users who registered
+ * since the last rebuild (the "missing users" bug). Same tie-breakers as the
+ * snapshot. O(users + entries) — fine at event scale.
+ */
 export async function getLeaderboard() {
-  return prisma.leaderboardEntry.findMany({ orderBy: { rank: "asc" } });
+  const [users, entries] = await Promise.all([
+    prisma.user.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, department: true },
+    }),
+    prisma.leaderboardEntry.findMany(),
+  ]);
+  const byUser = new Map(entries.map((e) => [e.userId, e]));
+
+  const rows = users.map((u) => {
+    const e = byUser.get(u.id);
+    return {
+      userId: u.id,
+      name: u.name,
+      department: u.department,
+      totalPoints: e?.totalPoints ?? 0,
+      exactScores: e?.exactScores ?? 0,
+      correctOutcomes: e?.correctOutcomes ?? 0,
+      correctQualifiers: e?.correctQualifiers ?? 0,
+      totalPredictions: e?.totalPredictions ?? 0,
+      scoredPredictions: e?.scoredPredictions ?? 0,
+      accuracy: e?.accuracy ?? 0,
+      lastPredictionAt: e?.lastPredictionAt ?? null,
+    };
+  });
+
+  rows.sort(
+    (x, y) =>
+      y.totalPoints - x.totalPoints ||
+      y.exactScores - x.exactScores ||
+      y.correctOutcomes - x.correctOutcomes ||
+      lastPredCompare(x.lastPredictionAt, y.lastPredictionAt),
+  );
+  return rows.map((r, i) => ({ ...r, rank: i + 1 }));
 }
