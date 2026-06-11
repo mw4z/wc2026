@@ -180,7 +180,11 @@ function MatchHeader({ m }: { m: MatchView }) {
       <Flag src={m.homeFlag} className="h-5 w-5" />
       <span className="truncate">{m.home}</span>
       {m.homeScore != null && m.awayScore != null ? (
-        <span className="font-display tnum text-gold-300">{m.homeScore}-{m.awayScore}</span>
+        <span className="inline-flex items-center gap-1 font-display tnum text-gold-300">
+          <span>{m.homeScore}</span>
+          <span>-</span>
+          <span>{m.awayScore}</span>
+        </span>
       ) : (
         <span className="text-slate-600">×</span>
       )}
@@ -255,7 +259,17 @@ function RevealedRow({ m }: { m: MatchView }) {
                 <tr key={i} className="border-b border-white/[0.04] last:border-0">
                   <td className="py-1.5 text-slate-200">{p.name}</td>
                   <td className="py-1.5 text-center font-display tnum">
-                    {p.home != null && p.away != null ? `${p.home}-${p.away}` : <span className="text-slate-600">—</span>}
+                    {p.home != null && p.away != null ? (
+                      // Flex spans (not a string) so the home number follows the
+                      // header's RTL order — home on the right, away on the left.
+                      <span className="inline-flex items-center justify-center gap-1">
+                        <span>{p.home}</span>
+                        <span className="text-slate-600">-</span>
+                        <span>{p.away}</span>
+                      </span>
+                    ) : (
+                      <span className="text-slate-600">—</span>
+                    )}
                   </td>
                   <td className="py-1.5 text-end">
                     {p.points != null && <span className="rounded bg-gold-500/15 px-1.5 py-0.5 text-xs font-bold text-gold-400">+{p.points}</span>}

@@ -43,16 +43,16 @@ export function MatchCard({
   match,
   prediction,
   winnerOnly = false,
-  groupId = null,
+  groups = [],
 }: {
   match: SerializedMatch;
   prediction: SerializedPrediction;
   // True when ALL of the viewer's groups are winner-only: show a result picker
   // instead of goal boxes. The stored score is a placeholder (1-0 / 0-0 / 0-1).
   winnerOnly?: boolean;
-  // The viewer's group (if any) — once the match starts, link to that group's
-  // revealed member predictions for this match.
-  groupId?: string | null;
+  // The viewer's groups — once the match starts, the card links to each group's
+  // revealed member predictions (a picker when there's more than one).
+  groups?: { id: string; name: string }[];
 }) {
   const UI = useUI();
   const router = useRouter();
@@ -204,15 +204,7 @@ export function MatchCard({
         ) : locked ? (
           <>
             <LockedView prediction={prediction} isKnockout={isKnockout} match={match} />
-            {groupId && (
-              <Link
-                href={`/groups/${groupId}/predictions`}
-                className="btn-ghost mt-3 inline-flex w-full items-center justify-center gap-1.5 text-sm"
-              >
-                <UsersIcon className="text-base" />
-                {UI.viewGroupPredictions}
-              </Link>
-            )}
+            <GroupPicksButton groups={groups} />
           </>
         ) : notOpenYet ? (
           <div className="flex flex-col items-center gap-2 text-center text-sm">
@@ -319,6 +311,53 @@ export function MatchCard({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// "See members' predictions" once a match starts. One group → direct link;
+// multiple groups → tap to expand and pick which group's board to open.
+function GroupPicksButton({ groups }: { groups: { id: string; name: string }[] }) {
+  const UI = useUI();
+  const [open, setOpen] = useState(false);
+  if (groups.length === 0) return null;
+
+  if (groups.length === 1) {
+    return (
+      <Link
+        href={`/groups/${groups[0]!.id}/predictions`}
+        className="btn-ghost mt-3 inline-flex w-full items-center justify-center gap-1.5 text-sm"
+      >
+        <UsersIcon className="text-base" />
+        {UI.viewGroupPredictions}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="btn-ghost inline-flex w-full items-center justify-center gap-1.5 text-sm"
+      >
+        <UsersIcon className="text-base" />
+        {UI.viewGroupPredictions}
+        <span className="text-xs text-slate-500">{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <div className="mt-2 space-y-1">
+          {groups.map((g) => (
+            <Link
+              key={g.id}
+              href={`/groups/${g.id}/predictions`}
+              className="block truncate rounded-lg border border-white/10 px-3 py-2 text-center text-sm text-slate-200 transition hover:border-white/25 hover:bg-white/5"
+            >
+              {g.name}
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

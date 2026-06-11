@@ -35,7 +35,7 @@ export default async function MatchesPage() {
     prisma.prediction.findMany({ where: { userId: user.id } }),
     prisma.groupMember.findMany({
       where: { userId: user.id, group: { isActive: true } },
-      select: { group: { select: { id: true, winnerOnly: true } } },
+      select: { group: { select: { id: true, name: true, winnerOnly: true } } },
       orderBy: { joinedAt: "asc" },
     }),
   ]);
@@ -49,9 +49,9 @@ export default async function MatchesPage() {
   // Show the goal-free result picker only when EVERY group the user belongs to is
   // winner-only (no group needs exact goals). Mixed membership keeps score inputs.
   const winnerOnly = myGroups.length > 0 && myGroups.every((m) => m.group.winnerOnly);
-  // Primary group (earliest joined) — used to link to revealed member picks once
-  // a match starts. Null if the user is in no group.
-  const primaryGroupId = myGroups[0]?.group.id ?? null;
+  // The user's groups — the card links to each group's revealed member picks once
+  // a match starts (a picker when there's more than one).
+  const myGroupList = myGroups.map((m) => ({ id: m.group.id, name: m.group.name }));
 
   const predByMatch = new Map(myPredictions.map((p) => [p.matchId, p]));
   const now = new Date();
@@ -105,7 +105,7 @@ export default async function MatchesPage() {
               match={serializeMatch(m, locale, lead)}
               prediction={serializePrediction(predByMatch.get(m.id))}
               winnerOnly={winnerOnly}
-              groupId={primaryGroupId}
+              groups={myGroupList}
             />
           ))}
         </div>
