@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 import { isKnockoutStage } from "./constants";
 import { calculatePredictionPoints } from "./scoring";
 import { recalculateLeaderboard } from "./leaderboard";
+import { notifyMatchScored } from "./notifications";
 import type { MatchResultInput } from "./validation";
 
 export class MatchError extends Error {
@@ -139,6 +140,10 @@ export async function calculateMatchPoints(matchId: string, adminUserId?: string
 
   // Keep the leaderboard consistent after any scoring change.
   await recalculateLeaderboard();
+
+  // Push each predictor their result immediately (deduped so the hourly cron
+  // won't repeat it). Best-effort — never blocks/aborts scoring.
+  await notifyMatchScored(matchId);
 
   return { scored: predictions.length };
 }

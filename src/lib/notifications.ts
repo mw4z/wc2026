@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { pushConfigured, sendPush, type PushPayload } from "./push";
+import { pushConfigured, sendPush, type PushPayload, type StoredSubscription } from "./push";
 
 // Single source of truth for reminder copy, shared by the cron (real reminders)
 // and the admin "send test" tool (sample previews). Arabic, sporty, with emoji.
@@ -13,6 +13,64 @@ export function newUserPayload(name: string): PushPayload {
     body: `${name} أنشأ حسابًا جديدًا للتو.`,
     url: "/admin/users",
   };
+}
+
+// Immediately push the "scored" notification to every user who predicted this
+// match (personalized with their points), the moment results are calculated —
+// rather than waiting for the hourly reminder cron. Deduped via PushReminder
+// (kind="scored"), so the cron never sends a duplicate. Never throws.
+export async function notifyMatchScored(matchId: string): Promise<void> {
+  if (!pushConfigured) return;
+  try {
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: { homeTeam: true, awayTeam: true },
+    });
+    if (!match || match.homeScore == null || match.awayScore == null) return;
+
+    const preds = await prisma.prediction.findMany({
+      where: { matchId },
+      select: { userId: true, pointsAwarded: true },
+    });
+    if (preds.length === 0) return;
+    const userIds = preds.map((p) => p.userId);
+
+    const [subs, already] = await Promise.all([
+      prisma.pushSubscription.findMany({ where: { userId: { in: userIds } } }),
+      prisma.pushReminder.findMany({
+        where: { matchId, kind: "scored", userId: { in: userIds } },
+        select: { userId: true },
+      }),
+    ]);
+    if (subs.length === 0) return;
+
+    const alreadySet = new Set(already.map((r) => r.userId));
+    const subsByUser = new Map<string, StoredSubscription[]>();
+    for (const s of subs) {
+      const list = subsByUser.get(s.userId) ?? [];
+      list.push({ endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth });
+      subsByUser.set(s.userId, list);
+    }
+
+    const tn = (t: { nameAr: string } | null) => t?.nameAr ?? "—";
+    const line = `${tn(match.homeTeam)} ${match.homeScore}-${match.awayScore} ${tn(match.awayTeam)} ⚽`;
+    const recorded: { userId: string; matchId: string; kind: string }[] = [];
+
+    for (const p of preds) {
+      if (alreadySet.has(p.userId)) continue;
+      const list = subsByUser.get(p.userId);
+      if (!list || list.length === 0) continue;
+      const payload = scoredPayload({ line, points: p.pointsAwarded ?? 0, matchId });
+      let ok = false;
+      for (const sub of list) if (await sendPush(sub, payload)) ok = true;
+      if (ok) recorded.push({ userId: p.userId, matchId, kind: "scored" });
+    }
+    if (recorded.length) {
+      await prisma.pushReminder.createMany({ data: recorded, skipDuplicates: true });
+    }
+  } catch (e) {
+    console.error("notifyMatchScored failed:", (e as Error).message);
+  }
 }
 
 export async function notifyAdminsNewUser(name: string): Promise<void> {

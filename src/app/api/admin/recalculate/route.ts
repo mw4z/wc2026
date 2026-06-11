@@ -4,6 +4,8 @@ import { calculateMatchPoints } from "@/lib/matches";
 import { recalculateLeaderboard } from "@/lib/leaderboard";
 import { errorResponse } from "@/lib/api";
 
+export const runtime = "nodejs"; // rescoring may send web-push (needs Node crypto)
+
 // Body: { matchId } to rescore one match, or {} for a full leaderboard rebuild.
 export async function POST(req: NextRequest) {
   try {

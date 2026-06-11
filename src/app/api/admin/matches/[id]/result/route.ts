@@ -4,6 +4,8 @@ import { matchResultSchema } from "@/lib/validation";
 import { updateMatchResult } from "@/lib/matches";
 import { errorResponse } from "@/lib/api";
 
+export const runtime = "nodejs"; // scoring sends web-push (needs Node crypto)
+
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const admin = await requireAdmin();
