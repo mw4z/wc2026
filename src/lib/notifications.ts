@@ -147,7 +147,7 @@ export function scoredPayload(opts: { line: string; points: number; matchId: str
     title: "🏁 صافرة النهاية!",
     body:
       opts.points > 0
-        ? `${opts.line} — كسبت +${opts.points} نقطة! 🎯`
+        ? `${opts.line} — كسبت +${opts.points} نقطة في الترتيب العام! 🎯`
         : `${opts.line} — لم تُوفَّق هذه المرة، حظًا أوفر في القادمة! 💪`,
     url: `/matches/${opts.matchId}`,
     tag: `wc26-scored-${opts.matchId}`,
