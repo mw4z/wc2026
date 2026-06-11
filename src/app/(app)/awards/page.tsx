@@ -45,9 +45,10 @@ export default async function AwardsPage() {
   return (
     <div>
       <TournamentHero title={UI.awardsTitle} subtitle={UI.awardsSubtitle} icon={<TrophyIcon />} />
+      <p className="-mt-2 mb-4 text-center text-xs text-slate-400">{UI.awardsIndependentNote}</p>
       <p className="mb-4 rounded-lg border border-accent-500/20 bg-accent-500/[0.06] px-4 py-2 text-center text-xs text-accent-200">
         {UI.awardsSeparateNote}
-        {lockAt && !locked && <> · {UI.awardsLockAt.replace("{t}", formatDateTimeAr(lockAt))}</>}
+        {lockAt && !locked && <> {UI.awardsLockAt.replace("{t}", formatDateTimeAr(lockAt))}</>}
       </p>
       {locked && (
         <p className="mb-4 rounded-lg border border-warn/30 bg-warn/10 px-4 py-2 text-center text-sm text-amber-200">
@@ -56,7 +57,7 @@ export default async function AwardsPage() {
       )}
       <AwardsList awards={data} locked={locked} />
       <p className="mt-4 text-center text-sm">
-        <Link href="/groups" className="text-accent-400 hover:underline">{UI.awardsBoard} ←</Link>
+        <Link href="/groups" className="text-accent-400 hover:underline">{UI.awardsViewBoard}</Link>
       </p>
     </div>
   );

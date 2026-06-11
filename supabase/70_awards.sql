@@ -70,9 +70,9 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Seed the four v1 awards (candidates are added by the admin in the UI).
 INSERT INTO "Award" ("id","key","nameAr","nameEn","sortOrder","updatedAt") VALUES
-  ('awd_golden_ball',  'golden_ball',  'الكرة الذهبية (أفضل لاعب)',      'Golden Ball (Best Player)',       1, CURRENT_TIMESTAMP),
-  ('awd_golden_boot',  'golden_boot',  'الحذاء الذهبي (الهداف)',         'Golden Boot (Top Scorer)',        2, CURRENT_TIMESTAMP),
-  ('awd_golden_glove', 'golden_glove', 'القفاز الذهبي (أفضل حارس)',      'Golden Glove (Best Goalkeeper)',  3, CURRENT_TIMESTAMP),
+  ('awd_golden_ball',  'golden_ball',  'الكرة الذهبية — أفضل لاعب',      'Golden Ball — Best Player',       1, CURRENT_TIMESTAMP),
+  ('awd_golden_boot',  'golden_boot',  'الحذاء الذهبي — الهدّاف',         'Golden Boot — Top Scorer',        2, CURRENT_TIMESTAMP),
+  ('awd_golden_glove', 'golden_glove', 'القفاز الذهبي — أفضل حارس',      'Golden Glove — Best Goalkeeper',  3, CURRENT_TIMESTAMP),
   ('awd_best_young',   'best_young',   'أفضل لاعب شاب',                  'Best Young Player',               4, CURRENT_TIMESTAMP)
 ON CONFLICT ("key") DO NOTHING;
 
