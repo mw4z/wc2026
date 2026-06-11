@@ -346,23 +346,39 @@ function LockedView({
         ? match.homeTeam?.name
         : match.awayTeam?.name
       : null;
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <div>
-        <div className="text-xs text-slate-400">{UI.yourPrediction}</div>
-        <div className="font-display text-lg font-bold tnum text-white">
-          {prediction.predictedHomeScore} : {prediction.predictedAwayScore}
+  const scored = prediction.pointsAwarded != null;
+
+  // Scored: prediction on one side, the points pill fills the other → balanced.
+  if (scored) {
+    return (
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-xs text-slate-400">{UI.yourPrediction}</div>
+          <div className="font-display text-lg font-bold tnum text-white">
+            {prediction.predictedHomeScore} : {prediction.predictedAwayScore}
+          </div>
+          {winnerName && <div className="text-xs text-slate-400">{UI.qualifierLabel} {winnerName}</div>}
         </div>
-        {winnerName && <div className="text-xs text-slate-400">{UI.qualifierLabel} {winnerName}</div>}
-      </div>
-      {prediction.pointsAwarded != null && (
         <div className="rounded-lg bg-gold-500/15 px-3 py-1.5 text-center">
           <div className="font-display text-lg font-extrabold tnum text-gold-400">
             +{prediction.pointsAwarded}
           </div>
           <div className="text-[10px] text-gold-400/80">{UI.point}</div>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  // Not scored yet — center it so there's no stranded empty space.
+  return (
+    <div className="flex flex-col items-center gap-1 text-center">
+      <div className="flex items-baseline gap-2">
+        <span className="text-xs text-slate-400">{UI.yourPrediction}</span>
+        <span className="font-display text-lg font-bold tnum text-white">
+          {prediction.predictedHomeScore} : {prediction.predictedAwayScore}
+        </span>
+      </div>
+      {winnerName && <div className="text-xs text-slate-400">{UI.qualifierLabel} {winnerName}</div>}
     </div>
   );
 }
