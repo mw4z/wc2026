@@ -2,14 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { emailStartSchema } from "@/lib/validation";
 import { normalizeEmail } from "@/lib/users";
 import { prisma } from "@/lib/prisma";
-import { requireUser, createEmailChangePending } from "@/lib/auth";
-import { otpConfigured, sendEmailOtp } from "@/lib/authentica";
+import { requireUser } from "@/lib/auth";
 import { errorResponse } from "@/lib/api";
 
 export const runtime = "nodejs";
 
-// Logged-in user adds/changes their email. Sends an OTP to the new address (if
-// OTP is configured); otherwise sets it directly. Rejects an email already in use.
+// Logged-in user adds/changes their email — set DIRECTLY, no OTP. Verifying the
+// email is a separate, optional step (see ./verify/*). Changing the address
+// resets the verified flag. Rejects an email already used by another account.
 export async function POST(req: NextRequest) {
   try {
     const me = await requireUser();
@@ -24,14 +24,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (otpConfigured) {
-      await sendEmailOtp(normalized);
-      await createEmailChangePending(normalized);
-      return NextResponse.json({ otpRequired: true });
-    }
-
-    // No OTP provider → set directly.
-    await prisma.user.update({ where: { id: me.id }, data: { email: normalized } });
+    await prisma.user.update({
+      where: { id: me.id },
+      data: { email: normalized, emailVerified: false },
+    });
     return NextResponse.json({ ok: true, updated: true });
   } catch (e) {
     return errorResponse(e);

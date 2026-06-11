@@ -8,8 +8,9 @@ import { errorResponse } from "@/lib/api";
 
 export const runtime = "nodejs";
 
-// Verify the OTP for the email the logged-in user is adding/changing, then set it.
-// The email comes from the email-change cookie (never the body).
+// Verify the OTP for the user's email and mark it verified. The email comes from
+// the email-change cookie (never the body). Email is already set directly by the
+// send route; this just confirms ownership and flips emailVerified.
 export async function POST(req: NextRequest) {
   try {
     const me = await requireUser();
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      await prisma.user.update({ where: { id: me.id }, data: { email } });
+      await prisma.user.update({ where: { id: me.id }, data: { email, emailVerified: true } });
     } catch (e) {
       // Unique race: someone took the email between send and verify.
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {

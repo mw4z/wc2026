@@ -40,14 +40,11 @@ function EmailEntry() {
         return;
       }
       const qs = next !== "/matches" ? `?next=${encodeURIComponent(next)}` : "";
-      if (data.otpRequired) {
-        // Email a code, then verify on the next step (existing → in, new → signup).
-        router.push(`/login/verify${qs}`);
-      } else if (data.exists) {
-        // OTP off + existing account → straight in.
+      if (data.exists) {
+        // Existing account → straight in.
         router.push(next);
       } else {
-        // OTP off + new email → signup (email held in a pending cookie).
+        // New email → signup (email held in a pending cookie).
         router.push(`/login/signup${qs}`);
       }
       router.refresh();

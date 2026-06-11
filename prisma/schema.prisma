@@ -67,6 +67,9 @@ model User {
   name       String
   department String?
   email      String?  @unique
+  // Optional email-ownership confirmation (via OTP from the profile). Login does
+  // NOT require this — it's a nice-to-have badge, not a gate.
+  emailVerified Boolean @default(false)
   role       Role     @default(USER)
   // Admin can deactivate suspicious users; inactive users cannot log in or predict.
   isActive   Boolean  @default(true)

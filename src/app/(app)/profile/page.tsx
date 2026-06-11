@@ -4,6 +4,7 @@ import { getUI } from "@/lib/locale";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
 import { UserIcon, ShieldIcon } from "@/components/icons";
 import { EmailManager } from "@/components/EmailManager";
+import { otpConfigured } from "@/lib/authentica";
 import { ReminderToggle } from "@/components/ReminderToggle";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
@@ -39,7 +40,7 @@ export default async function ProfilePage() {
         <Row label={UI.roleLabel} value={user.role === "ADMIN" ? UI.roleAdmin : UI.roleUser} />
       </div>
 
-      <EmailManager current={user.email} />
+      <EmailManager current={user.email} verified={user.emailVerified} canVerify={otpConfigured} />
 
       <div className="mt-6">
         <ReminderToggle manage />
