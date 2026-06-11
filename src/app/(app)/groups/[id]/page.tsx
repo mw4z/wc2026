@@ -7,6 +7,7 @@ import { CopyCode } from "@/components/groups/CopyCode";
 import { GroupShareButtons } from "@/components/groups/GroupShareButtons";
 import { AwardsToggle } from "@/components/groups/AwardsToggle";
 import { GroupRename } from "@/components/groups/GroupRename";
+import { RegenerateCodeButton } from "@/components/groups/RegenerateCodeButton";
 import { LeaveGroupButton } from "@/components/groups/LeaveGroupButton";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
 import { UsersIcon, TrophyIcon, SlidersIcon, ListIcon } from "@/components/icons";
@@ -79,6 +80,7 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
             {group.code}
           </span>
           <p className="text-xs text-slate-400">{UI.groupCodeShareHint}</p>
+          {isLeader && <RegenerateCodeButton groupId={id} />}
         </div>
 
         {/* Unified, uniform action grid */}

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUI } from "../I18nProvider";
-import { CopyCode } from "./CopyCode";
 
 interface Member {
   userId: string;
@@ -17,14 +16,12 @@ export function GroupMembersClient({
   isLeader,
   leaderId,
   currentUserId,
-  code,
   members,
 }: {
   groupId: string;
   isLeader: boolean;
   leaderId: string;
   currentUserId: string;
-  code: string;
   members: Member[];
 }) {
   const UI = useUI();
@@ -54,27 +51,6 @@ export function GroupMembersClient({
 
   return (
     <div className="space-y-6">
-      {isLeader && (
-        <div className="card space-y-4 p-5">
-          <div>
-            <label className="label">{UI.groupCode}</label>
-            <div className="flex flex-wrap items-center gap-2">
-              <CopyCode code={code} />
-              <button
-                onClick={async () => {
-                  if (await call(`/api/groups/${groupId}/regenerate`, "POST")) router.refresh();
-                }}
-                disabled={busy}
-                className="btn-ghost text-sm"
-              >
-                {UI.regenerateCode}
-              </button>
-            </div>
-            <p className="mt-1 text-xs text-slate-500">{UI.regenerateNote}</p>
-          </div>
-        </div>
-      )}
-
       <div className="card overflow-x-auto">
         <table className="w-full text-right text-sm">
           <thead className="border-b border-white/10 text-xs text-slate-400">
