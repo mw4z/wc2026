@@ -3,7 +3,10 @@ import { signupCompleteSchema } from "@/lib/validation";
 import { completeEmailSignup } from "@/lib/users";
 import { getPendingSignup, clearPendingSignup, createSession, clearInvitePending } from "@/lib/auth";
 import { assertGroupJoinable, joinGroupByCode, createGroup } from "@/lib/groups";
+import { notifyAdminsNewUser } from "@/lib/notifications";
 import { errorResponse } from "@/lib/api";
+
+export const runtime = "nodejs"; // web-push (in notifyAdminsNewUser) needs Node
 
 // Step 2 of the email flow. The (verified) email comes from the pending-signup
 // cookie (never the request body / URL). Creates the account and optionally
@@ -43,6 +46,10 @@ export async function POST(req: NextRequest) {
 
     await clearPendingSignup();
     await clearInvitePending();
+
+    // Notify super admins of the new registration (best-effort; never blocks signup).
+    await notifyAdminsNewUser(user.name);
+
     return NextResponse.json({ ok: true, groupId });
   } catch (e) {
     return errorResponse(e);
