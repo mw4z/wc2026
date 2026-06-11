@@ -234,6 +234,22 @@ function RevealedRow({ m }: { m: MatchView }) {
       {open && m.picks && (
         <div className="mt-2 border-t border-white/[0.06] pt-2">
           <table className="w-full text-sm">
+            <thead>
+              {/* Make the score orientation explicit: which side is which team. */}
+              <tr className="border-b border-white/[0.06] text-[11px] text-slate-400">
+                <th className="py-1 text-start font-semibold">{UI.name}</th>
+                <th className="py-1 text-center font-semibold">
+                  <span className="inline-flex items-center justify-center gap-1">
+                    <Flag src={m.homeFlag} className="h-4 w-4" />
+                    <span className="max-w-[4.5rem] truncate">{m.home}</span>
+                    <span className="text-slate-600">-</span>
+                    <span className="max-w-[4.5rem] truncate">{m.away}</span>
+                    <Flag src={m.awayFlag} className="h-4 w-4" />
+                  </span>
+                </th>
+                <th className="py-1 text-end font-semibold">{UI.point}</th>
+              </tr>
+            </thead>
             <tbody>
               {m.picks.map((p, i) => (
                 <tr key={i} className="border-b border-white/[0.04] last:border-0">

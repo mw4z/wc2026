@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { SerializedMatch, SerializedPrediction } from "@/app/(app)/matches/page";
 import { useUI } from "./I18nProvider";
-import { ClockIcon, CheckIcon, LockIcon } from "./icons";
+import { ClockIcon, CheckIcon, LockIcon, UsersIcon } from "./icons";
 import { Flag } from "./Flag";
 
 const KNOCKOUT = new Set([
@@ -43,12 +43,16 @@ export function MatchCard({
   match,
   prediction,
   winnerOnly = false,
+  groupId = null,
 }: {
   match: SerializedMatch;
   prediction: SerializedPrediction;
   // True when ALL of the viewer's groups are winner-only: show a result picker
   // instead of goal boxes. The stored score is a placeholder (1-0 / 0-0 / 0-1).
   winnerOnly?: boolean;
+  // The viewer's group (if any) — once the match starts, link to that group's
+  // revealed member predictions for this match.
+  groupId?: string | null;
 }) {
   const UI = useUI();
   const router = useRouter();
@@ -198,7 +202,18 @@ export function MatchCard({
         {!teamsKnown ? (
           <p className="text-center text-sm text-slate-500">{UI.teamsTbd}</p>
         ) : locked ? (
-          <LockedView prediction={prediction} isKnockout={isKnockout} match={match} />
+          <>
+            <LockedView prediction={prediction} isKnockout={isKnockout} match={match} />
+            {groupId && (
+              <Link
+                href={`/groups/${groupId}/predictions`}
+                className="btn-ghost mt-3 inline-flex w-full items-center justify-center gap-1.5 text-sm"
+              >
+                <UsersIcon className="text-base" />
+                {UI.viewGroupPredictions}
+              </Link>
+            )}
+          </>
         ) : notOpenYet ? (
           <div className="flex flex-col items-center gap-2 text-center text-sm">
             <p className="font-semibold text-slate-300">{UI.notOpenYet}</p>
