@@ -438,11 +438,16 @@ function StatusPill({
   if (notOpenYet && !finished) {
     return <span className="pill pill-locked">{UI.notOpenYet}</span>;
   }
-  const effective = finished
-    ? "FINISHED"
-    : status === "SCHEDULED" && locked
-      ? "LOCKED"
-      : status;
+  // SCORED takes priority: a match with calculated points shows "تم احتساب
+  // النقاط", not "بانتظار النتيجة" (FINISHED).
+  const effective =
+    status === "SCORED"
+      ? "SCORED"
+      : finished
+        ? "FINISHED"
+        : status === "SCHEDULED" && locked
+          ? "LOCKED"
+          : status;
 
   if (effective === "LIVE") {
     return (

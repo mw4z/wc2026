@@ -69,13 +69,16 @@ export default async function MatchesPage() {
   );
   const closingIds = new Set(closingSoon.map((m) => m.id));
 
-  const today = matches.filter((m) => isSameDayInTz(m.kickoffAt, now) && !closingIds.has(m.id));
+  // "Today" shows only today's matches that HAVEN'T kicked off yet — once a match
+  // starts it moves to "finished" (any day), so finished/scored games don't linger
+  // at the top.
+  const today = matches.filter(
+    (m) => isSameDayInTz(m.kickoffAt, now) && m.kickoffAt > now && !closingIds.has(m.id),
+  );
   const upcoming = matches.filter(
     (m) => m.kickoffAt > now && !isSameDayInTz(m.kickoffAt, now) && !closingIds.has(m.id),
   );
-  const finished = matches.filter(
-    (m) => m.kickoffAt <= now && !isSameDayInTz(m.kickoffAt, now),
-  );
+  const finished = matches.filter((m) => m.kickoffAt <= now);
 
   // Today summary (counts ALL of today's matches, including closing-soon ones).
   const todayAll = matches.filter((m) => isSameDayInTz(m.kickoffAt, now));
