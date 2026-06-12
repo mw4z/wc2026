@@ -72,8 +72,12 @@ export function ShareLeaderboard({
 
   return (
     <>
-      <button onClick={share} disabled={busy} className="action-btn is-wa">
-        {busy ? <Spinner /> : <ShareIcon className="ab-ic" />}
+      <button
+        onClick={share}
+        disabled={busy}
+        className="btn-ghost flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap text-sm"
+      >
+        {busy ? <Spinner /> : <ShareIcon className="text-base" />}
         {UI.shareLeaderboard}
       </button>
 

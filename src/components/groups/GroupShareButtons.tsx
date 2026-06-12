@@ -23,7 +23,7 @@ export function GroupShareButtons({
   return (
     <button
       onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(result())}`, "_blank", "noopener,noreferrer")}
-      className="btn-ghost gap-1.5 text-sm"
+      className="btn-ghost flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap text-sm"
     >
       <ShareIcon className="text-base" />
       {UI.shareMyResult}
