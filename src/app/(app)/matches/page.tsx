@@ -178,6 +178,8 @@ export function serializeMatch(m: MatchWithTeams, locale: Locale = "ar", lead: P
     awayScore: m.awayScore,
     homeTeam: team(m.homeTeam),
     awayTeam: team(m.awayTeam),
+    // Kickoff date/time, formatted in Saudi time (UTC+3) for display on the card.
+    kickoffLabel: formatDateTimeAr(m.kickoffAt),
     // Global prediction-opening window (null = always open).
     opensAt: opensAt ? opensAt.toISOString() : null,
     opensAtLabel: opensAt ? formatDateTimeAr(opensAt) : null,

@@ -182,7 +182,11 @@ export function MatchCard({
       </div>
 
       {/* meta */}
-      <div className="flex flex-wrap items-center justify-center gap-2 px-4 pb-1 text-center text-xs text-slate-300">
+      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 pb-1 text-center text-xs text-slate-300">
+        <span className="inline-flex items-center gap-1">
+          <ClockIcon className="text-[13px] text-accent-400" />
+          {match.kickoffLabel}
+        </span>
         {match.stadium && (
           <span>
             {match.stadium}
