@@ -69,16 +69,26 @@ export default async function MatchesPage() {
   );
   const closingIds = new Set(closingSoon.map((m) => m.id));
 
-  // "Today" shows only today's matches that HAVEN'T kicked off yet — once a match
-  // starts it moves to "finished" (any day), so finished/scored games don't linger
-  // at the top.
+  // A match is "finished" only when it has an actual result (FINISHED/SCORED).
+  // A match that has kicked off but isn't scored yet (locked, awaiting result)
+  // must NOT drop to the bottom — it stays in "today" so the user sees their
+  // locked pick near the top until the score comes in.
+  const isDone = (m: (typeof matches)[number]) => m.homeScore != null && m.awayScore != null;
+
+  // "Today": today's matches without a result yet (whether open or already locked
+  // but awaiting score). Closing-soon ones are shown in their own section above.
   const today = matches.filter(
-    (m) => isSameDayInTz(m.kickoffAt, now) && m.kickoffAt > now && !closingIds.has(m.id),
+    (m) => isSameDayInTz(m.kickoffAt, now) && !isDone(m) && !closingIds.has(m.id),
   );
+  // "Upcoming": future matches on other days.
   const upcoming = matches.filter(
     (m) => m.kickoffAt > now && !isSameDayInTz(m.kickoffAt, now) && !closingIds.has(m.id),
   );
-  const finished = matches.filter((m) => m.kickoffAt <= now);
+  // "Finished": anything with a result, plus past matches from earlier days that
+  // never got a score (so they don't vanish or clutter "today").
+  const finished = matches.filter(
+    (m) => isDone(m) || (m.kickoffAt <= now && !isSameDayInTz(m.kickoffAt, now)),
+  );
 
   // Today summary (counts ALL of today's matches, including closing-soon ones).
   const todayAll = matches.filter((m) => isSameDayInTz(m.kickoffAt, now));
