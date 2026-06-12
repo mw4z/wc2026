@@ -5,6 +5,7 @@ import { getGroupForMember, getGroupLeaderboard, GroupError } from "@/lib/groups
 import { getUI } from "@/lib/locale";
 import { CopyCode } from "@/components/groups/CopyCode";
 import { GroupShareButtons } from "@/components/groups/GroupShareButtons";
+import { ShareLeaderboard } from "@/components/groups/ShareLeaderboard";
 import { AwardsToggle } from "@/components/groups/AwardsToggle";
 import { GroupRename } from "@/components/groups/GroupRename";
 import { RegenerateCodeButton } from "@/components/groups/RegenerateCodeButton";
@@ -112,6 +113,9 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
             </>
           )}
           {isLeader && <AwardsToggle groupId={id} enabled={group.awardsEnabled} />}
+          {board.length > 0 && (
+            <ShareLeaderboard groupName={group.name} code={group.code} rows={board} currentUserId={user.id} />
+          )}
           <GroupShareButtons code={group.code} points={myRow?.totalPoints ?? 0} rank={myRow?.rank ?? null} />
         </div>
 
