@@ -6,6 +6,7 @@ import { getLocale, getUI } from "@/lib/locale";
 import { I18nProvider } from "@/components/I18nProvider";
 import { AdScript } from "@/components/AdScript";
 import { ADSENSE_CLIENT_ID } from "@/lib/ads";
+import { SITE_URL } from "@/lib/site";
 
 // Display / numerals (Latin): broadcast-grade grotesque with heavy weights.
 const display = Archivo({
@@ -25,9 +26,26 @@ const sans = IBM_Plex_Sans_Arabic({
 export async function generateMetadata(): Promise<Metadata> {
   const ui = await getUI();
   return {
+    metadataBase: new URL(SITE_URL),
     title: ui.appName,
     description: ui.appName,
     manifest: "/manifest.webmanifest",
+    // Default social preview (pages override title/description/url as needed).
+    openGraph: {
+      type: "website",
+      siteName: "GamePredict",
+      url: SITE_URL,
+      title: ui.appName,
+      description: ui.appName,
+      locale: "ar_SA",
+      images: [{ url: "/og-default.png", width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: ui.appName,
+      description: ui.appName,
+      images: ["/og-default.png"],
+    },
     // iOS only allows Web Push when the site is installed to the Home Screen as a
     // standalone PWA — these tags make that possible.
     appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: ui.appName },

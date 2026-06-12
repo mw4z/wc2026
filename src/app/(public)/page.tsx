@@ -1,10 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ACTIVE_TOURNAMENT } from "@/lib/tournament";
+import { SITE_URL } from "@/lib/site";
+
+const TITLE = "GamePredict — توقعات المباريات";
+const DESCRIPTION =
+  "انضم لتحدي توقعات كأس 2026، توقّع النتائج، نافس أصحابك في المجموعات، وتابع ترتيبك بعد كل مباراة.";
 
 export const metadata: Metadata = {
-  title: "GamePredict — توقعات المباريات",
-  description: "لعبة مجانية لتوقّع نتائج مباريات كرة القدم والتنافس مع أصدقائك على الترتيب.",
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: SITE_URL },
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: SITE_URL,
+    images: [{ url: "/og-default.png", width: 1200, height: 630 }],
+  },
+  twitter: { title: TITLE, description: DESCRIPTION, images: ["/og-default.png"] },
 };
 
 const FEATURES = [

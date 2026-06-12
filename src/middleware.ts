@@ -3,6 +3,11 @@ import { jwtVerify } from "jose";
 
 const COOKIE = "wc26_session";
 
+// Social/link-preview crawlers — let them reach /join so they read its OG tags
+// instead of being redirected to /login (which would show the wrong preview).
+const CRAWLER =
+  /(facebookexternalhit|whatsapp|twitterbot|telegrambot|telegram|linkedinbot|slackbot|discordbot|googlebot|bingbot|embedly|pinterest|redditbot|skypeuripreview|vkshare|whatsapp\/|facebot)/i;
+
 // Routes that require any authenticated user.
 const PROTECTED = ["/dashboard", "/matches", "/groups", "/leaderboard", "/profile", "/admin"];
 // Routes that additionally require ADMIN.
@@ -33,6 +38,8 @@ export async function middleware(req: NextRequest) {
     const code = inviteMatch[1] ?? "";
     const session = await readSession(req);
     if (!session) {
+      // Let link-preview crawlers render the page (for OG tags) instead of redirecting.
+      if (CRAWLER.test(req.headers.get("user-agent") || "")) return NextResponse.next();
       const url = req.nextUrl.clone();
       url.pathname = "/login";
       url.search = "";
