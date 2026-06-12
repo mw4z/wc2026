@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getGroupForMember, getGroupMembers, GroupError } from "@/lib/groups";
 import { lockDueMatches } from "@/lib/matches";
 import { getPredictionLead, predictionOpensAt } from "@/lib/settings";
+import { formatDateTimeAr } from "@/lib/time";
+import { flagEmoji } from "@/lib/flags";
 import { getUI, getLocale } from "@/lib/locale";
 import { GroupPredictions } from "@/components/groups/GroupPredictions";
 
@@ -79,6 +81,16 @@ export default async function GroupPredictionsPage({ params }: { params: Promise
   const openMatches = matches.filter(isOpen);
   const lockedMatches = matches.filter(isLocked);
 
+  // Match-specific reminder options (leader): open matches, today-first, up to 10.
+  // Lead with U+200F so a flag-emoji-leading line stays RTL on WhatsApp.
+  const reminderMatches = isLeader
+    ? openMatches.slice(0, 10).map((m) => {
+        const matchText = `‏${flagEmoji(m.homeTeam?.code)} ${tn(m.homeTeam)} × ${tn(m.awayTeam)} ${flagEmoji(m.awayTeam?.code)}`;
+        const time = formatDateTimeAr(m.kickoffAt);
+        return { id: m.id, label: `${matchText} — ${time}`, matchText, time, url: `/matches/${m.id}` };
+      })
+    : [];
+
   // Upcoming = OPEN-to-predict matches only; show who has / hasn't predicted (no scores).
   const upcoming = openMatches.map((m) => {
     const pm = byMatch.get(m.id) ?? new Map();
@@ -132,6 +144,7 @@ export default async function GroupPredictionsPage({ params }: { params: Promise
       upcoming={upcoming}
       revealed={revealed}
       roster={roster}
+      reminderMatches={reminderMatches}
     />
   );
 }

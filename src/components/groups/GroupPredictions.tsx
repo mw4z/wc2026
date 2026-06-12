@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useUI } from "@/components/I18nProvider";
 import { Flag } from "@/components/Flag";
-import { WhatsAppIcon } from "@/components/icons";
+import { GroupReminderCard, type ReminderMatch } from "./GroupReminderCard";
 
 interface Pick { name: string; home: number | null; away: number | null; points: number | null }
 export interface MatchView {
@@ -36,6 +36,7 @@ export function GroupPredictions({
   upcoming,
   revealed,
   roster,
+  reminderMatches,
 }: {
   groupId: string;
   groupName: string;
@@ -45,16 +46,11 @@ export function GroupPredictions({
   upcoming: MatchView[];
   revealed: MatchView[];
   roster: RosterEntry[];
+  reminderMatches: ReminderMatch[];
 }) {
   const UI = useUI();
   const [notifyMsg, setNotifyMsg] = useState<string | null>(null);
   const [notifying, setNotifying] = useState(false);
-
-  function remind() {
-    const link = `${window.location.origin}/join/${groupCode}`;
-    const msg = `تذكير ⚽\nلا تنسوا تسجيل توقعاتكم قبل بداية المباريات!\nرابط المجموعة:\n${link}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
-  }
 
   async function notifyPending() {
     setNotifying(true);
@@ -86,21 +82,22 @@ export function GroupPredictions({
         <Link href={`/groups/${groupId}`} className="btn-ghost px-3 py-1.5 text-sm">{UI.backToGroup}</Link>
       </div>
 
+      {/* Leader: match-specific reminder (pick a match → WhatsApp / copy). */}
+      {isLeader && (
+        <div className="mb-6">
+          <GroupReminderCard matches={reminderMatches} code={groupCode} />
+        </div>
+      )}
+
       {/* Roster: who is behind on upcoming predictions (clear who hasn't voted). */}
       {roster.length > 0 && upcoming.length > 0 && (
         <div className="card mb-6 p-4">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <span className="eyebrow">{UI.predictionStatus}</span>
             {isLeader && (
-              <div className="flex flex-wrap items-center gap-2">
-                <button onClick={remind} className="action-btn is-wa w-auto px-3 py-1.5">
-                  <WhatsAppIcon className="ab-ic" />
-                  {UI.remindToPredict}
-                </button>
-                <button onClick={notifyPending} disabled={notifying || behind.length === 0} className="btn-primary px-3 py-1.5 text-sm">
-                  {notifying ? UI.notifying : UI.notifyPending}
-                </button>
-              </div>
+              <button onClick={notifyPending} disabled={notifying || behind.length === 0} className="btn-primary px-3 py-1.5 text-sm">
+                {notifying ? UI.notifying : UI.notifyPending}
+              </button>
             )}
           </div>
           {notifyMsg && <p className="mb-2 text-sm text-accent-300">{notifyMsg}</p>}
