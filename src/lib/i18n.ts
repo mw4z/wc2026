@@ -309,7 +309,7 @@ const ar = {
     sendWhatsApp: "إرسال عبر واتساب",
     reminderCopied: "تم نسخ التذكير",
     reminderText:
-      "تذكير سريع ⚽\n\nلا تنسون توقع مباراة:\n{match}\n\nيغلق التوقع عند بداية المباراة.\nوقت المباراة: {time}\n\n{linkBlock}كود المجموعة: {code}",
+      "تذكير سريع ⚽\n\nلا تنسون توقع مباراة:\n{match}\n\nيغلق التوقع عند بداية المباراة.\nوقت المباراة: {time}\n\n{linkBlock}",
     reminderMatchLink: "رابط المباراة:",
     reminderGroupLink: "رابط المجموعة:",
     inviteText: "انضم لمجموعة توقعات كأس 2026 ⚽\n\nكود المجموعة: {code}\nرابط الانضمام:\n{link}",
@@ -876,7 +876,7 @@ const en: Dict = {
     sendWhatsApp: "Send via WhatsApp",
     reminderCopied: "Reminder copied",
     reminderText:
-      "Quick reminder ⚽\n\nDon't forget to predict:\n{match}\n\nPredictions close at kickoff.\nMatch time: {time}\n\n{linkBlock}Group code: {code}",
+      "Quick reminder ⚽\n\nDon't forget to predict:\n{match}\n\nPredictions close at kickoff.\nMatch time: {time}\n\n{linkBlock}",
     reminderMatchLink: "Match link:",
     reminderGroupLink: "Group link:",
     inviteText: "Join our World Cup 2026 predictions group ⚽\n\nGroup code: {code}\nJoin link:\n{link}",

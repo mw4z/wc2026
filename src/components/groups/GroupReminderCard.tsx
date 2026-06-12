@@ -26,12 +26,11 @@ export function GroupReminderCard({ matches, code }: { matches: ReminderMatch[];
   function build(): string {
     if (!m) return "";
     const groupLink = `${window.location.origin}/join/${code}`;
-    const linkBlock = `${g.reminderGroupLink}\n${groupLink}\n`;
+    const linkBlock = `${g.reminderGroupLink}\n${groupLink}`;
     return g.reminderText
       .replace("{match}", m.matchText)
       .replace("{time}", m.time)
-      .replace("{linkBlock}", linkBlock)
-      .replace("{code}", code);
+      .replace("{linkBlock}", linkBlock);
   }
 
   async function copy() {

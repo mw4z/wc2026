@@ -80,7 +80,9 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
         .filter(openNow)
         .slice(0, 10)
         .map((m) => {
-          const matchText = `${flagEmoji(m.homeTeam?.code)} ${tn(m.homeTeam)} × ${tn(m.awayTeam)} ${flagEmoji(m.awayTeam?.code)}`;
+          // Lead with an RTL mark (U+200F) so a line starting with a flag emoji
+          // (which is LTR) keeps RTL order — otherwise WhatsApp flips home/away.
+          const matchText = `‏${flagEmoji(m.homeTeam?.code)} ${tn(m.homeTeam)} × ${tn(m.awayTeam)} ${flagEmoji(m.awayTeam?.code)}`;
           const time = formatDateTimeAr(m.kickoffAt);
           return { id: m.id, label: `${matchText} — ${time}`, matchText, time, url: `/matches/${m.id}` };
         })
