@@ -2,17 +2,21 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getGroupForMember, getGroupLeaderboard, GroupError } from "@/lib/groups";
-import { getUI } from "@/lib/locale";
-import { CopyCode } from "@/components/groups/CopyCode";
-import { GroupShareButtons } from "@/components/groups/GroupShareButtons";
-import { ShareLeaderboard } from "@/components/groups/ShareLeaderboard";
-import { AwardsToggle } from "@/components/groups/AwardsToggle";
-import { GroupRename } from "@/components/groups/GroupRename";
-import { RegenerateCodeButton } from "@/components/groups/RegenerateCodeButton";
-import { LeaveGroupButton } from "@/components/groups/LeaveGroupButton";
-import { TournamentHero, HeroStat } from "@/components/TournamentHero";
-import { UsersIcon, TrophyIcon, SlidersIcon, ListIcon } from "@/components/icons";
+import { lockDueMatches } from "@/lib/matches";
+import { getPredictionLead, predictionOpensAt } from "@/lib/settings";
+import { isSameDayInTz, formatDateTimeAr } from "@/lib/time";
+import { flagEmoji } from "@/lib/flags";
 import { isCustomScoring } from "@/lib/groupScoring";
+import { getUI, getLocale } from "@/lib/locale";
+import { TournamentHero, HeroStat } from "@/components/TournamentHero";
+import { UsersIcon, TrophyIcon } from "@/components/icons";
+import { GroupTodayCard } from "@/components/groups/GroupTodayCard";
+import { GroupInviteCard } from "@/components/groups/GroupInviteCard";
+import { GroupReminderCard } from "@/components/groups/GroupReminderCard";
+import { ShareLeaderboard } from "@/components/groups/ShareLeaderboard";
+import { GroupShareButtons } from "@/components/groups/GroupShareButtons";
+import { LeaderSettings } from "@/components/groups/LeaderSettings";
+import { LeaveGroupButton } from "@/components/groups/LeaveGroupButton";
 import { AdSlot } from "@/components/AdSlot";
 import { AD_SLOTS } from "@/lib/ads";
 
@@ -20,6 +24,8 @@ export const dynamic = "force-dynamic";
 
 export default async function GroupDashboard({ params }: { params: Promise<{ id: string }> }) {
   const UI = await getUI();
+  const g = UI.gpage;
+  const locale = await getLocale();
   const user = await requireUser();
   const { id } = await params;
   const isAdmin = user.role === "ADMIN";
@@ -32,9 +38,53 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
     return <p className="card p-6 text-center text-amber-200">{msg}</p>;
   }
 
-  const board = await getGroupLeaderboard(id);
+  await lockDueMatches();
+  const now = new Date();
+  const lead = await getPredictionLead();
+
+  const [board, myPreds, matches, customMatchCount] = await Promise.all([
+    getGroupLeaderboard(id),
+    prisma.prediction.findMany({ where: { userId: user.id }, select: { matchId: true } }),
+    prisma.match.findMany({
+      where: { homeTeamId: { not: null }, awayTeamId: { not: null } },
+      include: { homeTeam: true, awayTeam: true },
+      orderBy: { kickoffAt: "asc" },
+    }),
+    prisma.groupMatchRule.count({ where: { groupId: id } }),
+  ]);
+
   const myRow = board.find((r) => r.userId === user.id);
   const isLeader = group.leaderId === user.id;
+  const tn = (t: { nameAr: string; nameEn: string } | null) =>
+    t ? (locale === "en" ? t.nameEn : t.nameAr) : UI.tbd;
+
+  // OPEN = scheduled, window started, kickoff ahead.
+  const predicted = new Set(myPreds.map((m) => m.matchId));
+  const openNow = (m: (typeof matches)[number]) => {
+    if (m.status !== "SCHEDULED" || m.kickoffAt <= now) return false;
+    const o = predictionOpensAt(m.kickoffAt, lead);
+    return !o || o.getTime() <= now.getTime();
+  };
+
+  // Today card data.
+  const todayAll = matches.filter((m) => isSameDayInTz(m.kickoffAt, now));
+  const todayOpen = todayAll.filter(openNow);
+  const todayMissing = todayOpen.filter((m) => !predicted.has(m.id)).length;
+  const nextLockAt = todayOpen.length
+    ? new Date(Math.min(...todayOpen.map((m) => m.kickoffAt.getTime()))).toISOString()
+    : null;
+
+  // Leader reminder: open matches (today first via kickoff order), up to 10.
+  const reminderMatches = isLeader
+    ? matches
+        .filter(openNow)
+        .slice(0, 10)
+        .map((m) => {
+          const matchText = `${flagEmoji(m.homeTeam?.code)} ${tn(m.homeTeam)} × ${tn(m.awayTeam)} ${flagEmoji(m.awayTeam?.code)}`;
+          const time = formatDateTimeAr(m.kickoffAt);
+          return { id: m.id, label: `${matchText} — ${time}`, matchText, time, url: `/matches/${m.id}` };
+        })
+    : [];
 
   // Plain-language scoring summary shown to all members.
   const cfg = {
@@ -44,7 +94,6 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
     winnerOnly: group.winnerOnly,
   };
   const p = UI.gscore.pointShort;
-  const customMatchCount = await prisma.groupMatchRule.count({ where: { groupId: id } });
   let scoringSummary: string | null = null;
   if (group.winnerOnly) {
     scoringSummary = `${UI.gscore.winnerOnlyNotice} (${cfg.pointsOutcome} ${p})`;
@@ -55,8 +104,11 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
     scoringSummary += ` · ${customMatchCount} ${UI.gscore.perMatchCount}`;
   }
 
+  const awardsEnabled = group.awardsEnabled;
+
   return (
-    <div>
+    <div className="space-y-5">
+      {/* 1) Summary */}
       <TournamentHero
         title={group.name}
         subtitle={isLeader ? `${UI.groupLeader} · ${UI.groupsSubtitle}` : UI.groupsSubtitle}
@@ -64,105 +116,104 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
       >
         <HeroStat label={UI.members} value={board.length} />
         <HeroStat label={UI.groupRanking} value={myRow ? `#${myRow.rank}` : "—"} />
-        <HeroStat label={UI.point} value={myRow?.totalPoints ?? 0} />
+        <HeroStat label={g.myPoints} value={myRow?.totalPoints ?? 0} />
+        <HeroStat label={UI.groupCode} value={group.code} />
       </TournamentHero>
 
-      {isLeader && (
-        <div className="mb-4 text-center">
-          <GroupRename groupId={id} currentName={group.name} />
-        </div>
-      )}
+      {/* 2) Today's prediction action */}
+      <GroupTodayCard hasToday={todayAll.length > 0} missing={todayMissing} nextLockAt={nextLockAt} />
 
-      <div className="card card-accent mb-6 p-5">
-        {/* Prominent group code */}
-        <div className="mb-4 flex flex-col items-center gap-2 text-center">
-          <span className="rounded-xl border border-gold-500/40 bg-gold-500/10 px-5 py-2 font-mono text-2xl font-bold tracking-[0.3em] text-gold-300">
-            {group.code}
-          </span>
-          <p className="text-xs text-slate-400">{UI.groupCodeShareHint}</p>
-          {isLeader && <RegenerateCodeButton groupId={id} />}
+      {/* 3) Group ranking */}
+      <section className="card p-5">
+        <div className="mb-2 flex items-baseline justify-between">
+          <h2 className="text-lg font-bold text-gold-400">{g.rankingTitle}</h2>
+          <span className="text-xs text-slate-500">{g.membersCount.replace("{n}", String(board.length))}</span>
         </div>
+        <p className="mb-3 text-xs text-slate-400">{UI.leaderboardUpdatedTitle}</p>
 
-        {/* Unified, uniform action grid */}
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-          <CopyCode code={group.code} />
-          <Link href={`/groups/${id}/members`} className="action-btn">
-            <UsersIcon className="ab-ic" />
-            {UI.groupMembers}
-          </Link>
-          <Link href={`/groups/${id}/predictions`} className="action-btn">
-            <ListIcon className="ab-ic" />
-            {UI.groupPredictions}
-          </Link>
-          {isLeader && (
-            <Link href={`/groups/${id}/scoring`} className="action-btn">
-              <SlidersIcon className="ab-ic" />
-              {UI.gscore.settingsBtn}
-            </Link>
-          )}
-          {group.awardsEnabled && (
-            <>
-              <Link href="/awards" className="action-btn">
-                <TrophyIcon className="ab-ic" />
-                {UI.awardsPredict}
-              </Link>
-              <Link href={`/groups/${id}/awards`} className="action-btn">
-                <TrophyIcon className="ab-ic" />
-                {UI.awardsBoard}
-              </Link>
-            </>
-          )}
-          {isLeader && <AwardsToggle groupId={id} enabled={group.awardsEnabled} />}
-          {board.length > 0 && (
-            <ShareLeaderboard groupName={group.name} code={group.code} rows={board} currentUserId={user.id} />
-          )}
-          <GroupShareButtons code={group.code} points={myRow?.totalPoints ?? 0} rank={myRow?.rank ?? null} />
+        <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
+          <table className="w-full text-right text-sm">
+            <thead className="border-b border-white/10 text-xs text-slate-400">
+              <tr>
+                <th className="p-3">{UI.rank}</th>
+                <th className="p-3">{UI.name}</th>
+                <th className="p-3">{UI.colPoints}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {board.map((r) => (
+                <tr key={r.userId} className={`border-b border-white/5 ${r.userId === user.id ? "bg-gold-500/15" : ""}`}>
+                  <td className="p-3">
+                    <span className={`font-display font-bold tnum ${r.rank === 1 ? "text-gold-400" : "text-slate-300"}`}>
+                      {r.rank}
+                    </span>
+                  </td>
+                  <td className="p-3 font-semibold">{r.name}</td>
+                  <td className="p-3 font-extrabold text-gold-400">{r.totalPoints}</td>
+                </tr>
+              ))}
+              {board.length === 0 && (
+                <tr><td colSpan={3} className="p-6 text-center text-slate-500">{UI.noMembersYet}</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
 
         {scoringSummary && (
-          <p className="mt-4 border-t border-white/10 pt-4 text-center text-xs text-slate-400">
+          <p className="mt-3 text-center text-xs text-slate-400">
             <span className="font-semibold text-accent-400">{UI.gscore.summaryTitle}:</span> {scoringSummary}
           </p>
         )}
 
-        <p className="mt-4 border-t border-white/10 pt-4 text-center text-xs text-slate-400">
-          {UI.leaderboardUpdatedTitle}
-        </p>
-      </div>
+        {board.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <ShareLeaderboard groupName={group.name} code={group.code} rows={board} currentUserId={user.id} />
+            <GroupShareButtons code={group.code} points={myRow?.totalPoints ?? 0} rank={myRow?.rank ?? null} />
+          </div>
+        )}
+      </section>
 
       <AdSlot slotId={AD_SLOTS.groupTop} slotName="group-top" />
 
-      <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="text-lg font-bold text-gold-400">{UI.groupRanking}</h2>
-        <span className="text-xs text-slate-500">{board.length} {UI.members}</span>
-      </div>
-      <div className="card overflow-x-auto">
-        <table className="w-full text-right text-sm">
-          <thead className="border-b border-white/10 text-xs text-slate-400">
-            <tr>
-              <th className="p-3">{UI.rank}</th>
-              <th className="p-3">{UI.name}</th>
-              <th className="p-3">{UI.totalPoints}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {board.map((r) => (
-              <tr key={r.userId} className={`border-b border-white/5 ${r.userId === user.id ? "bg-gold-500/15" : ""}`}>
-                <td className="p-3">
-                  <span className={`font-display font-bold tnum ${r.rank === 1 ? "text-gold-400" : "text-slate-300"}`}>
-                    {r.rank}
-                  </span>
-                </td>
-                <td className="p-3 font-semibold">{r.name}</td>
-                <td className="p-3 font-extrabold text-gold-400">{r.totalPoints}</td>
-              </tr>
-            ))}
-            {board.length === 0 && (
-              <tr><td colSpan={3} className="p-6 text-center text-slate-500">{UI.noMembersYet}</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* 4) Invite */}
+      <GroupInviteCard code={group.code} />
+
+      {/* 5) Leader reminder — choose a specific match */}
+      {isLeader && <GroupReminderCard matches={reminderMatches} code={group.code} />}
+
+      {/* 6) Awards */}
+      <section className="card p-5">
+        <h2 className="mb-2 font-bold text-gold-400">{g.awardsTitle}</h2>
+        {awardsEnabled ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/awards" className="btn-primary inline-flex items-center gap-1.5 text-sm">
+              <TrophyIcon className="text-base" />
+              {g.awardsPredict}
+            </Link>
+            <Link href={`/groups/${id}/awards`} className="btn-ghost inline-flex items-center gap-1.5 text-sm">
+              <TrophyIcon className="text-base" />
+              {g.awardsBoard}
+            </Link>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500">{g.awardsDisabled}</p>
+        )}
+      </section>
+
+      {/* 7) Members */}
+      <section className="card flex items-center justify-between gap-3 p-5">
+        <div>
+          <h2 className="font-bold text-gold-400">{g.membersTitle}</h2>
+          <p className="text-sm text-slate-400">{g.membersCount.replace("{n}", String(board.length))}</p>
+        </div>
+        <Link href={`/groups/${id}/members`} className="btn-ghost inline-flex items-center gap-1.5 text-sm">
+          <UsersIcon className="text-base" />
+          {g.viewMembers}
+        </Link>
+      </section>
+
+      {/* Leader-only settings (collapsible, low priority) */}
+      {isLeader && <LeaderSettings groupId={id} groupName={group.name} awardsEnabled={awardsEnabled} />}
 
       <LeaveGroupButton groupId={id} isLeader={isLeader} />
     </div>
