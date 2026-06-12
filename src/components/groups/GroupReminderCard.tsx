@@ -26,8 +26,7 @@ export function GroupReminderCard({ matches, code }: { matches: ReminderMatch[];
   function build(): string {
     if (!m) return "";
     const groupLink = `${window.location.origin}/join/${code}`;
-    const matchLink = `${window.location.origin}${m.url}`;
-    const linkBlock = `${g.reminderMatchLink}\n${matchLink}\n${g.reminderGroupLink}\n${groupLink}\n`;
+    const linkBlock = `${g.reminderGroupLink}\n${groupLink}\n`;
     return g.reminderText
       .replace("{match}", m.matchText)
       .replace("{time}", m.time)
