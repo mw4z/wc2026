@@ -9,7 +9,7 @@ import { flagEmoji } from "@/lib/flags";
 import { isCustomScoring } from "@/lib/groupScoring";
 import { getUI, getLocale } from "@/lib/locale";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
-import { UsersIcon, TrophyIcon } from "@/components/icons";
+import { UsersIcon, TrophyIcon, ListIcon } from "@/components/icons";
 import { GroupTodayCard } from "@/components/groups/GroupTodayCard";
 import { GroupInviteCard } from "@/components/groups/GroupInviteCard";
 import { GroupReminderCard } from "@/components/groups/GroupReminderCard";
@@ -173,6 +173,21 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
             <GroupShareButtons code={group.code} points={myRow?.totalPoints ?? 0} rank={myRow?.rank ?? null} />
           </div>
         )}
+      </section>
+
+      {/* Members' predictions — who predicted / who hasn't + revealed picks */}
+      <section className="card flex items-center justify-between gap-3 p-5">
+        <div className="min-w-0">
+          <h2 className="font-bold text-gold-400">{g.predictionsTitle}</h2>
+          <p className="text-sm text-slate-400">{g.predictionsDesc}</p>
+        </div>
+        <Link
+          href={`/groups/${id}/predictions`}
+          className="btn-ghost inline-flex shrink-0 items-center gap-1.5 text-sm"
+        >
+          <ListIcon className="text-base" />
+          {g.viewPredictions}
+        </Link>
       </section>
 
       <AdSlot slotId={AD_SLOTS.groupTop} slotName="group-top" />
