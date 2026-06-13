@@ -4,6 +4,7 @@ import { AppNav } from "@/components/AppNav";
 import { MobileTabBar } from "@/components/MobileTabBar";
 import { LogoutButton } from "@/components/LogoutButton";
 import { LangToggle } from "@/components/LangToggle";
+import { EnablePushModal } from "@/components/EnablePushModal";
 
 // The authenticated app chrome (header + inline/bottom nav). Shared by the (app)
 // layout and the (public) layout when the visitor is logged in, so public pages
@@ -29,6 +30,7 @@ export function AppShell({ isAdmin, children }: { isAdmin: boolean; children: Re
       </header>
       <main className="mx-auto max-w-5xl px-4 py-6 pb-28 xl:pb-6">{children}</main>
       <MobileTabBar isAdmin={isAdmin} />
+      <EnablePushModal />
     </div>
   );
 }
