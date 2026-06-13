@@ -2,6 +2,9 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
+  // Only apply `hover:` utilities on devices that truly support hover, so hover
+  // styles don't "stick" after a tap on touchscreens (phones/tablets).
+  future: { hoverOnlyWhenSupported: true },
   theme: {
     extend: {
       colors: {

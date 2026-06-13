@@ -84,27 +84,33 @@
     background: linear-gradient(180deg, #3b86ff, var(--accent));
     box-shadow: 0 6px 18px rgba(43, 123, 255, 0.32);
   }
-  .btn-primary:hover:not(:disabled) {
-    box-shadow: 0 8px 24px rgba(43, 123, 255, 0.5);
-    transform: translateY(-1px);
+  @media (hover: hover) {
+    .btn-primary:hover:not(:disabled) {
+      box-shadow: 0 8px 24px rgba(43, 123, 255, 0.5);
+      transform: translateY(-1px);
+    }
   }
   .btn-gold {
     @apply btn text-navy-950;
     background: linear-gradient(180deg, #f7d978, var(--gold));
     box-shadow: 0 6px 18px rgba(233, 185, 73, 0.28);
   }
-  .btn-gold:hover:not(:disabled) {
-    box-shadow: 0 8px 24px rgba(233, 185, 73, 0.45);
-    transform: translateY(-1px);
+  @media (hover: hover) {
+    .btn-gold:hover:not(:disabled) {
+      box-shadow: 0 8px 24px rgba(233, 185, 73, 0.45);
+      transform: translateY(-1px);
+    }
   }
   .btn-ghost {
     @apply btn border text-slate-200;
     border-color: var(--line);
     background: rgba(255, 255, 255, 0.04);
   }
-  .btn-ghost:hover:not(:disabled) {
-    border-color: rgba(43, 123, 255, 0.55);
-    background: rgba(255, 255, 255, 0.08);
+  @media (hover: hover) {
+    .btn-ghost:hover:not(:disabled) {
+      border-color: rgba(43, 123, 255, 0.55);
+      background: rgba(255, 255, 255, 0.08);
+    }
   }
 
   /* ---- Forms ------------------------------------------------------------- */
@@ -224,7 +230,7 @@
     padding: 0.85rem 1rem;
     transition: border-color 0.15s, background 0.15s, transform 0.1s;
   }
-  .tile:hover { border-color: rgba(43, 123, 255, 0.45); background: rgba(255, 255, 255, 0.06); }
+  @media (hover: hover) { .tile:hover { border-color: rgba(43, 123, 255, 0.45); background: rgba(255, 255, 255, 0.06); } }
   .tile:active { transform: scale(0.99); }
   .tile-ic {
     display: grid;
@@ -258,7 +264,7 @@
     text-align: center;
     transition: border-color 0.15s, background 0.15s, transform 0.1s;
   }
-  .action-btn:hover { border-color: rgba(43, 123, 255, 0.45); background: rgba(255, 255, 255, 0.06); color: #fff; }
+  @media (hover: hover) { .action-btn:hover { border-color: rgba(43, 123, 255, 0.45); background: rgba(255, 255, 255, 0.06); color: #fff; } }
   .action-btn:active { transform: scale(0.98); }
   .action-btn .ab-ic { color: var(--accent); font-size: 1.05rem; flex: none; }
   /* Success/confirmed state (e.g. "copied"). */
