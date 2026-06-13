@@ -57,37 +57,41 @@ export default async function MatchesPage() {
   const nowMs = now.getTime();
   const SIX_H = 6 * 3600_000;
 
-  // Closing soon: still-open matches kicking off within the next 6 hours.
-  const closingSoon = matches.filter(
-    (m) =>
-      m.status === "SCHEDULED" &&
-      m.homeTeamId &&
-      m.awayTeamId &&
-      m.kickoffAt.getTime() > nowMs &&
-      m.kickoffAt.getTime() <= nowMs + SIX_H,
-  );
-  const closingIds = new Set(closingSoon.map((m) => m.id));
+  const LIVE_WINDOW = 4 * 3600_000; // a match counts as "in play" up to ~4h after kickoff
 
-  // A match is "finished" only when it has an actual result (FINISHED/SCORED).
-  // A match that has kicked off but isn't scored yet (locked, awaiting result)
-  // must NOT drop to the bottom — it stays in "today" so the user sees their
-  // locked pick near the top until the score comes in.
   const isDone = (m: (typeof matches)[number]) => m.homeScore != null && m.awayScore != null;
+  // In-play: kicked off, no result yet, still within the live window. Pinned to
+  // the very top of the page so the match you're watching is always front-and-center.
+  const isLive = (m: (typeof matches)[number]) =>
+    !isDone(m) && m.kickoffAt.getTime() <= nowMs && nowMs - m.kickoffAt.getTime() <= LIVE_WINDOW;
 
-  // "Today": today's matches without a result yet (whether open or already locked
-  // but awaiting score). Closing-soon ones are shown in their own section above.
-  const today = matches.filter(
-    (m) => isSameDayInTz(m.kickoffAt, now) && !isDone(m) && !closingIds.has(m.id),
-  );
-  // "Upcoming": future matches on other days.
-  const upcoming = matches.filter(
-    (m) => m.kickoffAt > now && !isSameDayInTz(m.kickoffAt, now) && !closingIds.has(m.id),
-  );
-  // "Finished": anything with a result, plus past matches from earlier days that
-  // never got a score (so they don't vanish or clutter "today").
-  const finished = matches.filter(
-    (m) => isDone(m) || (m.kickoffAt <= now && !isSameDayInTz(m.kickoffAt, now)),
-  );
+  // Each match lands in exactly one bucket. Priority: live → finished (has a
+  // result) → future (closing-soon / today / upcoming) → stale past (no result,
+  // beyond the live window) falls back to finished so it never clutters the top.
+  const live: typeof matches = [];
+  const closingSoon: typeof matches = [];
+  const today: typeof matches = [];
+  const upcoming: typeof matches = [];
+  const finished: typeof matches = [];
+  for (const m of matches) {
+    if (isLive(m)) {
+      live.push(m);
+    } else if (isDone(m)) {
+      finished.push(m);
+    } else if (m.kickoffAt.getTime() > nowMs) {
+      const soon =
+        m.status === "SCHEDULED" &&
+        m.homeTeamId &&
+        m.awayTeamId &&
+        m.kickoffAt.getTime() <= nowMs + SIX_H;
+      if (soon) closingSoon.push(m);
+      else if (isSameDayInTz(m.kickoffAt, now)) today.push(m);
+      else upcoming.push(m);
+    } else {
+      // Past kickoff, no result, beyond the live window → awaiting a result.
+      finished.push(m);
+    }
+  }
 
   // Today summary (counts ALL of today's matches, including closing-soon ones).
   const todayAll = matches.filter((m) => isSameDayInTz(m.kickoffAt, now));
@@ -101,11 +105,19 @@ export default async function MatchesPage() {
       : null,
   };
 
-  const section = (title: string, list: typeof matches) =>
+  const section = (title: string, list: typeof matches, opts?: { id?: string; live?: boolean }) =>
     list.length > 0 && (
-      <section className="mb-8">
+      <section id={opts?.id} className="mb-8 scroll-mt-6">
         <div className="mb-3 flex items-center justify-between">
-          <span className="eyebrow">{title}</span>
+          <span className="eyebrow flex items-center gap-2">
+            {opts?.live && (
+              <span className="relative flex h-2 w-2" aria-hidden>
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-lime-400" />
+              </span>
+            )}
+            {title}
+          </span>
           <span className="rounded-full bg-white/[0.06] px-2.5 py-0.5 font-display text-[11px] font-bold text-slate-300">
             {list.length} {UI.matchUnit}
           </span>
@@ -118,6 +130,7 @@ export default async function MatchesPage() {
               prediction={serializePrediction(predByMatch.get(m.id))}
               winnerOnly={winnerOnly}
               groups={myGroupList}
+              live={opts?.live}
             />
           ))}
         </div>
@@ -154,12 +167,27 @@ export default async function MatchesPage() {
           nextLockAt={summary.nextLockAt}
         />
       )}
+      {finished.length > 0 && (
+        <div className="mb-5 flex justify-center">
+          <a
+            href="#finished-matches"
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-accent-500/40 hover:bg-accent-500/10 hover:text-white"
+          >
+            <ClockIcon className="text-sm text-accent-400" />
+            {UI.viewPrevious}
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-slate-300">
+              {finished.length}
+            </span>
+          </a>
+        </div>
+      )}
       <AdSlot slotId={AD_SLOTS.matchesTop} slotName="matches-top" />
       {matches.length === 0 && <EmptyState title={UI.noMatchesTitle} hint={UI.noMatchesHint} />}
+      {section(UI.liveNow, live, { live: true })}
       {section(UI.closingSoonTitle, closingSoon)}
       {section(UI.todayMatches, today)}
       {section(UI.upcomingMatches, upcoming)}
-      {section(UI.finishedMatches, finished)}
+      {section(UI.finishedMatches, finished, { id: "finished-matches" })}
     </div>
   );
 }

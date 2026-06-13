@@ -44,6 +44,7 @@ export function MatchCard({
   prediction,
   winnerOnly = false,
   groups = [],
+  live = false,
 }: {
   match: SerializedMatch;
   prediction: SerializedPrediction;
@@ -53,6 +54,9 @@ export function MatchCard({
   // The viewer's groups — once the match starts, the card links to each group's
   // revealed member predictions (a picker when there's more than one).
   groups?: { id: string; name: string }[];
+  // In-play: the match has kicked off but has no result yet. Shows the animated
+  // LIVE pill + a breathing halo so it stands out at the top of the list.
+  live?: boolean;
 }) {
   const UI = useUI();
   const router = useRouter();
@@ -63,6 +67,9 @@ export function MatchCard({
   // Locked if status moved past SCHEDULED OR kickoff time reached (client mirror
   // of the server guard — the server is still the source of truth on submit).
   const locked = match.status !== "SCHEDULED" || ms <= 0;
+  // In-play only while there's no result yet (a late sync could land the score
+  // between server render and this re-render).
+  const isLive = live && match.homeScore == null && match.awayScore == null;
   const teamsKnown = !!match.homeTeam && !!match.awayTeam;
   // Global prediction window: before opensAt, predictions aren't open yet.
   // (Re-evaluated each second via the countdown re-render, so it flips on time.)
@@ -150,7 +157,7 @@ export function MatchCard({
   }
 
   return (
-    <div className="card edge-accent reveal transition duration-200 hover:border-white/20">
+    <div className={`card edge-accent reveal transition duration-200 hover:border-white/20 ${isLive ? "card-live" : ""}`}>
       {/* top strip */}
       <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-2.5">
         <Link
@@ -159,7 +166,7 @@ export function MatchCard({
         >
           #{match.matchNumber} · {UI.stages[match.stage]}
         </Link>
-        <StatusPill status={match.status} locked={locked} finished={finished} notOpenYet={notOpenYet} />
+        <StatusPill status={match.status} locked={locked} finished={finished} notOpenYet={notOpenYet} live={isLive} />
       </div>
 
       {/* scoreline */}
@@ -431,13 +438,24 @@ function StatusPill({
   locked,
   finished,
   notOpenYet,
+  live = false,
 }: {
   status: SerializedMatch["status"];
   locked: boolean;
   finished: boolean;
   notOpenYet: boolean;
+  live?: boolean;
 }) {
   const UI = useUI();
+  // In play (kicked off, no result yet) → the animated LIVE pill, top priority.
+  if (live && !finished) {
+    return (
+      <span className="pill pill-live animate-live">
+        <span className="pill-dot" />
+        {UI.statuses.LIVE}
+      </span>
+    );
+  }
   // Scheduled but the prediction window hasn't opened yet → don't show "open".
   if (notOpenYet && !finished) {
     return <span className="pill pill-locked">{UI.notOpenYet}</span>;

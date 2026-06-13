@@ -14,6 +14,9 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-navy-950 text-slate-100 antialiased;
     font-family: var(--font-sans), system-ui, sans-serif;
@@ -176,6 +179,17 @@
   animation: live-pulse 1.1s ease-in-out infinite;
 }
 
+/* In-play match card: a soft, breathing lime halo so it reads as "live" at a
+   glance without shouting. */
+.card-live {
+  border-color: rgba(174, 240, 0, 0.45);
+  animation: live-card 2.4s ease-in-out infinite;
+}
+@keyframes live-card {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(174, 240, 0, 0.14), 0 0 24px -10px rgba(174, 240, 0, 0.55); }
+  50% { box-shadow: 0 0 0 1px rgba(174, 240, 0, 0.34), 0 0 32px -6px rgba(174, 240, 0, 0.85); }
+}
+
 /* Moving glass reflection sweeping across the tournament hero card. */
 @keyframes hero-sheen {
   0% { transform: translateX(-160%) skewX(-14deg); }
@@ -318,8 +332,9 @@
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .reveal, .animate-live .pill-dot,
+  .reveal, .animate-live .pill-dot, .card-live,
   .loader-bob, .loader-ball, .loader-ring, .loader-ring-spin, .loader-dot,
   .loader-bar, .skeleton { animation: none; }
   .hero-sheen::before { animation: none; opacity: 0; }
+  html { scroll-behavior: auto; }
 }
