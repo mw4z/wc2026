@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useUI } from "@/components/I18nProvider";
 import { RankMedallion } from "@/components/RankMedallion";
 
@@ -74,7 +74,7 @@ export function LeaderboardTable({
             <tr
               key={r.userId}
               onClick={() => setSel(r)}
-              className={`cursor-pointer border-b border-white/5 transition active:bg-white/10 sm:hover:bg-white/5 ${
+              className={`cursor-pointer border-b border-white/5 transition active:bg-white/10 ${
                 r.userId === meId ? "bg-accent-500/10 ring-1 ring-inset ring-accent-500/40" : ""
               }`}
             >
@@ -99,6 +99,32 @@ export function LeaderboardTable({
 
 function RecordSheet({ row, isMe, onClose }: { row: LbRow; isMe: boolean; onClose: () => void }) {
   const UI = useUI();
+  const [dragY, setDragY] = useState(0);
+  const startY = useRef<number | null>(null);
+
+  // Lock the background scroll while the sheet is open.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  function onTouchStart(e: React.TouchEvent) {
+    startY.current = e.touches[0]!.clientY;
+  }
+  function onTouchMove(e: React.TouchEvent) {
+    if (startY.current == null) return;
+    const dy = e.touches[0]!.clientY - startY.current;
+    if (dy > 0) setDragY(dy); // only drag downward
+  }
+  function onTouchEnd() {
+    if (dragY > 90) onClose();
+    else setDragY(0);
+    startY.current = null;
+  }
+
   const stat = (label: string, value: string | number) => (
     <div className="rounded-xl bg-white/[0.04] p-3 text-center">
       <div className="font-display text-2xl font-extrabold tnum text-gold-400">{value}</div>
@@ -108,8 +134,12 @@ function RecordSheet({ row, isMe, onClose }: { row: LbRow; isMe: boolean; onClos
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-t-2xl border-t border-white/10 bg-navy-950 p-5 pb-8 sm:rounded-2xl sm:border"
+        className="w-full max-w-md touch-none rounded-t-2xl border-t border-white/10 bg-navy-950 p-5 pb-8 sm:rounded-2xl sm:border"
+        style={{ transform: dragY ? `translateY(${dragY}px)` : undefined, transition: dragY ? "none" : "transform 0.2s" }}
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20 sm:hidden" />
         <div className="mb-4 flex items-center gap-3">
