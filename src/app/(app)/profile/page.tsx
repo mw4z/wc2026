@@ -1,8 +1,9 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getUI } from "@/lib/locale";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
-import { UserIcon, ShieldIcon } from "@/components/icons";
+import { UserIcon, ShieldIcon, ListIcon, ArrowIcon } from "@/components/icons";
 import { EmailManager } from "@/components/EmailManager";
 import { otpConfigured } from "@/lib/authentica";
 import { ReminderToggle } from "@/components/ReminderToggle";
@@ -52,6 +53,12 @@ export default async function ProfilePage() {
         {stat(UI.statExact, entry?.exactScores ?? 0)}
         {stat(UI.statPredictions, entry?.totalPredictions ?? 0)}
       </div>
+
+      <Link href="/my-predictions" className="tile mt-4">
+        <span className="tile-ic"><ListIcon /></span>
+        <span className="tile-label">{UI.myPredictions}</span>
+        <ArrowIcon className="tile-chev" />
+      </Link>
 
       <p className="mt-6 text-center text-xs text-slate-500">{UI.changeNameNote}</p>
 

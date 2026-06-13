@@ -54,6 +54,18 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
   const locked = match.status !== "SCHEDULED" || isKickoffReached(match.kickoffAt);
   const stats = locked ? await getPredictionStatsAfterLock(match.id) : null;
 
+  // After lock, reveal everyone's individual predictions + points (anti-cheat:
+  // only once the match has started / finished).
+  const allPredictions = locked
+    ? await prisma.prediction.findMany({
+        where: { matchId: match.id },
+        include: { user: { select: { name: true } }, predictedWinner: { select: { nameAr: true, nameEn: true } } },
+      })
+    : [];
+  allPredictions.sort(
+    (a, b) => (b.pointsAwarded ?? -1) - (a.pointsAwarded ?? -1) || a.user.name.localeCompare(b.user.name),
+  );
+
   // Actual outcome (pre-penalty), once a result is recorded — matches how the
   // distribution buckets predictions, so the highlight lines up.
   let actual: "HOME" | "DRAW" | "AWAY" | null = null;
@@ -106,6 +118,40 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
           <p className="card p-5 text-center text-sm text-slate-500">{UI.distributionAfterLock}</p>
         )}
       </div>
+
+      {locked && allPredictions.length > 0 && (
+        <div className="mt-6">
+          <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-gold-400">
+            <BallIcon /> {UI.allPredictionsTitle}
+          </h2>
+          <div className="card overflow-hidden divide-y divide-white/[0.06]">
+            {allPredictions.map((p) => (
+              <div
+                key={p.id}
+                className={`flex items-center gap-3 px-3 py-2 text-sm ${p.userId === user.id ? "bg-accent-500/10" : ""}`}
+              >
+                <span className="min-w-0 flex-1 truncate font-semibold text-slate-100">
+                  {p.user.name}
+                  {p.userId === user.id && <span className="ms-1 text-[10px] text-accent-300">({UI.yourPick})</span>}
+                </span>
+                <span className="shrink-0 font-display tnum text-slate-200">
+                  {p.predictedHomeScore}-{p.predictedAwayScore}
+                </span>
+                {p.predictedWinner && (
+                  <span className="hidden shrink-0 text-xs text-slate-500 sm:inline">
+                    {teamName(p.predictedWinner)}
+                  </span>
+                )}
+                {p.pointsAwarded != null && (
+                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-bold ${p.pointsAwarded > 0 ? "bg-gold-500/15 text-gold-400" : "bg-white/[0.06] text-slate-500"}`}>
+                    +{p.pointsAwarded}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
