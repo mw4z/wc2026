@@ -10,7 +10,6 @@ import { getUI, getLocale } from "@/lib/locale";
 import { MatchCard } from "@/components/MatchCard";
 import { TournamentHero, EmptyState } from "@/components/TournamentHero";
 import { TodaySummary } from "@/components/TodaySummary";
-import { ReminderToggle } from "@/components/ReminderToggle";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { AwardsPromo } from "@/components/AwardsPromo";
 import { userCanUseAwards, isAwardsLocked, getAwardsProgress } from "@/lib/awards";
@@ -147,7 +146,6 @@ export default async function MatchesPage() {
         <AwardsPromo locked={awardsLocked} predicted={awardsProgress.predicted} total={awardsProgress.total} />
       )}
       <InstallPrompt />
-      <ReminderToggle />
       {summary.total > 0 && (
         <TodaySummary
           total={summary.total}
