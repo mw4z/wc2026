@@ -6,6 +6,8 @@ import { requireUser } from "@/lib/auth";
 import { getUI } from "@/lib/locale";
 import { TournamentHero, HeroStat, EmptyState } from "@/components/TournamentHero";
 import { TrophyIcon } from "@/components/icons";
+import { RankMedallion } from "@/components/RankMedallion";
+import { LeaderboardTable } from "@/components/LeaderboardTable";
 import { AdSlot } from "@/components/AdSlot";
 import { AD_SLOTS } from "@/lib/ads";
 
@@ -167,64 +169,12 @@ export default async function LeaderboardPage({
           <Link href="/matches" className="btn-primary">{UI.matches}</Link>
         </EmptyState>
       ) : (
-        <div className="card overflow-x-auto">
-          <table className="w-full text-right text-sm">
-            <thead className="border-b border-white/10 text-[11px] text-slate-400">
-              <tr>
-                <th className="p-3 font-bold">{UI.rank}</th>
-                <th className="p-3 font-bold">{UI.name}</th>
-                <th className="hidden p-3 font-bold sm:table-cell">{UI.department}</th>
-                <th className="p-3 font-bold">{UI.colPoints}</th>
-                <th className="hidden p-3 font-bold md:table-cell">{UI.colExact}</th>
-                <th className="hidden p-3 font-bold md:table-cell">{UI.colCorrect}</th>
-                <th className="hidden p-3 font-bold lg:table-cell">{UI.colQualifier}</th>
-                <th className="hidden p-3 font-bold lg:table-cell">{UI.colAccuracy}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayRows.map((r) => (
-                <tr
-                  key={r.userId}
-                  className={`border-b border-white/5 transition hover:bg-white/5 ${
-                    r.userId === me.id ? "bg-accent-500/10 ring-1 ring-inset ring-accent-500/40" : ""
-                  }`}
-                >
-                  <td className="p-3">
-                    {r.rank <= 3 ? (
-                      <RankMedallion place={r.rank} size="sm" />
-                    ) : (
-                      <span className="font-display font-bold tnum text-slate-300">{r.rank}</span>
-                    )}
-                  </td>
-                  <td className="p-3 font-semibold text-white">{r.name}</td>
-                  <td className="hidden p-3 text-slate-400 sm:table-cell">{r.department ?? "—"}</td>
-                  <td className="p-3 font-display font-extrabold tnum text-gold-400">{r.totalPoints}</td>
-                  <td className="hidden p-3 tnum md:table-cell">{r.exactScores}</td>
-                  <td className="hidden p-3 tnum md:table-cell">{r.correctOutcomes}</td>
-                  <td className="hidden p-3 tnum lg:table-cell">{r.correctQualifiers}</td>
-                  <td className="hidden p-3 tnum lg:table-cell">{(r.accuracy * 100).toFixed(0)}%</td>
-                </tr>
-              ))}
-              {myPinned && (
-                <tr className="border-t-2 border-accent-500/40 bg-accent-500/10">
-                  <td className="p-3">
-                    <span className="font-display font-bold tnum text-accent-300">{myPinned.rank}</span>
-                  </td>
-                  <td className="p-3 font-semibold text-white">{myPinned.name} <span className="text-[10px] text-accent-300">({UI.yourPosition})</span></td>
-                  <td className="hidden p-3 text-slate-400 sm:table-cell">{myPinned.department ?? "—"}</td>
-                  <td className="p-3 font-display font-extrabold tnum text-gold-400">{myPinned.totalPoints}</td>
-                  <td className="hidden p-3 tnum md:table-cell">{myPinned.exactScores}</td>
-                  <td className="hidden p-3 tnum md:table-cell">{myPinned.correctOutcomes}</td>
-                  <td className="hidden p-3 tnum lg:table-cell">{myPinned.correctQualifiers}</td>
-                  <td className="hidden p-3 tnum lg:table-cell">{(myPinned.accuracy * 100).toFixed(0)}%</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          {isOverall && rows.length > CAP && (
-            <p className="border-t border-white/5 p-3 text-center text-xs text-slate-500">{UI.topCapNote}</p>
-          )}
-        </div>
+        <LeaderboardTable
+          rows={displayRows}
+          myPinned={myPinned ?? null}
+          meId={me.id}
+          showCapNote={isOverall && rows.length > CAP}
+        />
       )}
 
       {/* Top groups — ranked by summed member points (overall board only) */}
@@ -269,21 +219,3 @@ export default async function LeaderboardPage({
   );
 }
 
-function RankMedallion({ place, size = "md" }: { place: number; size?: "sm" | "md" | "lg" }) {
-  const tone: Record<number, string> = {
-    1: "bg-gold-500/20 text-gold-300 ring-gold-500/50",
-    2: "bg-white/10 text-slate-200 ring-white/25",
-    3: "bg-amber-700/25 text-amber-300 ring-amber-600/40",
-  };
-  const dim =
-    size === "lg" ? "h-12 w-12 text-xl" : size === "sm" ? "h-7 w-7 text-xs" : "h-10 w-10 text-lg";
-  return (
-    <span
-      className={`grid place-items-center rounded-full font-display font-extrabold tnum ring-2 ${
-        tone[place] ?? "bg-white/10 text-slate-200 ring-white/20"
-      } ${dim}`}
-    >
-      {place}
-    </span>
-  );
-}
