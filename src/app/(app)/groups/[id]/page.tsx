@@ -31,8 +31,9 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
   const isAdmin = user.role === "ADMIN";
 
   let group;
+  let membership;
   try {
-    ({ group } = await getGroupForMember(user.id, id, isAdmin));
+    ({ group, membership } = await getGroupForMember(user.id, id, isAdmin));
   } catch (e) {
     const msg = e instanceof GroupError ? e.message : UI.groupNotFound;
     return <p className="card p-6 text-center text-amber-200">{msg}</p>;
@@ -54,7 +55,7 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
   ]);
 
   const myRow = board.find((r) => r.userId === user.id);
-  const isLeader = group.leaderId === user.id;
+  const isLeader = membership?.role === "LEADER";
   const tn = (t: { nameAr: string; nameEn: string } | null) =>
     t ? (locale === "en" ? t.nameEn : t.nameAr) : UI.tbd;
 

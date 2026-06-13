@@ -14,15 +14,16 @@ export default async function GroupMembersPage({ params }: { params: Promise<{ i
   const isAdmin = user.role === "ADMIN";
 
   let group;
+  let membership;
   try {
-    ({ group } = await getGroupForMember(user.id, id, isAdmin));
+    ({ group, membership } = await getGroupForMember(user.id, id, isAdmin));
   } catch (e) {
     const msg = e instanceof GroupError ? e.message : UI.groupNotFound;
     return <p className="card p-6 text-center text-amber-200">{msg}</p>;
   }
 
   const members = await getGroupMembers(id);
-  const isLeader = group.leaderId === user.id;
+  const isLeader = membership?.role === "LEADER";
 
   return (
     <div>

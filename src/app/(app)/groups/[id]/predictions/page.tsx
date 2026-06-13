@@ -18,15 +18,16 @@ export default async function GroupPredictionsPage({ params }: { params: Promise
   const isAdmin = user.role === "ADMIN";
 
   let group;
+  let membership;
   try {
-    ({ group } = await getGroupForMember(user.id, id, isAdmin)); // membership check
+    ({ group, membership } = await getGroupForMember(user.id, id, isAdmin)); // membership check
   } catch (e) {
     const msg = e instanceof GroupError ? e.message : UI.groupNotFound;
     return <p className="card p-6 text-center text-amber-200">{msg}</p>;
   }
 
   await lockDueMatches();
-  const isLeader = group.leaderId === user.id;
+  const isLeader = membership?.role === "LEADER";
 
   const memberRows = await getGroupMembers(id);
   const members = memberRows.map((m) => ({ id: m.user.id, name: m.user.name }));

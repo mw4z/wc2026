@@ -129,10 +129,20 @@ export async function getGroupForMember(userId: string, groupId: string, isAdmin
   return { group, membership };
 }
 
+/** A user is a leader if their membership role is LEADER (covers the owner AND
+ * any co-leaders). The owner is additionally pinned via Group.leaderId. */
+export async function isGroupLeader(userId: string, groupId: string): Promise<boolean> {
+  const m = await prisma.groupMember.findUnique({
+    where: { groupId_userId: { groupId, userId } },
+    select: { role: true },
+  });
+  return m?.role === "LEADER";
+}
+
 export async function requireGroupLeader(userId: string, groupId: string) {
   const group = await prisma.group.findUnique({ where: { id: groupId } });
   if (!group) throw new GroupError("المجموعة غير موجودة أو تم تعطيلها", "GROUP_NOT_FOUND", 404);
-  if (group.leaderId !== userId) {
+  if (!(await isGroupLeader(userId, groupId))) {
     throw new GroupError("لا تملك صلاحية إدارة هذه المجموعة", "NOT_LEADER", 403);
   }
   return group;
@@ -165,21 +175,28 @@ export async function removeGroupMember(leaderId: string, groupId: string, membe
 }
 
 /**
- * Transfer leadership to another member. The current leader is demoted to a
- * regular member; the chosen member becomes the single group leader.
+ * Promote a member to CO-LEADER (or demote a co-leader back to member). Multiple
+ * leaders can coexist; the existing leader keeps their role. The group owner
+ * (Group.leaderId) can never be demoted. Any current leader may grant/revoke.
  */
-export async function transferLeadership(currentLeaderId: string, groupId: string, newLeaderUserId: string) {
-  await requireGroupLeader(currentLeaderId, groupId);
-  if (newLeaderUserId === currentLeaderId) return { ok: true };
+export async function setMemberLeader(
+  actorId: string,
+  groupId: string,
+  targetUserId: string,
+  makeLeader: boolean,
+) {
+  const group = await requireGroupLeader(actorId, groupId);
+  if (!makeLeader && targetUserId === group.leaderId) {
+    throw new GroupError("لا يمكن إزالة القيادة عن مالك المجموعة", "CANNOT_DEMOTE_OWNER", 409);
+  }
   const target = await prisma.groupMember.findUnique({
-    where: { groupId_userId: { groupId, userId: newLeaderUserId } },
+    where: { groupId_userId: { groupId, userId: targetUserId } },
   });
   if (!target) throw new GroupError("العضو غير موجود في المجموعة", "NOT_A_MEMBER", 404);
-  await prisma.$transaction([
-    prisma.group.update({ where: { id: groupId }, data: { leaderId: newLeaderUserId } }),
-    prisma.groupMember.updateMany({ where: { groupId, userId: newLeaderUserId }, data: { role: "LEADER" } }),
-    prisma.groupMember.updateMany({ where: { groupId, userId: currentLeaderId }, data: { role: "MEMBER" } }),
-  ]);
+  await prisma.groupMember.update({
+    where: { id: target.id },
+    data: { role: makeLeader ? "LEADER" : "MEMBER" },
+  });
   return { ok: true };
 }
 

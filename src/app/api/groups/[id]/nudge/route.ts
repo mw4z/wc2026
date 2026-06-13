@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { pushConfigured, sendPush, type StoredSubscription } from "@/lib/push";
+import { isGroupLeader } from "@/lib/groups";
 import { getPredictionLead, predictionOpensAt } from "@/lib/settings";
 import { errorResponse } from "@/lib/api";
 
@@ -19,7 +20,7 @@ export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: strin
     if (!group || !group.isActive) {
       return NextResponse.json({ error: "المجموعة غير موجودة", code: "GROUP_NOT_FOUND" }, { status: 404 });
     }
-    const isLeader = group.leaderId === user.id;
+    const isLeader = await isGroupLeader(user.id, id);
     if (!isLeader && user.role !== "ADMIN") {
       return NextResponse.json({ error: "هذا الإجراء لقائد المجموعة فقط", code: "NOT_LEADER" }, { status: 403 });
     }

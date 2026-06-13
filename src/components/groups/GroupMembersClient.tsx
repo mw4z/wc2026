@@ -71,17 +71,30 @@ export function GroupMembersClient({
                   <td className="p-3">
                     {m.userId !== leaderId && (
                       <div className="flex flex-wrap justify-end gap-1.5">
-                        <button
-                          onClick={async () => {
-                            if (!confirm(UI.makeLeaderConfirm)) return;
-                            if (await call(`/api/groups/${groupId}/members/${m.userId}`, "POST"))
-                              router.refresh();
-                          }}
-                          disabled={busy}
-                          className="rounded border border-gold-500/50 px-2 py-1 text-xs text-gold-300"
-                        >
-                          {UI.makeLeader}
-                        </button>
+                        {m.role === "LEADER" ? (
+                          <button
+                            onClick={async () => {
+                              if (await call(`/api/groups/${groupId}/members/${m.userId}`, "POST", { leader: false }))
+                                router.refresh();
+                            }}
+                            disabled={busy}
+                            className="rounded border border-white/15 px-2 py-1 text-xs text-slate-300"
+                          >
+                            {UI.removeLeader}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              if (!confirm(UI.makeLeaderConfirm)) return;
+                              if (await call(`/api/groups/${groupId}/members/${m.userId}`, "POST", { leader: true }))
+                                router.refresh();
+                            }}
+                            disabled={busy}
+                            className="rounded border border-gold-500/50 px-2 py-1 text-xs text-gold-300"
+                          >
+                            {UI.makeLeader}
+                          </button>
+                        )}
                         <button
                           onClick={async () => {
                             if (await call(`/api/groups/${groupId}/members/${m.userId}`, "DELETE"))
