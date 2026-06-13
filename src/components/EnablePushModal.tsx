@@ -28,6 +28,8 @@ export function EnablePushModal() {
   useEffect(() => {
     if (!VAPID_PUBLIC) return;
     if (sessionStorage.getItem(DISMISS_KEY)) return;
+    // Defer this session if the install modal is showing — don't stack two modals.
+    if (sessionStorage.getItem("wc26_install_eligible")) return;
     const ua = navigator.userAgent || "";
     const isIOS = /iphone|ipad|ipod/i.test(ua);
     const standalone =
