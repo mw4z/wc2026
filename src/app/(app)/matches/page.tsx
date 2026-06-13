@@ -14,7 +14,7 @@ import { InstallPrompt } from "@/components/InstallPrompt";
 import { AwardsPromo } from "@/components/AwardsPromo";
 import { userCanUseAwards, isAwardsLocked, getAwardsProgress } from "@/lib/awards";
 import { tournamentName } from "@/lib/tournament";
-import { BallIcon, ClockIcon, TrophyIcon } from "@/components/icons";
+import { ArrowIcon, BallIcon, ClockIcon, TrophyIcon } from "@/components/icons";
 import { AdSlot } from "@/components/AdSlot";
 import { AD_SLOTS } from "@/lib/ads";
 
@@ -138,7 +138,7 @@ export default async function MatchesPage() {
     );
 
   return (
-    <div>
+    <div id="matches-top" className="scroll-mt-4">
       {SAMPLE_DATA && (
         <div className="mb-5 rounded-xl border border-warn/40 bg-warn/10 px-4 py-2.5 text-center text-sm text-amber-200">
           {UI.sampleNotice}
@@ -168,16 +168,14 @@ export default async function MatchesPage() {
         />
       )}
       {finished.length > 0 && (
-        <div className="mb-5 flex justify-center">
+        <div className="mb-3 flex justify-end">
           <a
             href="#finished-matches"
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-accent-500/40 hover:bg-accent-500/10 hover:text-white"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 transition hover:text-accent-400"
           >
-            <ClockIcon className="text-sm text-accent-400" />
+            <ClockIcon className="text-[13px]" />
             {UI.viewPrevious}
-            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-slate-300">
-              {finished.length}
-            </span>
+            <span className="text-slate-500">({finished.length})</span>
           </a>
         </div>
       )}
@@ -188,6 +186,17 @@ export default async function MatchesPage() {
       {section(UI.todayMatches, today)}
       {section(UI.upcomingMatches, upcoming)}
       {section(UI.finishedMatches, finished, { id: "finished-matches" })}
+      {finished.length > 0 && (
+        <div className="mt-2 flex justify-center">
+          <a
+            href="#matches-top"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 transition hover:text-accent-400"
+          >
+            <ArrowIcon className="rotate-90 text-[13px]" />
+            {UI.backToTop}
+          </a>
+        </div>
+      )}
     </div>
   );
 }
