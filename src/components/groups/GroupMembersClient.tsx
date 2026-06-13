@@ -28,6 +28,8 @@ export function GroupMembersClient({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  // The group owner manages leadership; co-leaders manage only regular members.
+  const isOwner = currentUserId === leaderId;
 
   async function call(url: string, method: string, body?: unknown) {
     setBusy(true);
@@ -71,40 +73,45 @@ export function GroupMembersClient({
                   <td className="p-3">
                     {m.userId !== leaderId && (
                       <div className="flex flex-wrap justify-end gap-1.5">
-                        {m.role === "LEADER" ? (
+                        {/* Only the owner grants/revokes leadership */}
+                        {isOwner &&
+                          (m.role === "LEADER" ? (
+                            <button
+                              onClick={async () => {
+                                if (await call(`/api/groups/${groupId}/members/${m.userId}`, "POST", { leader: false }))
+                                  router.refresh();
+                              }}
+                              disabled={busy}
+                              className="rounded border border-white/15 px-2 py-1 text-xs text-slate-300"
+                            >
+                              {UI.removeLeader}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={async () => {
+                                if (!confirm(UI.makeLeaderConfirm)) return;
+                                if (await call(`/api/groups/${groupId}/members/${m.userId}`, "POST", { leader: true }))
+                                  router.refresh();
+                              }}
+                              disabled={busy}
+                              className="rounded border border-gold-500/50 px-2 py-1 text-xs text-gold-300"
+                            >
+                              {UI.makeLeader}
+                            </button>
+                          ))}
+                        {/* Co-leaders can remove regular members only; the owner can remove co-leaders too */}
+                        {(isOwner || m.role !== "LEADER") && (
                           <button
                             onClick={async () => {
-                              if (await call(`/api/groups/${groupId}/members/${m.userId}`, "POST", { leader: false }))
+                              if (await call(`/api/groups/${groupId}/members/${m.userId}`, "DELETE"))
                                 router.refresh();
                             }}
                             disabled={busy}
-                            className="rounded border border-white/15 px-2 py-1 text-xs text-slate-300"
+                            className="rounded border border-danger/50 px-2 py-1 text-xs text-red-300"
                           >
-                            {UI.removeLeader}
-                          </button>
-                        ) : (
-                          <button
-                            onClick={async () => {
-                              if (!confirm(UI.makeLeaderConfirm)) return;
-                              if (await call(`/api/groups/${groupId}/members/${m.userId}`, "POST", { leader: true }))
-                                router.refresh();
-                            }}
-                            disabled={busy}
-                            className="rounded border border-gold-500/50 px-2 py-1 text-xs text-gold-300"
-                          >
-                            {UI.makeLeader}
+                            {UI.removeMember}
                           </button>
                         )}
-                        <button
-                          onClick={async () => {
-                            if (await call(`/api/groups/${groupId}/members/${m.userId}`, "DELETE"))
-                              router.refresh();
-                          }}
-                          disabled={busy}
-                          className="rounded border border-danger/50 px-2 py-1 text-xs text-red-300"
-                        >
-                          {UI.removeMember}
-                        </button>
                       </div>
                     )}
                   </td>

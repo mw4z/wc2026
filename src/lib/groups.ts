@@ -165,10 +165,20 @@ export async function renameGroup(userId: string, groupId: string, name: string)
   return prisma.group.update({ where: { id: groupId }, data: { name: name.trim() } });
 }
 
-export async function removeGroupMember(leaderId: string, groupId: string, memberUserId: string) {
-  const group = await requireGroupLeader(leaderId, groupId);
+export async function removeGroupMember(actorId: string, groupId: string, memberUserId: string) {
+  const group = await requireGroupLeader(actorId, groupId);
   if (memberUserId === group.leaderId) {
     throw new GroupError("لا يمكن إزالة قائد المجموعة", "CANNOT_REMOVE_LEADER", 409);
+  }
+  // Only the owner can remove a co-leader; co-leaders manage regular members only.
+  if (group.leaderId !== actorId) {
+    const target = await prisma.groupMember.findUnique({
+      where: { groupId_userId: { groupId, userId: memberUserId } },
+      select: { role: true },
+    });
+    if (target?.role === "LEADER") {
+      throw new GroupError("فقط مالك المجموعة يمكنه إزالة قائد آخر", "OWNER_ONLY", 403);
+    }
   }
   await prisma.groupMember.deleteMany({ where: { groupId, userId: memberUserId } });
   return { ok: true };
@@ -176,8 +186,9 @@ export async function removeGroupMember(leaderId: string, groupId: string, membe
 
 /**
  * Promote a member to CO-LEADER (or demote a co-leader back to member). Multiple
- * leaders can coexist; the existing leader keeps their role. The group owner
- * (Group.leaderId) can never be demoted. Any current leader may grant/revoke.
+ * leaders can coexist. ONLY the group OWNER (Group.leaderId) may grant or revoke
+ * leadership — co-leaders can't strip each other or the owner. The owner can
+ * never be demoted.
  */
 export async function setMemberLeader(
   actorId: string,
@@ -185,7 +196,11 @@ export async function setMemberLeader(
   targetUserId: string,
   makeLeader: boolean,
 ) {
-  const group = await requireGroupLeader(actorId, groupId);
+  const group = await prisma.group.findUnique({ where: { id: groupId } });
+  if (!group) throw new GroupError("المجموعة غير موجودة أو تم تعطيلها", "GROUP_NOT_FOUND", 404);
+  if (group.leaderId !== actorId) {
+    throw new GroupError("فقط مالك المجموعة يمكنه إدارة القادة", "OWNER_ONLY", 403);
+  }
   if (!makeLeader && targetUserId === group.leaderId) {
     throw new GroupError("لا يمكن إزالة القيادة عن مالك المجموعة", "CANNOT_DEMOTE_OWNER", 409);
   }
