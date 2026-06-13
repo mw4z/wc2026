@@ -349,6 +349,8 @@ const ar = {
   leaderLeaveConfirm:
     "أنت قائد المجموعة. عند المغادرة ستُنقل القيادة لأقدم عضو، وإذا كنت العضو الوحيد فسيتم حذف المجموعة. هل تريد المتابعة؟",
   removeMember: "إزالة عضو",
+  makeLeader: "تعيين قائدًا",
+  makeLeaderConfirm: "تعيين هذا العضو قائدًا للمجموعة؟ ستصبح أنت عضوًا عاديًا.",
   notGroupLeader: "لا تملك صلاحية إدارة هذه المجموعة",
   groupNotFound: "المجموعة غير موجودة أو تم تعطيلها",
   alreadyMember: "أنت عضو بالفعل في هذه المجموعة",
@@ -919,6 +921,8 @@ const en: Dict = {
   leaderLeaveConfirm:
     "You're the group leader. Leaving transfers leadership to the earliest-joined member, or deletes the group if you're the only member. Continue?",
   removeMember: "Remove member",
+  makeLeader: "Make leader",
+  makeLeaderConfirm: "Make this member the group leader? You'll become a regular member.",
   notGroupLeader: "You can't manage this group",
   groupNotFound: "Group not found or has been disabled",
   alreadyMember: "You're already a member of this group",

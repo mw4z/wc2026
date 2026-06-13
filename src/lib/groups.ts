@@ -165,6 +165,25 @@ export async function removeGroupMember(leaderId: string, groupId: string, membe
 }
 
 /**
+ * Transfer leadership to another member. The current leader is demoted to a
+ * regular member; the chosen member becomes the single group leader.
+ */
+export async function transferLeadership(currentLeaderId: string, groupId: string, newLeaderUserId: string) {
+  await requireGroupLeader(currentLeaderId, groupId);
+  if (newLeaderUserId === currentLeaderId) return { ok: true };
+  const target = await prisma.groupMember.findUnique({
+    where: { groupId_userId: { groupId, userId: newLeaderUserId } },
+  });
+  if (!target) throw new GroupError("العضو غير موجود في المجموعة", "NOT_A_MEMBER", 404);
+  await prisma.$transaction([
+    prisma.group.update({ where: { id: groupId }, data: { leaderId: newLeaderUserId } }),
+    prisma.groupMember.updateMany({ where: { groupId, userId: newLeaderUserId }, data: { role: "LEADER" } }),
+    prisma.groupMember.updateMany({ where: { groupId, userId: currentLeaderId }, data: { role: "MEMBER" } }),
+  ]);
+  return { ok: true };
+}
+
+/**
  * A member leaves the group. If the LEADER leaves, leadership transfers to the
  * earliest-joined remaining member; if they're the last member, the group is
  * disbanded (deleted — cascades members + match rules).

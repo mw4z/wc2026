@@ -70,16 +70,29 @@ export function GroupMembersClient({
                 {isLeader && (
                   <td className="p-3">
                     {m.userId !== leaderId && (
-                      <button
-                        onClick={async () => {
-                          if (await call(`/api/groups/${groupId}/members/${m.userId}`, "DELETE"))
-                            router.refresh();
-                        }}
-                        disabled={busy}
-                        className="rounded border border-danger/50 px-2 py-1 text-xs text-red-300"
-                      >
-                        {UI.removeMember}
-                      </button>
+                      <div className="flex flex-wrap justify-end gap-1.5">
+                        <button
+                          onClick={async () => {
+                            if (!confirm(UI.makeLeaderConfirm)) return;
+                            if (await call(`/api/groups/${groupId}/members/${m.userId}`, "POST"))
+                              router.refresh();
+                          }}
+                          disabled={busy}
+                          className="rounded border border-gold-500/50 px-2 py-1 text-xs text-gold-300"
+                        >
+                          {UI.makeLeader}
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (await call(`/api/groups/${groupId}/members/${m.userId}`, "DELETE"))
+                              router.refresh();
+                          }}
+                          disabled={busy}
+                          className="rounded border border-danger/50 px-2 py-1 text-xs text-red-300"
+                        >
+                          {UI.removeMember}
+                        </button>
+                      </div>
                     )}
                   </td>
                 )}
