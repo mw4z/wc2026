@@ -130,7 +130,6 @@ export default async function LeaderboardPage({
 
       {/* Podium — top 3 */}
       {rows.length > 0 && (
-        {/* Tiered podium: 1st tallest (center), then 2nd, then 3rd — bottoms aligned. */}
         <div className="mb-6 grid grid-cols-3 items-end gap-2 sm:gap-3">
           {[rows[1], rows[0], rows[2]].map((r, i) => {
             const place = i === 1 ? 1 : i === 0 ? 2 : 3;
