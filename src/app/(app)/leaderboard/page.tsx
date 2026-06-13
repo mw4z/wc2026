@@ -130,22 +130,25 @@ export default async function LeaderboardPage({
 
       {/* Podium — top 3 */}
       {rows.length > 0 && (
-        <div className="mb-6 grid grid-cols-3 items-end gap-3">
+        <div className="mb-6 grid grid-cols-3 items-stretch gap-3">
           {[rows[1], rows[0], rows[2]].map((r, i) => {
             const place = i === 1 ? 1 : i === 0 ? 2 : 3;
             return r ? (
               <div
                 key={r.userId}
                 className={`card edge-accent reveal flex flex-col items-center p-4 text-center ${
-                  place === 1 ? "-mt-2 shadow-[0_0_36px_rgba(233,185,73,0.18)]" : "mt-2"
+                  place === 1 ? "shadow-[0_0_36px_rgba(233,185,73,0.18)]" : ""
                 } ${r.userId === me.id ? "ring-1 ring-accent-500/50" : ""}`}
               >
                 <RankMedallion place={place} size={place === 1 ? "lg" : "md"} />
-                <div className="mt-2 line-clamp-2 max-w-full break-words text-sm font-bold leading-tight text-white">
-                  {r.name}
+                {/* Reserve 2 lines so 1- and 2-line names keep cards the same height */}
+                <div className="mt-2 flex min-h-[2.4rem] items-center">
+                  <span className="line-clamp-2 break-words text-sm font-bold leading-tight text-white">
+                    {r.name}
+                  </span>
                 </div>
                 <div
-                  className={`font-display font-extrabold tnum text-gold-400 ${
+                  className={`mt-auto font-display font-extrabold tnum text-gold-400 ${
                     place === 1 ? "text-3xl" : "text-2xl"
                   }`}
                 >
