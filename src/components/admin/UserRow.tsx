@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useUI } from "@/components/I18nProvider";
+import { BellIcon } from "@/components/icons";
 
 export interface AdminUser {
   id: string;
@@ -12,6 +13,7 @@ export interface AdminUser {
   department: string | null;
   role: "USER" | "ADMIN";
   isActive: boolean;
+  pushEnabled: boolean;
   groups: { id: string; name: string }[];
 }
 
@@ -71,6 +73,9 @@ export function UserRow({ user, isSelf }: { user: AdminUser; isSelf: boolean }) 
             {user.role === "ADMIN" && (
               <span className="badge bg-accent-500/20 text-accent-300">{UI.roleAdmin}</span>
             )}
+            <span title={user.pushEnabled ? UI.admin.notifOn : UI.admin.notifOff} className="inline-flex">
+              <BellIcon className={user.pushEnabled ? "text-sm text-lime-400" : "text-sm text-slate-600"} />
+            </span>
           </div>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-400">
             <span dir="ltr" className="font-mono">{user.identifier}</span>

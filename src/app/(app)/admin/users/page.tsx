@@ -18,6 +18,10 @@ export default async function AdminUsersPage() {
     },
   });
 
+  // Who has enabled push (≥1 subscription). One query, set membership.
+  const pushRows = await prisma.pushSubscription.findMany({ select: { userId: true } });
+  const pushUsers = new Set(pushRows.map((r) => r.userId));
+
   const serialized = users.map((u) => ({
     id: u.id,
     identifier: u.email ?? u.phoneE164 ?? u.employeeId ?? "—",
@@ -25,6 +29,7 @@ export default async function AdminUsersPage() {
     department: u.department,
     role: u.role,
     isActive: u.isActive,
+    pushEnabled: pushUsers.has(u.id),
     groups: u.groupMemberships.map((gm) => ({ id: gm.group.id, name: gm.group.name })),
   }));
 
