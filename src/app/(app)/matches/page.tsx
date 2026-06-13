@@ -44,6 +44,10 @@ export default async function MatchesPage() {
     isAwardsLocked(),
     getAwardsProgress(user.id),
   ]);
+  // Awards prediction (Golden Ball / Boot) selection has expired, so hide the
+  // promo from the matches page even when the feature is enabled. Flip back to
+  // `true` after the World Cup final to surface the awarded prizes again.
+  const SHOW_AWARDS_PROMO = false;
 
   // Show the goal-free result picker only when EVERY group the user belongs to is
   // winner-only (no group needs exact goals). Mixed membership keeps score inputs.
@@ -138,7 +142,7 @@ export default async function MatchesPage() {
     );
 
   return (
-    <div id="matches-top" className="scroll-mt-4">
+    <div id="matches-top" className="reveal-stack scroll-mt-4">
       {SAMPLE_DATA && (
         <div className="mb-5 rounded-xl border border-warn/40 bg-warn/10 px-4 py-2.5 text-center text-sm text-amber-200">
           {UI.sampleNotice}
@@ -155,7 +159,7 @@ export default async function MatchesPage() {
         <ClockIcon className="text-sm text-accent-400" />
         {UI.timezoneNote}
       </p>
-      {canAwards && (
+      {SHOW_AWARDS_PROMO && canAwards && (
         <AwardsPromo locked={awardsLocked} predicted={awardsProgress.predicted} total={awardsProgress.total} />
       )}
       <InstallPrompt />

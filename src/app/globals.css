@@ -230,6 +230,17 @@
   animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Unified page entrance: every direct child of a reveal-stack fades/rises in at
+   the SAME time, so the hero, summary, ad and match sections never pop in out of
+   sync. Cards nested inside a section ride in with their section as one block
+   (their own .reveal is neutralized here) — no per-card jitter or discrepancy. */
+.reveal-stack > * {
+  animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.reveal-stack > * .reveal {
+  animation: none;
+}
+
 /* ---- Action tiles & buttons (uniform, recognizable nav/actions) ---- */
 @layer components {
   /* Big list-style tile: leading icon badge + label + trailing chevron. */
@@ -332,7 +343,7 @@
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .reveal, .animate-live .pill-dot, .card-live,
+  .reveal, .reveal-stack > *, .animate-live .pill-dot, .card-live,
   .loader-bob, .loader-ball, .loader-ring, .loader-ring-spin, .loader-dot,
   .loader-bar, .skeleton { animation: none; }
   .hero-sheen::before { animation: none; opacity: 0; }
