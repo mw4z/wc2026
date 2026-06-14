@@ -15,17 +15,17 @@ function fmt(ms: number): string {
   return d > 0 ? `${d}ي ${p(h)}:${p(m)}:${p(sec)}` : `${p(h)}:${p(m)}:${p(sec)}`;
 }
 
-// Daily nudge on /matches: how many of today's matches you've predicted, how many
-// are still open, and a countdown to the nearest lock. Pure UI over passed data.
+// Nudge on /matches: how many OPEN predictions you still need to fill (across all
+// available matches, not just today), plus a countdown to the nearest lock.
 export function TodaySummary({
-  total,
-  submitted,
-  missing,
+  todayTotal,
+  openTotal,
+  openMissing,
   nextLockAt,
 }: {
-  total: number;
-  submitted: number;
-  missing: number;
+  todayTotal: number;
+  openTotal: number;
+  openMissing: number;
   nextLockAt: string | null;
 }) {
   const UI = useUI();
@@ -35,6 +35,8 @@ export function TodaySummary({
     const id = setInterval(() => setMs(Date.parse(nextLockAt) - Date.now()), 1000);
     return () => clearInterval(id);
   }, [nextLockAt]);
+
+  const done = openMissing === 0;
 
   return (
     <div className="card edge-accent mb-6 p-4">
@@ -48,21 +50,23 @@ export function TodaySummary({
           </span>
         )}
       </div>
-      {/* Compact stat line — fills the card without dead space. */}
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-        <span className="text-slate-300">{UI.summaryTodayCount.replace("{n}", String(total))}</span>
-        <span className="text-slate-600">·</span>
-        <span className="font-semibold text-white">
-          {UI.summaryPredicted.replace("{s}", String(submitted)).replace("{t}", String(total))}
-        </span>
-        {missing > 0 && (
-          <>
-            <span className="text-slate-600">·</span>
-            <span className="font-semibold text-amber-200">
-              {UI.summaryRemaining.replace("{m}", String(missing))}
-            </span>
-          </>
+
+      {/* Primary, actionable line: open predictions still to fill. */}
+      <div className="mt-2 text-base font-bold">
+        {openTotal === 0 ? (
+          <span className="text-slate-300">{UI.summaryNoOpen}</span>
+        ) : done ? (
+          <span className="text-lime-400">{UI.summaryAllDone}</span>
+        ) : (
+          <span className="text-amber-200">
+            {UI.summaryOpenRemaining.replace("{m}", String(openMissing)).replace("{t}", String(openTotal))}
+          </span>
         )}
+      </div>
+
+      <div className="mt-1 text-xs text-slate-400">
+        {UI.summaryTodayCount.replace("{n}", String(todayTotal))}
+        {openTotal > 0 && <> · {UI.summaryOpenAvailable.replace("{t}", String(openTotal))}</>}
       </div>
     </div>
   );

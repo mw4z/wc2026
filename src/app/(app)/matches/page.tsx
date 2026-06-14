@@ -104,15 +104,21 @@ export default async function MatchesPage() {
     }
   }
 
-  // Today summary (counts ALL of today's matches, including closing-soon ones).
+  // Open-to-predict = scheduled, teams known, kickoff ahead, and the global
+  // prediction window has opened. This is the ACTIONABLE set across ALL days, so
+  // the summary keeps nudging even after today's matches are done.
+  const openToPredict = matches.filter((m) => {
+    if (m.status !== "SCHEDULED" || !m.homeTeamId || !m.awayTeamId || m.kickoffAt <= now) return false;
+    const o = predictionOpensAt(m.kickoffAt, lead);
+    return !o || o.getTime() <= nowMs;
+  });
   const todayAll = matches.filter((m) => isSameDayInTz(m.kickoffAt, now));
-  const todayOpen = todayAll.filter((m) => m.status === "SCHEDULED" && m.kickoffAt > now);
   const summary = {
-    total: todayAll.length,
-    submitted: todayAll.filter((m) => predByMatch.has(m.id)).length,
-    missing: todayOpen.filter((m) => !predByMatch.has(m.id)).length,
-    nextLockAt: todayOpen.length
-      ? new Date(Math.min(...todayOpen.map((m) => m.kickoffAt.getTime()))).toISOString()
+    todayTotal: todayAll.length,
+    openTotal: openToPredict.length,
+    openMissing: openToPredict.filter((m) => !predByMatch.has(m.id)).length,
+    nextLockAt: openToPredict.length
+      ? new Date(Math.min(...openToPredict.map((m) => m.kickoffAt.getTime()))).toISOString()
       : null,
   };
 
@@ -171,11 +177,11 @@ export default async function MatchesPage() {
         <AwardsPromo locked={awardsLocked} predicted={awardsProgress.predicted} total={awardsProgress.total} />
       )}
       <InstallPrompt />
-      {summary.total > 0 && (
+      {(summary.openTotal > 0 || summary.todayTotal > 0) && (
         <TodaySummary
-          total={summary.total}
-          submitted={summary.submitted}
-          missing={summary.missing}
+          todayTotal={summary.todayTotal}
+          openTotal={summary.openTotal}
+          openMissing={summary.openMissing}
           nextLockAt={summary.nextLockAt}
         />
       )}
