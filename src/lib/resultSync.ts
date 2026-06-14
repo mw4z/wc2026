@@ -3,7 +3,7 @@ import { calculateMatchPoints } from "./matches";
 import { fetchAllFixtures, footballApiConfigured, footballProvider, rateLimitRemaining } from "./footballApi";
 import { deriveMatchResult, orientToMatch, type ParsedFixture } from "./resultSyncCore";
 import { evaluateMapping, teamsEqual } from "./fixtureMapping";
-import { fetchEspnLive } from "./espn";
+import { fetchEspnLive, fetchEspnEvents } from "./espn";
 
 // Re-export the pure layer so existing import sites keep working.
 export * from "./resultSyncCore";
@@ -156,6 +156,163 @@ export async function syncResults(opts: { matchIds?: string[]; force?: boolean }
 }
 
 // ---------------------------------------------------------------------------
+// ESPN RESULT SYNC — sole finals + scoring source (free, no key, no fixture id).
+// Matches our schedule to ESPN events by team pair + date, orients to our
+// home/away, then reuses the EXACT pure pipeline (orientToMatch → deriveMatchResult)
+// and the EXACT scoring path (calculateMatchPoints). Manual admin entry still
+// overrides and is never removed.
+// ---------------------------------------------------------------------------
+
+const ESPN_RESULTS_DAYS = 3; // catch matches finished in the last few days, not yet scored
+
+/**
+ * Fetch finished results from ESPN and score them. Drop-in replacement for the
+ * old provider-based syncResults — no external fixture id required.
+ * @param opts.matchIds  restrict to these matches (admin single-match sync)
+ * @param opts.force     re-sync even already-SCORED / needs-review matches (admin)
+ */
+export async function syncResultsFromEspn(opts: { matchIds?: string[]; force?: boolean } = {}): Promise<SyncReport> {
+  const report: SyncReport = {
+    provider: "espn",
+    checked: 0,
+    scored: 0,
+    review: 0,
+    skipped: 0,
+    missingFromProvider: 0,
+    errors: 0,
+    truncated: false,
+    rateLimitRemaining: null,
+  };
+
+  const now = new Date();
+  const candidates = await prisma.match.findMany({
+    where: opts.force
+      ? { ...(opts.matchIds ? { id: { in: opts.matchIds } } : {}) }
+      : {
+          status: { notIn: ["SCORED"] },
+          needsReview: false,
+          kickoffAt: { lte: new Date(now.getTime() + STARTING_SOON_MS) },
+          ...(opts.matchIds ? { id: { in: opts.matchIds } } : {}),
+        },
+    include: { homeTeam: true, awayTeam: true },
+    orderBy: { kickoffAt: "asc" },
+  });
+  if (candidates.length === 0) return report;
+
+  const limited = candidates.slice(0, MAX_PER_RUN);
+  report.truncated = candidates.length > limited.length;
+
+  let events: Awaited<ReturnType<typeof fetchEspnEvents>>;
+  try {
+    events = await fetchEspnEvents(ESPN_RESULTS_DAYS);
+  } catch (e) {
+    console.error("[result-sync:espn] fetch failed:", (e as Error).message);
+    return { ...report, errors: 1 };
+  }
+
+  const TOL = 3 * 3600_000; // match ESPN event to our kickoff within ±3h
+
+  for (const match of limited) {
+    report.checked++;
+    try {
+      if (!match.homeTeam || !match.awayTeam) {
+        report.skipped++;
+        continue;
+      }
+      const home = match.homeTeam.nameEn;
+      const away = match.awayTeam.nameEn;
+
+      // Find this fixture's ESPN event (either orientation), near kickoff.
+      const ev = events.find((e) => {
+        const t = Date.parse(e.dateISO);
+        const near = !Number.isFinite(t) || Math.abs(t - match.kickoffAt.getTime()) <= TOL;
+        const samePair =
+          (teamsEqual(e.homeName, home) && teamsEqual(e.awayName, away)) ||
+          (teamsEqual(e.homeName, away) && teamsEqual(e.awayName, home));
+        return near && samePair;
+      });
+      if (!ev) {
+        report.missingFromProvider++;
+        continue;
+      }
+
+      // Only finalize when ESPN says the match is truly over. Live in-play scores
+      // are owned by refreshLiveScores — don't touch the DB for non-final here.
+      if (ev.state !== "post" || !ev.completed) {
+        report.skipped++;
+        continue;
+      }
+      if (ev.homeScore == null || ev.awayScore == null) {
+        report.skipped++;
+        continue;
+      }
+
+      // Build a ParsedFixture from the ESPN event, then run the SAME pure pipeline.
+      const parsed: ParsedFixture = {
+        fixtureId: match.id,
+        dateISO: ev.dateISO,
+        statusRaw: ev.detail || "FT",
+        isFinal: true,
+        goalsHome: ev.homeScore,
+        goalsAway: ev.awayScore,
+        wentToPenalties: ev.penalties,
+        homeWinner: ev.homeWinner,
+        awayWinner: ev.awayWinner,
+        homeName: ev.homeName,
+        awayName: ev.awayName,
+        venue: null,
+      };
+
+      const { fixture, orientation } = orientToMatch(parsed, home, away);
+      if (orientation === "unknown") {
+        await flagReview(match.id, parsed.statusRaw, now, "espn");
+        report.review++;
+        continue;
+      }
+
+      const derived = deriveMatchResult(match, fixture);
+      if (derived.action === "skip") {
+        report.skipped++;
+        continue;
+      }
+
+      const r = derived.result!;
+      await prisma.match.update({
+        where: { id: match.id },
+        data: {
+          homeScore: r.homeScore,
+          awayScore: r.awayScore,
+          wentToPenalties: r.wentToPenalties,
+          winnerTeamId: r.winnerTeamId,
+          status: "FINISHED",
+          resultConfirmedAt: now,
+          resultSource: "espn",
+          externalProvider: "espn",
+          externalStatus: derived.externalStatus,
+          lastSyncedAt: now,
+          needsReview: derived.action === "review",
+          // Match is over — drop the live mirror so the card shows the final result.
+          liveHomeScore: null,
+          liveAwayScore: null,
+        },
+      });
+
+      if (derived.action === "score") {
+        await calculateMatchPoints(match.id); // EXACT existing scoring path
+        report.scored++;
+      } else {
+        report.review++;
+      }
+    } catch (e) {
+      report.errors++;
+      console.error(`[result-sync:espn] match ${match.id} failed:`, (e as Error).message);
+    }
+  }
+
+  return report;
+}
+
+// ---------------------------------------------------------------------------
 // Fixture mapping (server-side). Same logic as scripts/map-fixtures.ts but runs
 // from the deployed app (which can reach the DB) — exposed to admins via a button.
 // ---------------------------------------------------------------------------
@@ -291,9 +448,9 @@ export async function refreshLiveScores(): Promise<LiveScore[]> {
 }
 
 /** Mark a final match as needing admin review (store status, don't score). */
-async function flagReview(matchId: string, status: string, now: Date) {
+async function flagReview(matchId: string, status: string, now: Date, provider: string = footballProvider) {
   await prisma.match.update({
     where: { id: matchId },
-    data: { needsReview: true, lastSyncedAt: now, externalStatus: status, externalProvider: footballProvider },
+    data: { needsReview: true, lastSyncedAt: now, externalStatus: status, externalProvider: provider },
   });
 }

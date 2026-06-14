@@ -9,7 +9,10 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const LIVE_WINDOW_MS = 4 * 3600_000;
-const STALE_MS = 45_000;
+// Refresh from ESPN when our newest live data is older than this. Kept short so
+// scores feel real-time; still at most ~1 ESPN request per window no matter how
+// many clients poll (shared in-flight promise + this staleness gate).
+const STALE_MS = 20_000;
 
 export async function GET() {
   const now = new Date();

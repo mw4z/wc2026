@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { syncResults } from "@/lib/resultSync";
+import { syncResultsFromEspn } from "@/lib/resultSync";
 
 // Auto result sync. Fetches final results from the football provider and scores
 // finished matches via the existing scoring path. Manual admin entry remains the
@@ -26,7 +26,7 @@ async function handle(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   try {
-    const report = await syncResults();
+    const report = await syncResultsFromEspn();
     return NextResponse.json(report);
   } catch (e) {
     // Never break: log server-side, return a generic 500.

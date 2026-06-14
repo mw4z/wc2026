@@ -19,6 +19,12 @@ const KNOCKOUT = new Set([
   "FINAL",
 ]);
 
+// A match counts as "in play" up to ~4h after kickoff (mirrors the server window).
+const LIVE_WINDOW_MS = 4 * 3600_000;
+// Live poll cadence — kept brisk so scores feel real-time. The endpoint is
+// DB-backed and provider-throttled, so faster polling costs almost nothing.
+const LIVE_POLL_MS = 20_000;
+
 function useCountdown(target: string) {
   const [ms, setMs] = useState(() => new Date(target).getTime() - Date.now());
   useEffect(() => {
@@ -89,9 +95,15 @@ export function MatchCard({
   // Locked if status moved past SCHEDULED OR kickoff time reached (client mirror
   // of the server guard — the server is still the source of truth on submit).
   const locked = match.status !== "SCHEDULED" || ms <= 0;
-  // In-play only while there's no result yet (a late sync could land the score
-  // between server render and this re-render).
-  const isLive = live && match.homeScore == null && match.awayScore == null;
+  // In-play detection is CLIENT-REACTIVE so the card flips to LIVE the instant
+  // kickoff is reached — no refresh needed. `ms` re-renders every second, so the
+  // moment the countdown hits zero this recomputes, the LIVE pill appears, and the
+  // polling effect below starts. Still gated on "no final result yet".
+  const noFinalYet =
+    match.homeScore == null && match.awayScore == null && match.status !== "SCORED" && match.status !== "CANCELLED";
+  const sinceKickoff = Date.now() - Date.parse(match.kickoffAt);
+  const withinLiveWindow = Number.isFinite(sinceKickoff) && sinceKickoff >= 0 && sinceKickoff <= LIVE_WINDOW_MS;
+  const isLive = noFinalYet && (live || (ms <= 0 && withinLiveWindow));
   const teamsKnown = !!match.homeTeam && !!match.awayTeam;
   // Global prediction window: before opensAt, predictions aren't open yet.
   // (Re-evaluated each second via the countdown re-render, so it flips on time.)
@@ -151,7 +163,7 @@ export function MatchCard({
       }
     };
     tick();
-    const iv = setInterval(tick, 40_000);
+    const iv = setInterval(tick, LIVE_POLL_MS);
     return () => {
       active = false;
       clearInterval(iv);
