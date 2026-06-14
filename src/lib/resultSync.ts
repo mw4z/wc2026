@@ -2,7 +2,8 @@ import { prisma } from "./prisma";
 import { calculateMatchPoints } from "./matches";
 import { fetchAllFixtures, footballApiConfigured, footballProvider, rateLimitRemaining } from "./footballApi";
 import { deriveMatchResult, orientToMatch, type ParsedFixture } from "./resultSyncCore";
-import { evaluateMapping } from "./fixtureMapping";
+import { evaluateMapping, teamsEqual } from "./fixtureMapping";
+import { fetchEspnLive } from "./espn";
 
 // Re-export the pure layer so existing import sites keep working.
 export * from "./resultSyncCore";
@@ -250,53 +251,65 @@ let liveInflight: Promise<LiveScore[]> | null = null;
 export async function refreshLiveScores(): Promise<LiveScore[]> {
   if (liveInflight) return liveInflight;
   liveInflight = (async () => {
-    if (!footballApiConfigured) return [];
     const now = new Date();
     const nowMs = now.getTime();
+    // In-play candidates: kicked off, no final result yet, within the live window.
+    // No external id needed — ESPN is matched by team name + date (free, no key).
     const candidates = await prisma.match.findMany({
-      where: {
-        externalFixtureId: { not: null },
-        status: { notIn: ["SCORED"] },
-        needsReview: false,
-        homeScore: null,
-        kickoffAt: { lte: now },
-      },
+      where: { status: { notIn: ["SCORED"] }, homeScore: null, kickoffAt: { lte: now } },
       include: { homeTeam: true, awayTeam: true },
     });
-    const inPlay = candidates.filter((m) => nowMs - m.kickoffAt.getTime() <= LIVE_WINDOW_MS);
+    const inPlay = candidates.filter(
+      (m) => m.homeTeam && m.awayTeam && nowMs - m.kickoffAt.getTime() <= LIVE_WINDOW_MS,
+    );
     if (inPlay.length === 0) return [];
 
-    let byId: Map<string, ParsedFixture>;
+    let espn: Awaited<ReturnType<typeof fetchEspnLive>>;
     try {
-      const all = await fetchAllFixtures();
-      byId = new Map(all.map((f) => [f.fixtureId, f]));
+      espn = await fetchEspnLive();
     } catch (e) {
-      console.error("[live-scores] provider fetch failed:", (e as Error).message);
+      console.error("[live-scores] ESPN fetch failed:", (e as Error).message);
       return [];
     }
 
+    const TOL = 3 * 3600_000; // match ESPN event to our kickoff within ±3h
     const out: LiveScore[] = [];
     for (const m of inPlay) {
-      const raw = byId.get(m.externalFixtureId!);
-      if (!raw || !m.homeTeam || !m.awayTeam) continue;
-      const { fixture, orientation } = orientToMatch(raw, m.homeTeam.nameEn, m.awayTeam.nameEn);
-      if (orientation === "unknown") continue;
-      if (fixture.isFinal) {
-        // Just ended — leave scoring to the cron, but signal the client to refresh.
-        out.push({ matchId: m.id, home: fixture.goalsHome, away: fixture.goalsAway, status: fixture.statusRaw, final: true });
+      const home = m.homeTeam!.nameEn;
+      const away = m.awayTeam!.nameEn;
+      // Find the ESPN event for this fixture (either home/away orientation).
+      const ev = espn.find((e) => {
+        const t = Date.parse(e.dateISO);
+        const near = !Number.isFinite(t) || Math.abs(t - m.kickoffAt.getTime()) <= TOL;
+        const samePair =
+          (teamsEqual(e.homeName, home) && teamsEqual(e.awayName, away)) ||
+          (teamsEqual(e.homeName, away) && teamsEqual(e.awayName, home));
+        return near && samePair;
+      });
+      if (!ev || ev.state === "pre") continue;
+
+      // Orient ESPN's home/away to OUR schedule.
+      const reversed = teamsEqual(ev.homeName, away) && teamsEqual(ev.awayName, home);
+      const ourHome = reversed ? ev.awayScore : ev.homeScore;
+      const ourAway = reversed ? ev.homeScore : ev.awayScore;
+
+      if (ev.state === "post") {
+        // ESPN says full-time — let the results cron set the official final + score.
+        out.push({ matchId: m.id, home: ourHome, away: ourAway, status: ev.detail || "FT", final: true });
         continue;
       }
+
+      // In play — mirror the running score for the card.
       await prisma.match.update({
         where: { id: m.id },
         data: {
-          liveHomeScore: fixture.goalsHome,
-          liveAwayScore: fixture.goalsAway,
-          externalStatus: fixture.statusRaw,
-          externalProvider: footballProvider,
+          liveHomeScore: ourHome,
+          liveAwayScore: ourAway,
+          externalStatus: ev.detail || "IN_PLAY",
           lastSyncedAt: now,
         },
       });
-      out.push({ matchId: m.id, home: fixture.goalsHome, away: fixture.goalsAway, status: fixture.statusRaw, final: false });
+      out.push({ matchId: m.id, home: ourHome, away: ourAway, status: ev.detail || "IN_PLAY", final: false });
     }
     return out;
   })().finally(() => {

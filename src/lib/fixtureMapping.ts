@@ -34,6 +34,7 @@ const TEAM_ALIASES: Record<string, string> = {
   trinidadandtobago: "trinidad",
   capeverde: "caboverde",
   capeverdeislands: "caboverde",
+  turkiye: "turkey",
   northmacedonia: "macedonia",
   drcongo: "congodr",
   democraticrepublicofthecongo: "congodr",
