@@ -2,7 +2,7 @@
 
 import { Spinner } from "@/components/Spinner";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { SerializedMatch, SerializedPrediction } from "@/app/(app)/matches/page";
@@ -95,6 +95,48 @@ export function MatchCard({
   // button reads "update" instead of "submit" and users aren't confused.
   const [submitted, setSubmitted] = useState(prediction != null);
 
+  // Live (in-play) score: seeded from the server, then polled every ~40s while the
+  // match is running. The endpoint is DB-backed + provider-throttled, so many cards
+  // polling at once cost almost nothing. On "final" we refresh to get the scored card.
+  const [liveScore, setLiveScore] = useState<{ home: number | null; away: number | null; status: string | null }>({
+    home: match.liveHomeScore,
+    away: match.liveAwayScore,
+    status: match.liveStatus,
+  });
+  const endedRef = useRef(false);
+  useEffect(() => {
+    if (!isLive) return;
+    endedRef.current = false;
+    let active = true;
+    const tick = async () => {
+      if (endedRef.current) return;
+      try {
+        const res = await fetch("/api/matches/live", { cache: "no-store" });
+        if (!res.ok || !active) return;
+        const data = (await res.json()) as {
+          matches?: { id: string; home: number | null; away: number | null; status: string | null; final: boolean }[];
+        };
+        const mine = data.matches?.find((x) => x.id === match.id);
+        if (!mine || !active) return;
+        if (mine.final) {
+          endedRef.current = true;
+          router.refresh(); // match ended → pull the finished/scored card
+          return;
+        }
+        setLiveScore({ home: mine.home, away: mine.away, status: mine.status });
+      } catch {
+        /* keep the last score on a transient error */
+      }
+    };
+    tick();
+    const iv = setInterval(tick, 40_000);
+    return () => {
+      active = false;
+      clearInterval(iv);
+    };
+  }, [isLive, match.id, router]);
+  const showLiveScore = isLive && liveScore.home != null && liveScore.away != null;
+
   async function save() {
     setMsg(null);
 
@@ -178,6 +220,21 @@ export function MatchCard({
               <span className={homeWin ? "text-gold-400" : "text-white"}>{match.homeScore}</span>
               <span className="text-slate-600">:</span>
               <span className={awayWin ? "text-gold-400" : "text-white"}>{match.awayScore}</span>
+            </div>
+          ) : showLiveScore ? (
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex items-center gap-2 font-display text-4xl font-extrabold tnum leading-none text-lime-300">
+                <span>{liveScore.home}</span>
+                <span className="text-slate-600">:</span>
+                <span>{liveScore.away}</span>
+              </div>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-lime-400">
+                <span className="relative flex h-1.5 w-1.5" aria-hidden>
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime-400 opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-lime-400" />
+                </span>
+                {liveScore.status === "PAUSED" ? UI.halftime : UI.statuses.LIVE}
+              </span>
             </div>
           ) : (
             <span className="font-display text-sm font-bold uppercase tracking-widest2 text-slate-500">

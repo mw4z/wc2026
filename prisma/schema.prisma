@@ -130,6 +130,11 @@ model Match {
   homeScore         Int?
   awayScore         Int?
   wentToPenalties   Boolean   @default(false)
+  // Live (in-play) running score, mirrored from the provider while the match is
+  // being played — shown on the card for an at-a-glance live feel. Distinct from
+  // homeScore/awayScore (the FINAL, scored result); cleared when the match ends.
+  liveHomeScore     Int?
+  liveAwayScore     Int?
   // For knockout matches: the team that advanced (may differ from score winner on penalties).
   winnerTeamId      String?
   resultConfirmedAt DateTime?

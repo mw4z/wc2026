@@ -239,6 +239,10 @@ export function serializeMatch(m: MatchWithTeams, locale: Locale = "ar", lead: P
     stadium: m.stadium,
     homeScore: m.homeScore,
     awayScore: m.awayScore,
+    // Live (in-play) running score + raw provider status, for the live card.
+    liveHomeScore: m.liveHomeScore,
+    liveAwayScore: m.liveAwayScore,
+    liveStatus: m.externalStatus,
     homeTeam: team(m.homeTeam),
     awayTeam: team(m.awayTeam),
     // Kickoff date/time, formatted in Saudi time (UTC+3) for display on the card.

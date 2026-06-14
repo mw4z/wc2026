@@ -13,6 +13,7 @@ export * from "./resultSyncCore";
 // ---------------------------------------------------------------------------
 
 const STARTING_SOON_MS = 5 * 60_000;
+const LIVE_WINDOW_MS = 4 * 3600_000; // a match counts as "in play" up to ~4h after kickoff
 const MAX_PER_RUN = 120;
 
 export interface SyncReport {
@@ -85,27 +86,44 @@ export async function syncResults(opts: { matchIds?: string[]; force?: boolean }
       continue;
     }
     try {
-      // Not over yet → record we checked, change nothing.
-      if (!raw.isFinal) {
-        await prisma.match.update({
-          where: { id: match.id },
-          data: { lastSyncedAt: now, externalStatus: raw.statusRaw, externalProvider: footballProvider },
-        });
-        report.skipped++;
-        continue;
-      }
-
-      // Align provider home/away to OUR schedule so scores map correctly.
+      // Align provider home/away to OUR schedule so scores map correctly — needed
+      // for the live (in-play) score too, not just finals.
       if (!match.homeTeam || !match.awayTeam) {
-        await flagReview(match.id, raw.statusRaw, now);
-        report.review++;
+        if (raw.isFinal) {
+          await flagReview(match.id, raw.statusRaw, now);
+          report.review++;
+        } else {
+          await touchChecked(match.id, raw.statusRaw, now);
+          report.skipped++;
+        }
         continue;
       }
       const { fixture, orientation } = orientToMatch(raw, match.homeTeam.nameEn, match.awayTeam.nameEn);
       if (orientation === "unknown") {
         // Teams don't line up (e.g. a remapped knockout slot) → never guess.
-        await flagReview(match.id, raw.statusRaw, now);
-        report.review++;
+        if (raw.isFinal) {
+          await flagReview(match.id, raw.statusRaw, now);
+          report.review++;
+        } else {
+          await touchChecked(match.id, raw.statusRaw, now);
+          report.skipped++;
+        }
+        continue;
+      }
+
+      // Not over yet → mirror the running score for the live card, change nothing else.
+      if (!fixture.isFinal) {
+        await prisma.match.update({
+          where: { id: match.id },
+          data: {
+            lastSyncedAt: now,
+            externalStatus: fixture.statusRaw,
+            externalProvider: footballProvider,
+            liveHomeScore: fixture.goalsHome,
+            liveAwayScore: fixture.goalsAway,
+          },
+        });
+        report.skipped++;
         continue;
       }
 
@@ -134,6 +152,9 @@ export async function syncResults(opts: { matchIds?: string[]; force?: boolean }
           externalStatus: derived.externalStatus,
           lastSyncedAt: now,
           needsReview: derived.action === "review",
+          // Match is over — drop the live mirror so the card shows the final result.
+          liveHomeScore: null,
+          liveAwayScore: null,
         },
       });
 
@@ -196,6 +217,92 @@ export async function runFixtureMapping(opts: { apply?: boolean } = {}): Promise
     }
   }
   return report;
+}
+
+/** Record that we checked a still-in-progress match (sync metadata only, no score change). */
+async function touchChecked(matchId: string, status: string, now: Date) {
+  await prisma.match.update({
+    where: { id: matchId },
+    data: { lastSyncedAt: now, externalStatus: status, externalProvider: footballProvider },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// LIVE SCORES — lightweight in-play refresh for the match card.
+// ---------------------------------------------------------------------------
+
+export interface LiveScore {
+  matchId: string;
+  home: number | null;
+  away: number | null;
+  status: string | null; // provider in-play status, e.g. IN_PLAY | PAUSED
+  final: boolean; // provider now reports the match as over → client should refresh
+}
+
+let liveInflight: Promise<LiveScore[]> | null = null;
+
+/**
+ * Fetch the provider ONCE and mirror the running score into the DB for matches
+ * currently in play, returning them. Does NOT score or notify — the cron's
+ * syncResults owns finalization. Concurrent callers share one provider call (an
+ * in-flight promise), so any number of polling clients cost at most one request.
+ */
+export async function refreshLiveScores(): Promise<LiveScore[]> {
+  if (liveInflight) return liveInflight;
+  liveInflight = (async () => {
+    if (!footballApiConfigured) return [];
+    const now = new Date();
+    const nowMs = now.getTime();
+    const candidates = await prisma.match.findMany({
+      where: {
+        externalFixtureId: { not: null },
+        status: { notIn: ["SCORED"] },
+        needsReview: false,
+        homeScore: null,
+        kickoffAt: { lte: now },
+      },
+      include: { homeTeam: true, awayTeam: true },
+    });
+    const inPlay = candidates.filter((m) => nowMs - m.kickoffAt.getTime() <= LIVE_WINDOW_MS);
+    if (inPlay.length === 0) return [];
+
+    let byId: Map<string, ParsedFixture>;
+    try {
+      const all = await fetchAllFixtures();
+      byId = new Map(all.map((f) => [f.fixtureId, f]));
+    } catch (e) {
+      console.error("[live-scores] provider fetch failed:", (e as Error).message);
+      return [];
+    }
+
+    const out: LiveScore[] = [];
+    for (const m of inPlay) {
+      const raw = byId.get(m.externalFixtureId!);
+      if (!raw || !m.homeTeam || !m.awayTeam) continue;
+      const { fixture, orientation } = orientToMatch(raw, m.homeTeam.nameEn, m.awayTeam.nameEn);
+      if (orientation === "unknown") continue;
+      if (fixture.isFinal) {
+        // Just ended — leave scoring to the cron, but signal the client to refresh.
+        out.push({ matchId: m.id, home: fixture.goalsHome, away: fixture.goalsAway, status: fixture.statusRaw, final: true });
+        continue;
+      }
+      await prisma.match.update({
+        where: { id: m.id },
+        data: {
+          liveHomeScore: fixture.goalsHome,
+          liveAwayScore: fixture.goalsAway,
+          externalStatus: fixture.statusRaw,
+          externalProvider: footballProvider,
+          lastSyncedAt: now,
+        },
+      });
+      out.push({ matchId: m.id, home: fixture.goalsHome, away: fixture.goalsAway, status: fixture.statusRaw, final: false });
+    }
+    return out;
+  })().finally(() => {
+    liveInflight = null;
+  });
+  return liveInflight;
 }
 
 /** Mark a final match as needing admin review (store status, don't score). */
