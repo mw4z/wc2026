@@ -8,7 +8,7 @@ import { getPredictionLead, predictionOpensAt, type PredictionLead } from "@/lib
 import type { Locale } from "@/lib/i18n";
 import { getUI, getLocale } from "@/lib/locale";
 import { MatchCard } from "@/components/MatchCard";
-import { TournamentHero, EmptyState } from "@/components/TournamentHero";
+import { TournamentHero, HeroStat, EmptyState } from "@/components/TournamentHero";
 import { TodaySummary } from "@/components/TodaySummary";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { AwardsPromo } from "@/components/AwardsPromo";
@@ -39,11 +39,18 @@ export default async function MatchesPage() {
     }),
   ]);
   const lead = await getPredictionLead();
-  const [canAwards, awardsLocked, awardsProgress] = await Promise.all([
+  const [canAwards, awardsLocked, awardsProgress, myEntry] = await Promise.all([
     userCanUseAwards(user.id),
     isAwardsLocked(),
     getAwardsProgress(user.id),
+    prisma.leaderboardEntry.findUnique({
+      where: { userId: user.id },
+      select: { totalPoints: true },
+    }),
   ]);
+  // The viewer's overall points — surfaced in the hero (same figure as the
+  // leaderboard's "نقاطك"). Rank/participants are intentionally left off here.
+  const myPoints = myEntry?.totalPoints ?? 0;
   // Awards prediction (Golden Ball / Boot) selection has expired, so hide the
   // promo from the matches page even when the feature is enabled. Flip back to
   // `true` after the World Cup final to surface the awarded prizes again.
@@ -154,6 +161,7 @@ export default async function MatchesPage() {
           <span className="text-accent-200/70">{UI.activeTournament}:</span>
           <span className="font-bold text-white">{tournamentName(locale)}</span>
         </span>
+        <HeroStat label={UI.yourPoints} value={myPoints} />
       </TournamentHero>
       <p className="-mt-2 mb-5 flex items-center justify-center gap-1.5 text-center text-xs text-slate-300">
         <ClockIcon className="text-sm text-accent-400" />
