@@ -64,10 +64,11 @@ export function TodaySummary({
         )}
       </div>
 
-      <div className="mt-1 text-xs text-slate-400">
-        {UI.summaryTodayCount.replace("{n}", String(todayTotal))}
-        {openTotal > 0 && <> · {UI.summaryOpenAvailable.replace("{t}", String(openTotal))}</>}
-      </div>
+      {todayTotal > 0 && (
+        <div className="mt-1 text-xs text-slate-400">
+          {UI.summaryTodayCount.replace("{n}", String(todayTotal))}
+        </div>
+      )}
     </div>
   );
 }
