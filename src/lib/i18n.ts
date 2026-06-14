@@ -33,6 +33,7 @@ const ar = {
   // matches list
   liveNow: "مباريات جارية الآن",
   halftime: "استراحة",
+  extraTime: "وقت إضافي",
   todayMatches: "مباريات اليوم",
   upcomingMatches: "المباريات القادمة",
   finishedMatches: "المباريات المنتهية",
@@ -630,6 +631,7 @@ const en: Dict = {
   logout: "Sign out",
   liveNow: "Live now",
   halftime: "Half-time",
+  extraTime: "Extra time",
   todayMatches: "Today's matches",
   upcomingMatches: "Upcoming matches",
   finishedMatches: "Finished matches",

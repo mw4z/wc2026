@@ -28,6 +28,28 @@ function useCountdown(target: string) {
   return ms;
 }
 
+// Estimate the live match clock from elapsed time + the provider's coarse status.
+// The provider (free tier) doesn't give a minute, so we derive one: 1st half =
+// elapsed; ~15-min half-time break; 2nd half = elapsed − 15. Half-time is taken
+// from the authoritative PAUSED status. It's an approximation (stoppage time is
+// unknown), so the tail is shown as "90+" / "extra time" rather than a fake exact
+// minute.
+function liveTimeLabel(
+  kickoffISO: string,
+  status: string | null,
+  labels: { halftime: string; extraTime: string; live: string },
+): string {
+  if (status === "PAUSED") return labels.halftime;
+  const elapsed = Math.floor((Date.now() - Date.parse(kickoffISO)) / 60000);
+  if (!Number.isFinite(elapsed) || elapsed < 0) return labels.live;
+  if (elapsed <= 45) return `${Math.max(1, elapsed)}′`;
+  if (elapsed < 60) return "45+′"; // first-half stoppage / break before status flips
+  const sh = elapsed - 15; // second half, assuming a standard ~15-min interval
+  if (sh <= 90) return `${sh}′`;
+  if (sh <= 95) return "90+′";
+  return labels.extraTime;
+}
+
 function fmtCountdown(ms: number) {
   if (ms <= 0) return "00:00:00";
   const s = Math.floor(ms / 1000);
@@ -233,7 +255,11 @@ export function MatchCard({
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime-400 opacity-75" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-lime-400" />
                 </span>
-                {liveScore.status === "PAUSED" ? UI.halftime : UI.statuses.LIVE}
+                {liveTimeLabel(match.kickoffAt, liveScore.status, {
+                  halftime: UI.halftime,
+                  extraTime: UI.extraTime,
+                  live: UI.statuses.LIVE,
+                })}
               </span>
             </div>
           ) : (
