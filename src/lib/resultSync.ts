@@ -87,44 +87,24 @@ export async function syncResults(opts: { matchIds?: string[]; force?: boolean }
       continue;
     }
     try {
-      // Align provider home/away to OUR schedule so scores map correctly — needed
-      // for the live (in-play) score too, not just finals.
+      // football-data only finalizes results now. LIVE in-play scores are owned by
+      // ESPN (refreshLiveScores) — so for anything not final, do NOT touch the DB
+      // here (no live mirror, no lastSyncedAt/externalStatus writes) or we'd clobber
+      // ESPN's live score and stall its refresh cadence.
+      if (!raw.isFinal) {
+        report.skipped++;
+        continue;
+      }
       if (!match.homeTeam || !match.awayTeam) {
-        if (raw.isFinal) {
-          await flagReview(match.id, raw.statusRaw, now);
-          report.review++;
-        } else {
-          await touchChecked(match.id, raw.statusRaw, now);
-          report.skipped++;
-        }
+        await flagReview(match.id, raw.statusRaw, now);
+        report.review++;
         continue;
       }
       const { fixture, orientation } = orientToMatch(raw, match.homeTeam.nameEn, match.awayTeam.nameEn);
       if (orientation === "unknown") {
         // Teams don't line up (e.g. a remapped knockout slot) → never guess.
-        if (raw.isFinal) {
-          await flagReview(match.id, raw.statusRaw, now);
-          report.review++;
-        } else {
-          await touchChecked(match.id, raw.statusRaw, now);
-          report.skipped++;
-        }
-        continue;
-      }
-
-      // Not over yet → mirror the running score for the live card, change nothing else.
-      if (!fixture.isFinal) {
-        await prisma.match.update({
-          where: { id: match.id },
-          data: {
-            lastSyncedAt: now,
-            externalStatus: fixture.statusRaw,
-            externalProvider: footballProvider,
-            liveHomeScore: fixture.goalsHome,
-            liveAwayScore: fixture.goalsAway,
-          },
-        });
-        report.skipped++;
+        await flagReview(match.id, raw.statusRaw, now);
+        report.review++;
         continue;
       }
 
@@ -218,14 +198,6 @@ export async function runFixtureMapping(opts: { apply?: boolean } = {}): Promise
     }
   }
   return report;
-}
-
-/** Record that we checked a still-in-progress match (sync metadata only, no score change). */
-async function touchChecked(matchId: string, status: string, now: Date) {
-  await prisma.match.update({
-    where: { id: matchId },
-    data: { lastSyncedAt: now, externalStatus: status, externalProvider: footballProvider },
-  });
 }
 
 // ---------------------------------------------------------------------------
