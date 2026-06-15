@@ -682,14 +682,26 @@ function ScorerList({
 }) {
   if (goals.length === 0) return <div className="flex-1" />;
   return (
-    <ul className={`flex-1 space-y-1.5 text-xs leading-relaxed text-slate-300 ${align === "end" ? "text-end" : "text-start"}`}>
+    <ul className={`flex flex-1 flex-col gap-1.5 ${align === "end" ? "items-end" : "items-start"}`}>
       {goals.map((g, i) => (
-        <li key={i}>
-          <span aria-hidden className="me-1">⚽</span>
-          <span className="font-medium text-slate-200">{playerDisplayName(g.player, locale)}</span>
-          {g.minute && <span className="ms-1 text-slate-500 tnum">{g.minute}</span>}
-          {g.note === "Penalty" && <span className="ms-1 text-slate-500">(ب.ج)</span>}
-          {g.note === "Own Goal" && <span className="ms-1 text-slate-500">(ع)</span>}
+        <li key={i} className="flex items-center gap-1.5 text-xs text-slate-300">
+          <span aria-hidden className="text-[13px] leading-none">⚽</span>
+          {/* bdi isolates the (often Latin) name so it can't scramble the RTL line */}
+          <bdi className="font-medium text-slate-200">{playerDisplayName(g.player, locale)}</bdi>
+          {g.minute && (
+            <span className="tnum text-slate-500" dir="ltr">
+              {g.minute}
+            </span>
+          )}
+          {g.note && (
+            <span
+              dir="ltr"
+              title={g.note === "Penalty" ? "ركلة جزاء" : "هدف عكسي"}
+              className="rounded bg-white/10 px-1 text-[9px] font-bold leading-none text-slate-400"
+            >
+              {g.note === "Penalty" ? "P" : "OG"}
+            </span>
+          )}
         </li>
       ))}
     </ul>
