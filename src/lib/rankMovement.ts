@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { getGroupLeaderboard } from "./groups";
+import { rankOverallExcluding } from "./leaderboard";
 
 // Rank movement (green ▲ / red ▼ on the leaderboards). After each match is scored
 // we rotate a snapshot of every user's rank per board, so the read side can show
@@ -44,6 +45,47 @@ async function rotateScope(scope: string, ranking: { userId: string; rank: numbe
         rank: r.rank,
         previousRank: prior.get(r.userId) ?? null,
       })),
+    }),
+  ]);
+}
+
+/**
+ * One-time backfill: seed the arrows from the LAST match already played, so
+ * movement shows immediately without waiting for the next match. For each board
+ * we set rank = current standing and previousRank = the standing computed with
+ * that last match's points removed (i.e. how everyone moved because of it).
+ * Idempotent — safe to run repeatedly; always reflects the latest scored match.
+ */
+export async function backfillLastMatchMovement(): Promise<{ matchId: string | null }> {
+  const last = await prisma.match.findFirst({
+    where: { status: "SCORED" },
+    orderBy: [{ resultConfirmedAt: "desc" }, { kickoffAt: "desc" }],
+    select: { id: true },
+  });
+  if (!last) return { matchId: null };
+
+  // Overall — current from LeaderboardEntry, previous = recompute minus this match.
+  const currentOverall = await prisma.leaderboardEntry.findMany({ select: { userId: true, rank: true } });
+  const prevOverall = await rankOverallExcluding(last.id);
+  await writeSnapshot("overall", currentOverall, prevOverall);
+
+  // Each active group's board, same two-pass approach with its custom scoring.
+  const groups = await prisma.group.findMany({ where: { isActive: true }, select: { id: true } });
+  for (const g of groups) {
+    const current = await getGroupLeaderboard(g.id);
+    const previous = await getGroupLeaderboard(g.id, { excludeMatchId: last.id });
+    const prevMap = new Map(previous.map((r) => [r.userId, r.rank]));
+    await writeSnapshot(`group:${g.id}`, current.map((r) => ({ userId: r.userId, rank: r.rank })), prevMap);
+  }
+  return { matchId: last.id };
+}
+
+/** Write a scope's snapshot with an explicit previous-rank map (used by backfill). */
+async function writeSnapshot(scope: string, ranking: { userId: string; rank: number }[], prev: Map<string, number>): Promise<void> {
+  await prisma.$transaction([
+    prisma.rankSnapshot.deleteMany({ where: { scope } }),
+    prisma.rankSnapshot.createMany({
+      data: ranking.map((r) => ({ scope, userId: r.userId, rank: r.rank, previousRank: prev.get(r.userId) ?? null })),
     }),
   ]);
 }

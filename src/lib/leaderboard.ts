@@ -110,6 +110,36 @@ export async function recalculateLeaderboard() {
   return rows.length;
 }
 
+/**
+ * Overall ranking (Map userId → rank) computed from raw predictions but with ONE
+ * match's points/flags excluded — i.e. the standings as they were BEFORE that
+ * match was scored. Used to backfill rank-movement arrows for the last match.
+ * Same tie-breakers as getLeaderboard.
+ */
+export async function rankOverallExcluding(excludeMatchId: string): Promise<Map<string, number>> {
+  const [users, predictions] = await Promise.all([
+    prisma.user.findMany({ where: { isActive: true }, select: { id: true } }),
+    prisma.prediction.findMany({
+      select: { userId: true, matchId: true, pointsAwarded: true, isExactScore: true, isCorrectOutcome: true, submittedAt: true },
+    }),
+  ]);
+  type A = { pts: number; exact: number; outcome: number; last: Date | null };
+  const agg = new Map<string, A>();
+  for (const u of users) agg.set(u.id, { pts: 0, exact: 0, outcome: 0, last: null });
+  for (const p of predictions) {
+    const a = agg.get(p.userId);
+    if (!a) continue;
+    if (!a.last || p.submittedAt > a.last) a.last = p.submittedAt;
+    if (p.pointsAwarded == null || p.matchId === excludeMatchId) continue; // pre-match view
+    a.pts += p.pointsAwarded;
+    if (p.isExactScore) a.exact += 1;
+    if (p.isCorrectOutcome) a.outcome += 1;
+  }
+  const rows = [...agg.entries()].map(([userId, a]) => ({ userId, ...a }));
+  rows.sort((x, y) => y.pts - x.pts || y.exact - x.exact || y.outcome - x.outcome || lastPredCompare(x.last, y.last));
+  return new Map(rows.map((r, i) => [r.userId, i + 1]));
+}
+
 // Earlier submission wins; users with no predictions sort last.
 function lastPredCompare(a: Date | null, b: Date | null): number {
   if (a === null && b === null) return 0;

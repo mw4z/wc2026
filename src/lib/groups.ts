@@ -303,7 +303,7 @@ export async function getGroupMembers(groupId: string) {
  * scoring, so points reflect the group's custom values without re-scoring.
  * Same tie-breakers as the global board.
  */
-export async function getGroupLeaderboard(groupId: string) {
+export async function getGroupLeaderboard(groupId: string, opts: { excludeMatchId?: string } = {}) {
   const group = await prisma.group.findUnique({
     where: { id: groupId },
     include: { matchRules: true },
@@ -364,7 +364,7 @@ export async function getGroupLeaderboard(groupId: string) {
     if (!a) continue;
     a.totalPredictions += 1;
     if (!a.lastPredictionAt || p.submittedAt > a.lastPredictionAt) a.lastPredictionAt = p.submittedAt;
-    if (p.pointsAwarded == null) continue; // not scored yet
+    if (p.pointsAwarded == null || p.matchId === opts.excludeMatchId) continue; // unscored / excluded (pre-match view)
     a.scoredPredictions += 1;
     const cfg = effectiveConfig(base, ruleByMatch.get(p.matchId));
     a.totalPoints += pointsForFlags(cfg, p);

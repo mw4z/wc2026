@@ -2,12 +2,12 @@
 
 import { Spinner } from "@/components/Spinner";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { SerializedMatch, SerializedPrediction } from "@/app/(app)/matches/page";
 import { useUI } from "./I18nProvider";
-import { ClockIcon, CheckIcon, LockIcon, UsersIcon } from "./icons";
+import { ClockIcon, CheckIcon, LockIcon, UsersIcon, ArrowIcon } from "./icons";
 import { Flag } from "./Flag";
 
 const KNOCKOUT = new Set([
@@ -87,6 +87,7 @@ export function MatchCard({
   winnerOnly = false,
   groups = [],
   live = false,
+  clickable = false,
 }: {
   match: SerializedMatch;
   prediction: SerializedPrediction;
@@ -99,6 +100,9 @@ export function MatchCard({
   // In-play: the match has kicked off but has no result yet. Shows the animated
   // LIVE pill + a breathing halo so it stands out at the top of the list.
   live?: boolean;
+  // List context: lets a FINISHED card act as a button to its detail page (tap
+  // anywhere → match details). Off on the detail page itself (you're already there).
+  clickable?: boolean;
 }) {
   const UI = useUI();
   const router = useRouter();
@@ -126,6 +130,9 @@ export function MatchCard({
   const finished = match.homeScore != null && match.awayScore != null;
   const homeWin = finished && match.homeScore! > match.awayScore!;
   const awayWin = finished && match.awayScore! > match.homeScore!;
+  // A finished card in a list doubles as a button to its detail page.
+  const cardClickable = clickable && finished && teamsKnown;
+  const openDetail = () => router.push(`/matches/${match.id}`);
 
   const [home, setHome] = useState(prediction?.predictedHomeScore?.toString() ?? "");
   const [away, setAway] = useState(prediction?.predictedAwayScore?.toString() ?? "");
@@ -248,11 +255,32 @@ export function MatchCard({
   }
 
   return (
-    <div className={`card edge-accent reveal transition duration-200 hover:border-white/20 ${isLive ? "card-live" : ""}`}>
+    <div
+      className={`card edge-accent reveal transition duration-200 ${
+        cardClickable
+          ? "cursor-pointer hover:border-accent-500/40 hover:shadow-[0_0_24px_rgba(56,189,248,0.10)] active:scale-[0.99]"
+          : "hover:border-white/20"
+      } ${isLive ? "card-live" : ""}`}
+      {...(cardClickable
+        ? {
+            role: "link" as const,
+            tabIndex: 0,
+            "aria-label": UI.viewMatchDetails,
+            onClick: openDetail,
+            onKeyDown: (e: ReactKeyboardEvent) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                openDetail();
+              }
+            },
+          }
+        : {})}
+    >
       {/* top strip */}
       <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-2.5">
         <Link
           href={`/matches/${match.id}`}
+          onClick={(e) => e.stopPropagation()}
           className="text-xs font-bold text-slate-400 transition hover:text-accent-400"
         >
           #{match.matchNumber} · {UI.stages[match.stage]}
@@ -325,7 +353,10 @@ export function MatchCard({
         ) : locked ? (
           <>
             <LockedView prediction={prediction} isKnockout={isKnockout} match={match} />
-            <GroupPicksButton groups={groups} />
+            {/* Stop clicks here from bubbling to a clickable card (→ match detail). */}
+            <div onClick={(e) => e.stopPropagation()}>
+              <GroupPicksButton groups={groups} />
+            </div>
           </>
         ) : notOpenYet ? (
           <div className="flex flex-col items-center gap-2 text-center text-sm">
@@ -432,6 +463,14 @@ export function MatchCard({
           </div>
         )}
       </div>
+
+      {/* Tap affordance — makes it obvious a finished card opens its detail page. */}
+      {cardClickable && (
+        <div className="flex items-center justify-center gap-1 border-t border-white/[0.06] py-2.5 text-xs font-bold text-accent-400">
+          {UI.viewMatchDetails}
+          <ArrowIcon className="text-sm rtl:-scale-x-100" />
+        </div>
+      )}
     </div>
   );
 }

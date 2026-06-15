@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { calculateMatchPoints } from "@/lib/matches";
 import { recalculateLeaderboard } from "@/lib/leaderboard";
+import { backfillLastMatchMovement } from "@/lib/rankMovement";
 import { errorResponse } from "@/lib/api";
 
 export const runtime = "nodejs"; // rescoring may send web-push (needs Node crypto)
@@ -16,7 +17,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, ...result });
     }
     const count = await recalculateLeaderboard();
-    return NextResponse.json({ ok: true, entries: count });
+    // Seed rank-movement arrows from the last match already played (best-effort).
+    let movementFrom: string | null = null;
+    try {
+      ({ matchId: movementFrom } = await backfillLastMatchMovement());
+    } catch (e) {
+      console.error("[recalculate] movement backfill failed:", (e as Error).message);
+    }
+    return NextResponse.json({ ok: true, entries: count, movementFrom });
   } catch (e) {
     return errorResponse(e);
   }

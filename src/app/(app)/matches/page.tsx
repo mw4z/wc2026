@@ -148,6 +148,7 @@ export default async function MatchesPage() {
               winnerOnly={winnerOnly}
               groups={myGroupList}
               live={opts?.live}
+              clickable
             />
           ))}
         </div>
