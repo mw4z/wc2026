@@ -18,6 +18,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, ...result });
     }
     const count = await recalculateLeaderboard();
+    // Backfill goal scorers AND reconcile any wrong stored result (e.g. a frozen
+    // 0-0) against ESPN — re-scoring as needed. Runs BEFORE the movement backfill
+    // so the arrows reflect corrected standings. Best-effort.
+    let goalsBackfill: { matches: number; goals: number; corrected: number } | null = null;
+    try {
+      goalsBackfill = await backfillMatchGoals();
+    } catch (e) {
+      console.error("[recalculate] goal backfill failed:", (e as Error).message);
+    }
     // Seed rank-movement arrows from the last match already played (best-effort).
     let movementFrom: string | null = null;
     let moved = 0;
@@ -27,13 +36,6 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       movementError = (e as Error).message;
       console.error("[recalculate] movement backfill failed:", movementError);
-    }
-    // Backfill goal scorers for all finished matches (best-effort).
-    let goalsBackfill: { matches: number; goals: number } | null = null;
-    try {
-      goalsBackfill = await backfillMatchGoals();
-    } catch (e) {
-      console.error("[recalculate] goal backfill failed:", (e as Error).message);
     }
     return NextResponse.json({ ok: true, entries: count, movementFrom, moved, movementError, goalsBackfill });
   } catch (e) {

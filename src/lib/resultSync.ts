@@ -6,6 +6,7 @@ import { evaluateMapping, teamsEqual } from "./fixtureMapping";
 import { fetchEspnLive, fetchEspnEvents, fetchEspnDates, yyyymmdd, type EspnEvent } from "./espn";
 import { notifyGoal } from "./notifications";
 import { resolveArabic } from "./playerNameResolver";
+import type { Stage } from "@prisma/client";
 
 // Re-export the pure layer so existing import sites keep working.
 export * from "./resultSyncCore";
@@ -314,6 +315,80 @@ export async function syncResultsFromEspn(opts: { matchIds?: string[]; force?: b
   return report;
 }
 
+/**
+ * Re-derive a match's FINAL result from an ESPN event and write+rescore it if it
+ * differs from what's stored. Fixes matches that were finalized with a wrong score
+ * (e.g. an old provider or a transient 0-0) and then frozen as SCORED. Returns true
+ * if the stored result changed. Re-scoring is deduped, so it won't re-push.
+ */
+async function finalizeMatchFromEspn(
+  match: {
+    id: string;
+    stage: Stage;
+    homeTeamId: string | null;
+    awayTeamId: string | null;
+    homeScore: number | null;
+    awayScore: number | null;
+    winnerTeamId: string | null;
+    status: string;
+    homeTeam: { nameEn: string } | null;
+    awayTeam: { nameEn: string } | null;
+  },
+  ev: EspnEvent,
+  now: Date,
+): Promise<boolean> {
+  if (!match.homeTeam || !match.awayTeam) return false;
+  if (ev.state !== "post" || !ev.completed || ev.homeScore == null || ev.awayScore == null) return false;
+
+  const parsed: ParsedFixture = {
+    fixtureId: match.id,
+    dateISO: ev.dateISO,
+    statusRaw: ev.detail || "FT",
+    isFinal: true,
+    goalsHome: ev.homeScore,
+    goalsAway: ev.awayScore,
+    wentToPenalties: ev.penalties,
+    homeWinner: ev.homeWinner,
+    awayWinner: ev.awayWinner,
+    homeName: ev.homeName,
+    awayName: ev.awayName,
+    venue: null,
+  };
+  const { fixture, orientation } = orientToMatch(parsed, match.homeTeam.nameEn, match.awayTeam.nameEn);
+  if (orientation === "unknown") return false;
+  const derived = deriveMatchResult(match, fixture);
+  if (derived.action === "skip") return false;
+  const r = derived.result!;
+
+  const unchanged =
+    match.status === "SCORED" &&
+    match.homeScore === r.homeScore &&
+    match.awayScore === r.awayScore &&
+    match.winnerTeamId === r.winnerTeamId;
+  if (unchanged) return false;
+
+  await prisma.match.update({
+    where: { id: match.id },
+    data: {
+      homeScore: r.homeScore,
+      awayScore: r.awayScore,
+      wentToPenalties: r.wentToPenalties,
+      winnerTeamId: r.winnerTeamId,
+      status: "FINISHED",
+      resultConfirmedAt: now,
+      resultSource: "espn",
+      externalProvider: "espn",
+      externalStatus: derived.externalStatus,
+      lastSyncedAt: now,
+      needsReview: derived.action === "review",
+      liveHomeScore: null,
+      liveAwayScore: null,
+    },
+  });
+  if (derived.action === "score") await calculateMatchPoints(match.id);
+  return true;
+}
+
 // ---------------------------------------------------------------------------
 // Fixture mapping (server-side). Same logic as scripts/map-fixtures.ts but runs
 // from the deployed app (which can reach the DB) — exposed to admins via a button.
@@ -547,18 +622,23 @@ async function processMatchGoals(
  * (no push — these are historical). Idempotent: skips matches that already have
  * goals unless force is set. Admin-triggered (best-effort, capped).
  */
-export async function backfillMatchGoals(opts: { force?: boolean } = {}): Promise<{ matches: number; goals: number }> {
+export async function backfillMatchGoals(
+  opts: { force?: boolean } = {},
+): Promise<{ matches: number; goals: number; corrected: number }> {
+  void opts;
+  const now = new Date();
+  // ALL finished matches — goal insertion is idempotent (skips existing) and we
+  // also reconcile a wrong stored score (e.g. a frozen 0-0) against ESPN.
   const matches = await prisma.match.findMany({
     where: {
       homeScore: { not: null },
       homeTeamId: { not: null },
       awayTeamId: { not: null },
-      ...(opts.force ? {} : { goals: { none: {} } }),
     },
     include: { homeTeam: true, awayTeam: true },
     orderBy: { kickoffAt: "asc" },
   });
-  if (matches.length === 0) return { matches: 0, goals: 0 };
+  if (matches.length === 0) return { matches: 0, goals: 0, corrected: 0 };
 
   // One ESPN fetch per relevant UTC day (± a day, since late kickoffs can land on
   // the adjacent date). Dedupe across all matches.
@@ -571,12 +651,13 @@ export async function backfillMatchGoals(opts: { force?: boolean } = {}): Promis
     events = await fetchEspnDates([...dateSet]);
   } catch (e) {
     console.error("[goal-backfill] ESPN fetch failed:", (e as Error).message);
-    return { matches: 0, goals: 0 };
+    return { matches: 0, goals: 0, corrected: 0 };
   }
 
   const TOL = 3 * 3600_000;
   let matchesTouched = 0;
   let goalsInserted = 0;
+  let corrected = 0;
   for (const m of matches) {
     if (!m.homeTeam || !m.awayTeam) continue;
     const home = m.homeTeam.nameEn;
@@ -589,7 +670,16 @@ export async function backfillMatchGoals(opts: { force?: boolean } = {}): Promis
         (teamsEqual(e.homeName, away) && teamsEqual(e.awayName, home));
       return near && samePair;
     });
-    if (!ev || ev.goals.length === 0) continue;
+    if (!ev) continue;
+
+    // Reconcile a wrong stored result (e.g. a frozen 0-0) against ESPN's final.
+    try {
+      if (await finalizeMatchFromEspn(m, ev, now)) corrected++;
+    } catch (e) {
+      console.error(`[goal-backfill] reconcile failed for ${m.id}:`, (e as Error).message);
+    }
+
+    if (ev.goals.length === 0) continue;
 
     const reversed = teamsEqual(ev.homeName, away) && teamsEqual(ev.awayName, home);
     const oriented = ev.goals.map((g, i) => ({
@@ -624,7 +714,7 @@ export async function backfillMatchGoals(opts: { force?: boolean } = {}): Promis
     matchesTouched++;
     goalsInserted += fresh.length;
   }
-  return { matches: matchesTouched, goals: goalsInserted };
+  return { matches: matchesTouched, goals: goalsInserted, corrected };
 }
 
 /** Mark a final match as needing admin review (store status, don't score). */

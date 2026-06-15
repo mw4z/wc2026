@@ -89,7 +89,8 @@ export function AdminControls({
         : "";
       const goals =
         res.ok && data.goalsBackfill?.goals ? ` · ⚽ ${data.goalsBackfill.goals} (${data.goalsBackfill.matches})` : "";
-      setNote(res.ok ? `${UI.admin.recalcDonePrefix} (${data.entries} ${UI.admin.participantsWord})${movement}${goals}` : data.error);
+      const fixed = res.ok && data.goalsBackfill?.corrected ? ` · 🛠 ${data.goalsBackfill.corrected}` : "";
+      setNote(res.ok ? `${UI.admin.recalcDonePrefix} (${data.entries} ${UI.admin.participantsWord})${movement}${goals}${fixed}` : data.error);
       router.refresh();
     } finally {
       setBusy(false);
