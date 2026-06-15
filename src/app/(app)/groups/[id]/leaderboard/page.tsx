@@ -42,16 +42,18 @@ export default async function GroupLeaderboardPage({ params }: { params: Promise
             {board.map((r) => (
               <tr key={r.userId} className={`border-b border-white/5 ${r.userId === user.id ? "bg-accent-500/10 ring-1 ring-inset ring-accent-500/40" : ""}`}>
                 <td className="p-3">
-                  <div className="flex items-center gap-1.5">
-                    <span className={`font-display font-bold tnum ${r.rank === 1 ? "text-gold-400" : "text-slate-300"}`}>
-                      {r.rank}
-                    </span>
-                    <MovementIndicator movement={r.movement} />
-                  </div>
+                  <span className={`font-display font-bold tnum ${r.rank === 1 ? "text-gold-400" : "text-slate-300"}`}>
+                    {r.rank}
+                  </span>
                 </td>
                 <td className="p-3 font-semibold text-white">{r.name}</td>
                 <td className="hidden p-3 text-slate-400 sm:table-cell">{r.department ?? "—"}</td>
-                <td className="p-3 font-display font-extrabold tnum text-gold-400">{r.totalPoints}</td>
+                <td className="p-3">
+                  <div className="flex items-center gap-2.5">
+                    <MovementIndicator movement={r.movement} />
+                    <span className="font-display font-extrabold tnum text-gold-400">{r.totalPoints}</span>
+                  </div>
+                </td>
                 <td className="hidden p-3 md:table-cell">{r.exactScores}</td>
                 <td className="hidden p-3 md:table-cell">{r.correctOutcomes}</td>
               </tr>
