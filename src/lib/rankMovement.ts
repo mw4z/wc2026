@@ -35,8 +35,9 @@ export async function snapshotMovementForMatch(matchId: string): Promise<{ moved
     return p != null && p !== r.rank;
   }).length;
 
-  // Each active group's board, same two-pass approach with its custom scoring.
-  const groups = await prisma.group.findMany({ where: { isActive: true }, select: { id: true } });
+  // Every group's board (incl. inactive — members may still view them), same
+  // two-pass approach with each group's custom scoring.
+  const groups = await prisma.group.findMany({ select: { id: true } });
   for (const g of groups) {
     const current = await getGroupLeaderboard(g.id);
     const previous = await getGroupLeaderboard(g.id, { excludeMatchId: matchId });
