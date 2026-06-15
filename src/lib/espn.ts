@@ -4,6 +4,15 @@
 
 const ESPN = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard";
 
+// One goal from ESPN's scoring plays. `side` is relative to ESPN's home/away
+// (the caller orients it to our schedule).
+export interface EspnGoal {
+  side: "home" | "away";
+  player: string; // scorer name (Latin), e.g. "Emam Ashour"
+  minute: string; // display clock, e.g. "19'", "45+2'"
+  note: string | null; // e.g. "Penalty", "Own Goal" — null for a normal goal
+}
+
 export interface EspnEvent {
   homeName: string;
   awayName: string;
@@ -16,6 +25,7 @@ export interface EspnEvent {
   homeWinner: boolean; // ESPN's advancing-team flag (covers penalties)
   awayWinner: boolean;
   penalties: boolean; // a shootout was involved
+  goals: EspnGoal[]; // chronological scoring plays
 }
 
 function yyyymmdd(d: Date): string {
@@ -27,12 +37,19 @@ interface RawCompetitor {
   score?: string;
   winner?: boolean;
   shootoutScore?: number | string;
-  team?: { displayName?: string; name?: string; location?: string };
+  team?: { id?: string; displayName?: string; name?: string; location?: string };
+}
+interface RawDetail {
+  scoringPlay?: boolean;
+  type?: { text?: string };
+  clock?: { displayValue?: string };
+  team?: { id?: string };
+  athletesInvolved?: { displayName?: string }[];
 }
 interface RawEvent {
   date?: string;
   status?: { type?: { state?: string; completed?: boolean; shortDetail?: string } };
-  competitions?: { competitors?: RawCompetitor[] }[];
+  competitions?: { competitors?: RawCompetitor[]; details?: RawDetail[] }[];
 }
 
 /**
@@ -57,7 +74,8 @@ export async function fetchEspnEvents(daysBack = 1): Promise<EspnEvent[]> {
       continue;
     }
     for (const e of json.events ?? []) {
-      const cs = e.competitions?.[0]?.competitors ?? [];
+      const comp = e.competitions?.[0];
+      const cs = comp?.competitors ?? [];
       const home = cs.find((c) => c.homeAway === "home");
       const away = cs.find((c) => c.homeAway === "away");
       const homeName = home?.team?.displayName || home?.team?.name || home?.team?.location || "";
@@ -67,6 +85,22 @@ export async function fetchEspnEvents(daysBack = 1): Promise<EspnEvent[]> {
       if (seen.has(key)) continue;
       seen.add(key);
       const num = (s?: string) => (s != null && s !== "" ? Number(s) : null);
+
+      // Scoring plays → goals. ESPN flags them with scoringPlay; type.text carries
+      // the kind ("Goal", "Goal - Penalty", "Own Goal"). Map team id → home/away.
+      const homeId = home?.team?.id != null ? String(home.team.id) : null;
+      const goals: EspnGoal[] = [];
+      for (const d of comp?.details ?? []) {
+        const txt = d.type?.text ?? "";
+        const isGoal = d.scoringPlay === true || /goal/i.test(txt);
+        if (!isGoal) continue;
+        const player = d.athletesInvolved?.[0]?.displayName?.trim();
+        if (!player) continue;
+        const side: "home" | "away" = homeId != null && String(d.team?.id) === homeId ? "home" : "away";
+        const note = /penalt/i.test(txt) ? "Penalty" : /own/i.test(txt) ? "Own Goal" : null;
+        goals.push({ side, player, minute: d.clock?.displayValue ?? "", note });
+      }
+
       out.push({
         homeName,
         awayName,
@@ -79,6 +113,7 @@ export async function fetchEspnEvents(daysBack = 1): Promise<EspnEvent[]> {
         homeWinner: home?.winner === true,
         awayWinner: away?.winner === true,
         penalties: home?.shootoutScore != null || away?.shootoutScore != null,
+        goals,
       });
     }
   }

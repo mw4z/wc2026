@@ -7,6 +7,7 @@ import { UserIcon, ShieldIcon, ListIcon, ArrowIcon } from "@/components/icons";
 import { EmailManager } from "@/components/EmailManager";
 import { otpConfigured } from "@/lib/authentica";
 import { ReminderToggle } from "@/components/ReminderToggle";
+import { GoalNotifyPrefs } from "@/components/GoalNotifyPrefs";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,10 @@ export const dynamic = "force-dynamic";
 export default async function ProfilePage() {
   const UI = await getUI();
   const user = await requireUser();
-  const entry = await prisma.leaderboardEntry.findUnique({ where: { userId: user.id } });
+  const [entry, prefs] = await Promise.all([
+    prisma.leaderboardEntry.findUnique({ where: { userId: user.id } }),
+    prisma.user.findUnique({ where: { id: user.id }, select: { notifyGoals: true, notifyGoalsScope: true } }),
+  ]);
 
   const stat = (label: string, value: string | number) => (
     <div className="card card-accent p-4 text-center">
@@ -45,6 +49,10 @@ export default async function ProfilePage() {
 
       <div className="mt-6">
         <ReminderToggle manage />
+        <GoalNotifyPrefs
+          initialEnabled={prefs?.notifyGoals ?? true}
+          initialScope={(prefs?.notifyGoalsScope as "ALL" | "PREDICTED") ?? "ALL"}
+        />
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">

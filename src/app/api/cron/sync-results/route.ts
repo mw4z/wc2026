@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { syncResultsFromEspn } from "@/lib/resultSync";
+import { syncResultsFromEspn, refreshLiveScores } from "@/lib/resultSync";
 
 // Auto result sync. Fetches final results from the football provider and scores
 // finished matches via the existing scoring path. Manual admin entry remains the
@@ -26,8 +26,17 @@ async function handle(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   try {
+    // Refresh live scores + capture/push goals every minute, so goal alerts fire
+    // even when no client is polling. Best-effort — never blocks finalization.
+    let liveCount = 0;
+    try {
+      const live = await refreshLiveScores();
+      liveCount = live.length;
+    } catch (e) {
+      console.error("[sync-results] live refresh failed:", (e as Error).message);
+    }
     const report = await syncResultsFromEspn();
-    return NextResponse.json(report);
+    return NextResponse.json({ ...report, live: liveCount });
   } catch (e) {
     // Never break: log server-side, return a generic 500.
     console.error("[sync-results] unexpected:", (e as Error).message);

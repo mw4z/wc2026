@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { pushConfigured, sendPush, type PushPayload, type StoredSubscription } from "./push";
+import { playerDisplayName } from "./playerNames";
 
 // Single source of truth for reminder copy, shared by the cron (real reminders)
 // and the admin "send test" tool (sample previews). Arabic, sporty, with emoji.
@@ -94,6 +95,70 @@ export async function notifyAdminsNewUser(name: string): Promise<void> {
     );
   } catch (e) {
     console.error("notifyAdminsNewUser failed:", (e as Error).message);
+  }
+}
+
+// Per-goal alert. Arabic-first like every other push; the scorer name is shown in
+// Arabic when we know it (Arab players). `tag` collapses to the latest goal of the
+// match so a device shows one updating goal alert per match, not a stack.
+export function goalPayload(opts: {
+  teamAr: string;
+  player: string; // Latin scorer name — rendered Arabic here when known
+  minute: string;
+  note: string | null; // "Penalty" | "Own Goal" | null
+  line: string; // e.g. "مصر 1-0 بلجيكا"
+  matchId: string;
+}): PushPayload {
+  const noteAr = opts.note === "Penalty" ? " (ركلة جزاء)" : opts.note === "Own Goal" ? " (هدف عكسي)" : "";
+  const who = playerDisplayName(opts.player, "ar");
+  const min = opts.minute ? ` ${opts.minute}` : "";
+  return {
+    title: `⚽ هدف! ${opts.teamAr}`,
+    body: `${who}${min}${noteAr} — ${opts.line}`,
+    url: `/matches/${opts.matchId}`,
+    tag: `wc26-goal-${opts.matchId}`,
+  };
+}
+
+/**
+ * Push a single goal to every eligible user. Audience = users with goal alerts
+ * ON; users whose scope is "PREDICTED" are included only if they predicted this
+ * match. Best-effort — never throws. Returns how many subscriptions were notified.
+ */
+export async function notifyGoal(opts: {
+  matchId: string;
+  teamAr: string;
+  player: string;
+  minute: string;
+  note: string | null;
+  line: string;
+}): Promise<number> {
+  if (!pushConfigured) return 0;
+  try {
+    const [users, predictors] = await Promise.all([
+      prisma.user.findMany({
+        where: { isActive: true, notifyGoals: true },
+        select: { id: true, notifyGoalsScope: true },
+      }),
+      prisma.prediction.findMany({ where: { matchId: opts.matchId }, select: { userId: true } }),
+    ]);
+    const predictorSet = new Set(predictors.map((p) => p.userId));
+    const ids = users
+      .filter((u) => u.notifyGoalsScope !== "PREDICTED" || predictorSet.has(u.id))
+      .map((u) => u.id);
+    if (ids.length === 0) return 0;
+
+    const subs = await prisma.pushSubscription.findMany({ where: { userId: { in: ids } } });
+    if (subs.length === 0) return 0;
+
+    const payload = goalPayload(opts);
+    const results = await Promise.all(
+      subs.map((s) => sendPush({ endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth }, payload)),
+    );
+    return results.filter(Boolean).length;
+  } catch (e) {
+    console.error("notifyGoal failed:", (e as Error).message);
+    return 0;
   }
 }
 

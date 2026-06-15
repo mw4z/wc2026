@@ -73,6 +73,11 @@ model User {
   role       Role     @default(USER)
   // Admin can deactivate suspicious users; inactive users cannot log in or predict.
   isActive   Boolean  @default(true)
+  // Per-goal push notifications (live matches). Users can switch off / narrow the
+  // scope from their profile. scope: "ALL" = every match, "PREDICTED" = only
+  // matches the user predicted.
+  notifyGoals      Boolean @default(true)
+  notifyGoalsScope String  @default("ALL")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -148,6 +153,9 @@ model Match {
   lastSyncedAt      DateTime? // last time the sync checked this match
   externalStatus    String? // raw provider status short, e.g. "FT" | "AET" | "PEN"
   needsReview       Boolean   @default(false) // provider final but qualifier unclear → admin must confirm
+  // First time the live sync saw this match in play. Used to seed already-played
+  // goals silently on first sight (no burst of stale push notifications).
+  liveStartedAt     DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -159,11 +167,33 @@ model Match {
   predictions Prediction[]
   resultAudit MatchResultAuditLog[]
   groupRules  GroupMatchRule[]
+  goals       MatchGoal[]
 
   @@index([status])
   @@index([kickoffAt])
   @@index([stage])
   @@index([externalFixtureId])
+}
+
+// A single goal in a match, mirrored from ESPN's scoring plays. Drives the live
+// scorer list on the card AND the per-goal push notifications. `side` is oriented
+// to OUR home/away. Deduped on (matchId, side, player, minute) so repeated syncs
+// don't double-insert or double-notify.
+model MatchGoal {
+  id        String   @id @default(cuid())
+  matchId   String
+  side      String // "home" | "away" (our orientation)
+  player    String // scorer name as ESPN reports it (Latin)
+  minute    String // display clock, e.g. "19'", "45+2'"
+  sortOrder Int      @default(0) // chronological order within the match
+  note      String? // e.g. "Penalty", "Own Goal"
+  notified  Boolean  @default(false) // a per-goal push has been sent
+  createdAt DateTime @default(now())
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, side, player, minute])
+  @@index([matchId])
 }
 
 model Prediction {

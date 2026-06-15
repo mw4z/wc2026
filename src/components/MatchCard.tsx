@@ -6,7 +6,8 @@ import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent }
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { SerializedMatch, SerializedPrediction } from "@/app/(app)/matches/page";
-import { useUI } from "./I18nProvider";
+import { useUI, useLocale } from "./I18nProvider";
+import { playerDisplayName } from "@/lib/playerNames";
 import { ClockIcon, CheckIcon, LockIcon, UsersIcon, ArrowIcon } from "./icons";
 import { Flag } from "./Flag";
 
@@ -18,6 +19,15 @@ const KNOCKOUT = new Set([
   "THIRD_PLACE",
   "FINAL",
 ]);
+
+// A live goal as returned by /api/matches/live (player name is Latin; localized
+// to Arabic at render via playerDisplayName).
+interface LiveGoal {
+  side: string; // "home" | "away" (our orientation)
+  player: string;
+  minute: string;
+  note: string | null; // "Penalty" | "Own Goal" | null
+}
 
 // A match counts as "in play" up to ~4h after kickoff (mirrors the server window).
 const LIVE_WINDOW_MS = 4 * 3600_000;
@@ -105,6 +115,7 @@ export function MatchCard({
   clickable?: boolean;
 }) {
   const UI = useUI();
+  const locale = useLocale();
   const router = useRouter();
   const ms = useCountdown(match.kickoffAt);
   const msToOpen = useCountdown(match.opensAt ?? match.kickoffAt);
@@ -153,11 +164,18 @@ export function MatchCard({
   // Live (in-play) score: seeded from the server, then polled every ~40s while the
   // match is running. The endpoint is DB-backed + provider-throttled, so many cards
   // polling at once cost almost nothing. On "final" we refresh to get the scored card.
-  const [liveScore, setLiveScore] = useState<{ home: number | null; away: number | null; status: string | null; at: number }>({
+  const [liveScore, setLiveScore] = useState<{
+    home: number | null;
+    away: number | null;
+    status: string | null;
+    at: number;
+    goals: LiveGoal[];
+  }>({
     home: match.liveHomeScore,
     away: match.liveAwayScore,
     status: match.liveStatus,
     at: 0, // set on first poll; 0 means "don't tick the seeded minute yet"
+    goals: [],
   });
   const endedRef = useRef(false);
   useEffect(() => {
@@ -170,7 +188,14 @@ export function MatchCard({
         const res = await fetch("/api/matches/live", { cache: "no-store" });
         if (!res.ok || !active) return;
         const data = (await res.json()) as {
-          matches?: { id: string; home: number | null; away: number | null; status: string | null; final: boolean }[];
+          matches?: {
+            id: string;
+            home: number | null;
+            away: number | null;
+            status: string | null;
+            final: boolean;
+            goals?: LiveGoal[];
+          }[];
         };
         const mine = data.matches?.find((x) => x.id === match.id);
         if (!mine || !active) return;
@@ -179,7 +204,7 @@ export function MatchCard({
           router.refresh(); // match ended → pull the finished/scored card
           return;
         }
-        setLiveScore({ home: mine.home, away: mine.away, status: mine.status, at: Date.now() });
+        setLiveScore({ home: mine.home, away: mine.away, status: mine.status, at: Date.now(), goals: mine.goals ?? [] });
       } catch {
         /* keep the last score on a transient error */
       }
@@ -325,6 +350,14 @@ export function MatchCard({
         </div>
         <TeamSide name={match.awayTeam?.name ?? UI.tbd} flag={match.awayTeam?.flagUrl} win={awayWin} />
       </div>
+
+      {/* live scorers — player + minute under the score, aligned to each team */}
+      {showLiveScore && liveScore.goals.length > 0 && (
+        <div className="flex items-start justify-between gap-3 px-4 pb-2">
+          <ScorerList goals={liveScore.goals.filter((g) => g.side === "home")} locale={locale} align="start" />
+          <ScorerList goals={liveScore.goals.filter((g) => g.side === "away")} locale={locale} align="end" />
+        </div>
+      )}
 
       {/* meta */}
       <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 pb-1 text-center text-xs text-slate-300">
@@ -636,6 +669,31 @@ function StatusPill({
     CANCELLED: "pill-done",
   };
   return <span className={`pill ${cls[effective] ?? "pill-done"}`}>{UI.statuses[effective]}</span>;
+}
+
+function ScorerList({
+  goals,
+  locale,
+  align,
+}: {
+  goals: LiveGoal[];
+  locale: string;
+  align: "start" | "end";
+}) {
+  if (goals.length === 0) return <div className="flex-1" />;
+  return (
+    <ul className={`flex-1 space-y-0.5 text-[11px] leading-tight text-slate-300 ${align === "end" ? "text-end" : "text-start"}`}>
+      {goals.map((g, i) => (
+        <li key={i} className="truncate">
+          <span aria-hidden>⚽ </span>
+          {playerDisplayName(g.player, locale)}
+          {g.minute && <span className="text-slate-500 tnum"> {g.minute}</span>}
+          {g.note === "Penalty" && <span className="text-slate-500"> (ب.ج)</span>}
+          {g.note === "Own Goal" && <span className="text-slate-500"> (ع)</span>}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 function TeamSide({ name, flag, win }: { name: string; flag?: string | null; win?: boolean }) {

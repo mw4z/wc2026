@@ -32,6 +32,20 @@ export async function GET() {
   const inPlay = candidates.filter((m) => nowMs - m.kickoffAt.getTime() <= LIVE_WINDOW_MS);
   if (inPlay.length === 0) return NextResponse.json({ matches: [] });
 
+  // Goal scorers for these matches (Latin names; the client localizes to Arabic).
+  const goalRows = await prisma.matchGoal.findMany({
+    where: { matchId: { in: inPlay.map((m) => m.id) } },
+    orderBy: { sortOrder: "asc" },
+    select: { matchId: true, side: true, player: true, minute: true, note: true },
+  });
+  const goalsByMatch = new Map<string, { side: string; player: string; minute: string; note: string | null }[]>();
+  for (const g of goalRows) {
+    const list = goalsByMatch.get(g.matchId) ?? [];
+    list.push({ side: g.side, player: g.player, minute: g.minute, note: g.note });
+    goalsByMatch.set(g.matchId, list);
+  }
+  const goalsFor = (id: string) => goalsByMatch.get(id) ?? [];
+
   // Refresh from the provider only if our newest live data is stale.
   const freshest = Math.max(0, ...inPlay.map((m) => m.lastSyncedAt?.getTime() ?? 0));
   if (nowMs - freshest > STALE_MS) {
@@ -41,8 +55,8 @@ export async function GET() {
       const matches = inPlay.map((m) => {
         const r = byId.get(m.id);
         return r
-          ? { id: m.id, home: r.home, away: r.away, status: r.status, final: r.final }
-          : { id: m.id, home: m.liveHomeScore, away: m.liveAwayScore, status: m.externalStatus, final: false };
+          ? { id: m.id, home: r.home, away: r.away, status: r.status, final: r.final, goals: goalsFor(m.id) }
+          : { id: m.id, home: m.liveHomeScore, away: m.liveAwayScore, status: m.externalStatus, final: false, goals: goalsFor(m.id) };
       });
       return NextResponse.json({ matches });
     } catch {
@@ -56,6 +70,7 @@ export async function GET() {
     away: m.liveAwayScore,
     status: m.externalStatus,
     final: false,
+    goals: goalsFor(m.id),
   }));
   return NextResponse.json({ matches });
 }

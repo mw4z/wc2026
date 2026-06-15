@@ -3,7 +3,8 @@ import { calculateMatchPoints } from "./matches";
 import { fetchAllFixtures, footballApiConfigured, footballProvider, rateLimitRemaining } from "./footballApi";
 import { deriveMatchResult, orientToMatch, type ParsedFixture } from "./resultSyncCore";
 import { evaluateMapping, teamsEqual } from "./fixtureMapping";
-import { fetchEspnLive, fetchEspnEvents } from "./espn";
+import { fetchEspnLive, fetchEspnEvents, type EspnEvent } from "./espn";
+import { notifyGoal } from "./notifications";
 
 // Re-export the pure layer so existing import sites keep working.
 export * from "./resultSyncCore";
@@ -422,6 +423,13 @@ export async function refreshLiveScores(): Promise<LiveScore[]> {
       const ourHome = reversed ? ev.awayScore : ev.homeScore;
       const ourAway = reversed ? ev.homeScore : ev.awayScore;
 
+      // Capture scorers + push new goals (works for both in-play and just-finished).
+      try {
+        await processMatchGoals(m, ev, reversed, ourHome, ourAway, now);
+      } catch (e) {
+        console.error(`[live-scores] goal sync failed for ${m.id}:`, (e as Error).message);
+      }
+
       if (ev.state === "post") {
         // ESPN says full-time — let the results cron set the official final + score.
         out.push({ matchId: m.id, home: ourHome, away: ourAway, status: ev.detail || "FT", final: true });
@@ -445,6 +453,86 @@ export async function refreshLiveScores(): Promise<LiveScore[]> {
     liveInflight = null;
   });
   return liveInflight;
+}
+
+/**
+ * Mirror ESPN's scoring plays into MatchGoal and push each NEW goal. Goals are
+ * oriented to our home/away. On the FIRST time we ever see a match (liveStartedAt
+ * null) any already-played goals are seeded silently — so deploying mid-match
+ * doesn't blast stale alerts. After that, every fresh goal is claimed atomically
+ * (notified flip) and pushed exactly once, even if the cron and a polling client
+ * race on the same goal.
+ */
+async function processMatchGoals(
+  m: {
+    id: string;
+    liveStartedAt: Date | null;
+    homeTeam: { nameAr: string } | null;
+    awayTeam: { nameAr: string } | null;
+  },
+  ev: EspnEvent,
+  reversed: boolean,
+  ourHome: number | null,
+  ourAway: number | null,
+  now: Date,
+): Promise<void> {
+  if (!m.homeTeam || !m.awayTeam) return;
+  const firstSync = m.liveStartedAt == null;
+
+  // Orient each goal's side to our schedule.
+  const oriented = ev.goals.map((g, i) => ({
+    side: reversed ? (g.side === "home" ? "away" : "home") : g.side,
+    player: g.player,
+    minute: g.minute,
+    note: g.note,
+    sortOrder: i,
+  }));
+
+  if (oriented.length > 0) {
+    const existing = await prisma.matchGoal.findMany({
+      where: { matchId: m.id },
+      select: { side: true, player: true, minute: true },
+    });
+    const key = (x: { side: string; player: string; minute: string }) => `${x.side}|${x.player}|${x.minute}`;
+    const have = new Set(existing.map(key));
+    const fresh = oriented.filter((g) => !have.has(key(g)));
+    if (fresh.length > 0) {
+      await prisma.matchGoal.createMany({
+        data: fresh.map((g) => ({
+          matchId: m.id,
+          side: g.side,
+          player: g.player,
+          minute: g.minute,
+          sortOrder: g.sortOrder,
+          note: g.note,
+          notified: firstSync, // seed silently on first sight
+        })),
+        skipDuplicates: true,
+      });
+    }
+  }
+
+  // Establish the match so subsequent goals count as "new" and get pushed.
+  if (firstSync) {
+    await prisma.match.update({ where: { id: m.id }, data: { liveStartedAt: now } });
+    return; // anything present now was seeded silently
+  }
+
+  // Claim & push any unnotified goals (exactly-once via the notified flip).
+  const pending = await prisma.matchGoal.findMany({
+    where: { matchId: m.id, notified: false },
+    orderBy: { sortOrder: "asc" },
+  });
+  for (const g of pending) {
+    const claim = await prisma.matchGoal.updateMany({
+      where: { id: g.id, notified: false },
+      data: { notified: true },
+    });
+    if (claim.count !== 1) continue; // another worker is handling it
+    const teamAr = g.side === "home" ? m.homeTeam.nameAr : m.awayTeam.nameAr;
+    const line = `${m.homeTeam.nameAr} ${ourHome ?? 0}-${ourAway ?? 0} ${m.awayTeam.nameAr}`;
+    await notifyGoal({ matchId: m.id, teamAr, player: g.player, minute: g.minute, note: g.note, line });
+  }
 }
 
 /** Mark a final match as needing admin review (store status, don't score). */
