@@ -501,7 +501,7 @@ export async function refreshLiveScores(): Promise<LiveScore[]> {
 
       // Capture scorers + push new goals (works for both in-play and just-finished).
       try {
-        await processMatchGoals(m, ev, reversed, ourHome, ourAway);
+        await processMatchGoals(m, ev, reversed);
       } catch (e) {
         console.error(`[live-scores] goal sync failed for ${m.id}:`, (e as Error).message);
       }
@@ -551,8 +551,6 @@ async function processMatchGoals(
   },
   ev: EspnEvent,
   reversed: boolean,
-  ourHome: number | null,
-  ourAway: number | null,
 ): Promise<void> {
   if (!m.homeTeam || !m.awayTeam || ev.goals.length === 0) return;
 
@@ -597,19 +595,27 @@ async function processMatchGoals(
 
   if (silentSeed) return;
 
-  // Claim & push any unnotified goals (exactly-once via the notified flip).
-  const pending = await prisma.matchGoal.findMany({
-    where: { matchId: m.id, notified: false },
+  // Claim & push any unnotified goals (exactly-once via the notified flip). The
+  // scoreline is computed by counting goals up to and INCLUDING each one, so the
+  // alert shows the score right AFTER that goal — never ESPN's `score` field, which
+  // lags the goal feed. (ESPN already credits own goals to the benefiting side.)
+  const all = await prisma.matchGoal.findMany({
+    where: { matchId: m.id },
     orderBy: { sortOrder: "asc" },
   });
-  for (const g of pending) {
+  let h = 0;
+  let a = 0;
+  for (const g of all) {
+    if (g.side === "home") h++;
+    else a++;
+    if (g.notified) continue;
     const claim = await prisma.matchGoal.updateMany({
       where: { id: g.id, notified: false },
       data: { notified: true },
     });
     if (claim.count !== 1) continue; // another worker is handling it
     const teamAr = g.side === "home" ? m.homeTeam.nameAr : m.awayTeam.nameAr;
-    const line = `${m.homeTeam.nameAr} ${ourHome ?? 0}-${ourAway ?? 0} ${m.awayTeam.nameAr}`;
+    const line = `${m.homeTeam.nameAr} ${h}-${a} ${m.awayTeam.nameAr}`;
     const playerAr = (await resolveArabic(g.player).catch(() => null)) ?? undefined;
     await notifyGoal({ matchId: m.id, teamAr, player: g.player, playerAr, minute: g.minute, note: g.note, line });
   }
