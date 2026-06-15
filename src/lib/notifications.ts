@@ -54,14 +54,20 @@ export async function notifyMatchScored(matchId: string): Promise<number> {
     }
 
     const tn = (t: { nameAr: string } | null) => t?.nameAr ?? "—";
-    const line = `${tn(match.homeTeam)} ${match.homeScore}-${match.awayScore} ${tn(match.awayTeam)} ⚽`;
     const recorded: { userId: string; matchId: string; kind: string }[] = [];
 
     for (const p of preds) {
       if (alreadySet.has(p.userId)) continue;
       const list = subsByUser.get(p.userId);
       if (!list || list.length === 0) continue;
-      const payload = scoredPayload({ line, points: p.pointsAwarded ?? 0, matchId });
+      const payload = scoredPayload({
+        home: tn(match.homeTeam),
+        away: tn(match.awayTeam),
+        homeScore: match.homeScore,
+        awayScore: match.awayScore,
+        points: p.pointsAwarded ?? 0,
+        matchId,
+      });
       let ok = false;
       for (const sub of list) if (await sendPush(sub, payload)) ok = true;
       if (ok) recorded.push({ userId: p.userId, matchId, kind: "scored" });
@@ -219,13 +225,23 @@ export function revealedPayload(n: number, groupId: string): PushPayload {
   };
 }
 
-export function scoredPayload(opts: { line: string; points: number; matchId: string }): PushPayload {
+export function scoredPayload(opts: {
+  home: string;
+  away: string;
+  homeScore: number;
+  awayScore: number;
+  points: number;
+  matchId: string;
+}): PushPayload {
+  // Final result, clearly between the two teams: "مصر 1 - 1 بلجيكا".
+  const result = `${opts.home} ${opts.homeScore} - ${opts.awayScore} ${opts.away}`;
+  const tail =
+    opts.points > 0
+      ? `كسبت +${opts.points} نقطة في الترتيب العام! 🎯`
+      : `لم تُوفَّق هذه المرة، حظًا أوفر في القادمة! 💪`;
   return {
-    title: "🏁 صافرة النهاية!",
-    body:
-      opts.points > 0
-        ? `${opts.line} — كسبت +${opts.points} نقطة في الترتيب العام! 🎯`
-        : `${opts.line} — لم تُوفَّق هذه المرة، حظًا أوفر في القادمة! 💪`,
+    title: `🏁 صافرة النهاية: ${result}`,
+    body: `${result} ⚽ — ${tail}`,
     url: `/matches/${opts.matchId}`,
     tag: `wc26-scored-${opts.matchId}`,
   };

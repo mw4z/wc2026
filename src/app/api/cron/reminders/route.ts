@@ -158,8 +158,17 @@ export async function GET(req: NextRequest) {
       const pred = predBy.get(`${userId}:${m.id}`);
       if (!pred || reminded(m.id, "scored")) continue;
       const pts = pred.pointsAwarded ?? 0;
-      const line = `${tn(m.homeTeam)} ${m.homeScore}-${m.awayScore} ${tn(m.awayTeam)} ⚽`;
-      const ok = await deliver(userId, scoredPayload({ line, points: pts, matchId: m.id }));
+      const ok = await deliver(
+        userId,
+        scoredPayload({
+          home: tn(m.homeTeam),
+          away: tn(m.awayTeam),
+          homeScore: m.homeScore!,
+          awayScore: m.awayScore!,
+          points: pts,
+          matchId: m.id,
+        }),
+      );
       if (ok) {
         counts.scored++;
         reminderRows.push({ userId, matchId: m.id, kind: "scored" });

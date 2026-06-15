@@ -35,7 +35,10 @@ export async function POST() {
     const payloads = [
       openedPayload(1),
       closingPayload(2),
-      { ...scoredPayload({ line: "السعودية 2-1 الأرجنتين ⚽", points: 3, matchId: "demo" }), url: "/matches" },
+      {
+        ...scoredPayload({ home: "السعودية", away: "الأرجنتين", homeScore: 2, awayScore: 1, points: 3, matchId: "demo" }),
+        url: "/matches",
+      },
     ];
 
     let sent = 0;
