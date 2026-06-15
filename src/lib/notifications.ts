@@ -103,14 +103,15 @@ export async function notifyAdminsNewUser(name: string): Promise<void> {
 // match so a device shows one updating goal alert per match, not a stack.
 export function goalPayload(opts: {
   teamAr: string;
-  player: string; // Latin scorer name — rendered Arabic here when known
+  player: string; // Latin scorer name (fallback)
+  playerAr?: string; // resolved Arabic name when available
   minute: string;
   note: string | null; // "Penalty" | "Own Goal" | null
   line: string; // e.g. "مصر 1-0 بلجيكا"
   matchId: string;
 }): PushPayload {
   const noteAr = opts.note === "Penalty" ? " (ركلة جزاء)" : opts.note === "Own Goal" ? " (هدف عكسي)" : "";
-  const who = playerDisplayName(opts.player, "ar");
+  const who = opts.playerAr || playerDisplayName(opts.player, "ar");
   const min = opts.minute ? ` ${opts.minute}` : "";
   return {
     title: `⚽ هدف! ${opts.teamAr}`,
@@ -129,6 +130,7 @@ export async function notifyGoal(opts: {
   matchId: string;
   teamAr: string;
   player: string;
+  playerAr?: string;
   minute: string;
   note: string | null;
   line: string;

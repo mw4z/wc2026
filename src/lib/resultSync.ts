@@ -5,6 +5,7 @@ import { deriveMatchResult, orientToMatch, type ParsedFixture } from "./resultSy
 import { evaluateMapping, teamsEqual } from "./fixtureMapping";
 import { fetchEspnLive, fetchEspnEvents, type EspnEvent } from "./espn";
 import { notifyGoal } from "./notifications";
+import { resolveArabic } from "./playerNameResolver";
 
 // Re-export the pure layer so existing import sites keep working.
 export * from "./resultSyncCore";
@@ -514,6 +515,11 @@ async function processMatchGoals(
     })),
     skipDuplicates: true,
   });
+
+  // Auto-resolve Arabic names (warms the cache so the card shows them; this is the
+  // network path). Best-effort — never block the goal flow on a name lookup.
+  await Promise.all(fresh.map((g) => resolveArabic(g.player).catch(() => null)));
+
   if (silentSeed) return;
 
   // Claim & push any unnotified goals (exactly-once via the notified flip).
@@ -529,7 +535,8 @@ async function processMatchGoals(
     if (claim.count !== 1) continue; // another worker is handling it
     const teamAr = g.side === "home" ? m.homeTeam.nameAr : m.awayTeam.nameAr;
     const line = `${m.homeTeam.nameAr} ${ourHome ?? 0}-${ourAway ?? 0} ${m.awayTeam.nameAr}`;
-    await notifyGoal({ matchId: m.id, teamAr, player: g.player, minute: g.minute, note: g.note, line });
+    const playerAr = (await resolveArabic(g.player).catch(() => null)) ?? undefined;
+    await notifyGoal({ matchId: m.id, teamAr, player: g.player, playerAr, minute: g.minute, note: g.note, line });
   }
 }
 

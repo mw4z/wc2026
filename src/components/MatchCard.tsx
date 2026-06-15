@@ -24,7 +24,8 @@ const KNOCKOUT = new Set([
 // to Arabic at render via playerDisplayName).
 interface LiveGoal {
   side: string; // "home" | "away" (our orientation)
-  player: string;
+  player: string; // Latin name (fallback)
+  playerAr?: string | null; // auto-resolved Arabic name when available
   minute: string;
   note: string | null; // "Penalty" | "Own Goal" | null
 }
@@ -686,8 +687,11 @@ function ScorerList({
       {goals.map((g, i) => (
         <li key={i} className="flex items-center gap-1.5 text-xs text-slate-300">
           <span aria-hidden className="text-[13px] leading-none">⚽</span>
-          {/* bdi isolates the (often Latin) name so it can't scramble the RTL line */}
-          <bdi className="font-medium text-slate-200">{playerDisplayName(g.player, locale)}</bdi>
+          {/* bdi isolates the (often Latin) name so it can't scramble the RTL line.
+              Prefer the auto-resolved Arabic name for ar; fall back to the map/Latin. */}
+          <bdi className="font-medium text-slate-200">
+            {locale === "ar" ? g.playerAr || playerDisplayName(g.player, locale) : g.player}
+          </bdi>
           {g.minute && (
             <span className="tnum text-slate-500" dir="ltr">
               {g.minute}

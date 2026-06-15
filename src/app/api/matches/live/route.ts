@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { refreshLiveScores } from "@/lib/resultSync";
+import { lookupArabic } from "@/lib/playerNameResolver";
 
 // Live (in-play) scores for the match cards. Public — scores aren't sensitive.
 // Reads the DB (cheap) and only hits the provider when the data is stale (~45s),
@@ -32,16 +33,19 @@ export async function GET() {
   const inPlay = candidates.filter((m) => nowMs - m.kickoffAt.getTime() <= LIVE_WINDOW_MS);
   if (inPlay.length === 0) return NextResponse.json({ matches: [] });
 
-  // Goal scorers for these matches (Latin names; the client localizes to Arabic).
+  // Goal scorers for these matches. `playerAr` is the auto-resolved Arabic name
+  // (cache-only here — never blocks the live response; the cron warms it).
   const goalRows = await prisma.matchGoal.findMany({
     where: { matchId: { in: inPlay.map((m) => m.id) } },
     orderBy: { sortOrder: "asc" },
     select: { matchId: true, side: true, player: true, minute: true, note: true },
   });
-  const goalsByMatch = new Map<string, { side: string; player: string; minute: string; note: string | null }[]>();
+  type LiveGoal = { side: string; player: string; playerAr: string | null; minute: string; note: string | null };
+  const goalsByMatch = new Map<string, LiveGoal[]>();
   for (const g of goalRows) {
+    const ar = await lookupArabic(g.player); // string | null | undefined (cache only)
     const list = goalsByMatch.get(g.matchId) ?? [];
-    list.push({ side: g.side, player: g.player, minute: g.minute, note: g.note });
+    list.push({ side: g.side, player: g.player, playerAr: ar ?? null, minute: g.minute, note: g.note });
     goalsByMatch.set(g.matchId, list);
   }
   const goalsFor = (id: string) => goalsByMatch.get(id) ?? [];
