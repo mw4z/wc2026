@@ -3,7 +3,7 @@ import { calculateMatchPoints } from "./matches";
 import { fetchAllFixtures, footballApiConfigured, footballProvider, rateLimitRemaining } from "./footballApi";
 import { deriveMatchResult, orientToMatch, type ParsedFixture } from "./resultSyncCore";
 import { evaluateMapping, teamsEqual } from "./fixtureMapping";
-import { fetchEspnLive, fetchEspnEvents, type EspnEvent } from "./espn";
+import { fetchEspnLive, fetchEspnEvents, fetchEspnDates, yyyymmdd, type EspnEvent } from "./espn";
 import { notifyGoal } from "./notifications";
 import { resolveArabic } from "./playerNameResolver";
 
@@ -538,6 +538,93 @@ async function processMatchGoals(
     const playerAr = (await resolveArabic(g.player).catch(() => null)) ?? undefined;
     await notifyGoal({ matchId: m.id, teamAr, player: g.player, playerAr, minute: g.minute, note: g.note, line });
   }
+}
+
+/**
+ * Backfill goal scorers for matches that already finished (e.g. before the goals
+ * feature existed, or any match missing its scorers). Fetches ESPN's scoreboard
+ * for each relevant day, matches by team-pair + date, and stores goals SILENTLY
+ * (no push — these are historical). Idempotent: skips matches that already have
+ * goals unless force is set. Admin-triggered (best-effort, capped).
+ */
+export async function backfillMatchGoals(opts: { force?: boolean } = {}): Promise<{ matches: number; goals: number }> {
+  const matches = await prisma.match.findMany({
+    where: {
+      homeScore: { not: null },
+      homeTeamId: { not: null },
+      awayTeamId: { not: null },
+      ...(opts.force ? {} : { goals: { none: {} } }),
+    },
+    include: { homeTeam: true, awayTeam: true },
+    orderBy: { kickoffAt: "asc" },
+  });
+  if (matches.length === 0) return { matches: 0, goals: 0 };
+
+  // One ESPN fetch per relevant UTC day (± a day, since late kickoffs can land on
+  // the adjacent date). Dedupe across all matches.
+  const dateSet = new Set<string>();
+  for (const m of matches) {
+    for (const off of [-1, 0, 1]) dateSet.add(yyyymmdd(new Date(m.kickoffAt.getTime() + off * 86400_000)));
+  }
+  let events: EspnEvent[];
+  try {
+    events = await fetchEspnDates([...dateSet]);
+  } catch (e) {
+    console.error("[goal-backfill] ESPN fetch failed:", (e as Error).message);
+    return { matches: 0, goals: 0 };
+  }
+
+  const TOL = 3 * 3600_000;
+  let matchesTouched = 0;
+  let goalsInserted = 0;
+  for (const m of matches) {
+    if (!m.homeTeam || !m.awayTeam) continue;
+    const home = m.homeTeam.nameEn;
+    const away = m.awayTeam.nameEn;
+    const ev = events.find((e) => {
+      const t = Date.parse(e.dateISO);
+      const near = !Number.isFinite(t) || Math.abs(t - m.kickoffAt.getTime()) <= TOL;
+      const samePair =
+        (teamsEqual(e.homeName, home) && teamsEqual(e.awayName, away)) ||
+        (teamsEqual(e.homeName, away) && teamsEqual(e.awayName, home));
+      return near && samePair;
+    });
+    if (!ev || ev.goals.length === 0) continue;
+
+    const reversed = teamsEqual(ev.homeName, away) && teamsEqual(ev.awayName, home);
+    const oriented = ev.goals.map((g, i) => ({
+      side: reversed ? (g.side === "home" ? "away" : "home") : g.side,
+      player: g.player,
+      minute: g.minute,
+      note: g.note,
+      sortOrder: i,
+    }));
+    const existing = await prisma.matchGoal.findMany({
+      where: { matchId: m.id },
+      select: { side: true, player: true, minute: true },
+    });
+    const key = (x: { side: string; player: string; minute: string }) => `${x.side}|${x.player}|${x.minute}`;
+    const have = new Set(existing.map(key));
+    const fresh = oriented.filter((g) => !have.has(key(g)));
+    if (fresh.length === 0) continue;
+
+    await prisma.matchGoal.createMany({
+      data: fresh.map((g) => ({
+        matchId: m.id,
+        side: g.side,
+        player: g.player,
+        minute: g.minute,
+        sortOrder: g.sortOrder,
+        note: g.note,
+        notified: true, // historical → never push
+      })),
+      skipDuplicates: true,
+    });
+    await Promise.all(fresh.map((g) => resolveArabic(g.player).catch(() => null))); // warm Arabic cache
+    matchesTouched++;
+    goalsInserted += fresh.length;
+  }
+  return { matches: matchesTouched, goals: goalsInserted };
 }
 
 /** Mark a final match as needing admin review (store status, don't score). */

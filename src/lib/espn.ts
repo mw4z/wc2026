@@ -28,7 +28,7 @@ export interface EspnEvent {
   goals: EspnGoal[]; // chronological scoring plays
 }
 
-function yyyymmdd(d: Date): string {
+export function yyyymmdd(d: Date): string {
   return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 
@@ -61,7 +61,12 @@ export async function fetchEspnEvents(daysBack = 1): Promise<EspnEvent[]> {
   const now = new Date();
   const dates: string[] = [];
   for (let i = daysBack; i >= 0; i--) dates.push(yyyymmdd(new Date(now.getTime() - i * 24 * 3600_000)));
+  return fetchEspnDates(dates);
+}
 
+/** Fetch ESPN World Cup events for explicit UTC dates (YYYYMMDD). Used to backfill
+ *  goal scorers for matches played on past days. */
+export async function fetchEspnDates(dates: string[]): Promise<EspnEvent[]> {
   const out: EspnEvent[] = [];
   const seen = new Set<string>();
   for (const d of dates) {

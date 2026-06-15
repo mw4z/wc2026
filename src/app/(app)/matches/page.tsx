@@ -8,6 +8,7 @@ import { getPredictionLead, predictionOpensAt, type PredictionLead } from "@/lib
 import type { Locale } from "@/lib/i18n";
 import { getUI, getLocale } from "@/lib/locale";
 import { MatchCard } from "@/components/MatchCard";
+import { getSerializedGoals } from "@/lib/matchGoals";
 import { TournamentHero, HeroStat, EmptyState } from "@/components/TournamentHero";
 import { TodaySummary } from "@/components/TodaySummary";
 import { InstallPrompt } from "@/components/InstallPrompt";
@@ -39,6 +40,8 @@ export default async function MatchesPage() {
     }),
   ]);
   const lead = await getPredictionLead();
+  // Goal scorers for finished/live matches (Arabic resolved from cache).
+  const goalsByMatch = await getSerializedGoals(matches.map((m) => m.id));
   const [canAwards, awardsLocked, awardsProgress, myEntry] = await Promise.all([
     userCanUseAwards(user.id),
     isAwardsLocked(),
@@ -149,6 +152,7 @@ export default async function MatchesPage() {
               groups={myGroupList}
               live={opts?.live}
               clickable
+              goals={goalsByMatch.get(m.id) ?? []}
             />
           ))}
         </div>

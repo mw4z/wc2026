@@ -10,6 +10,7 @@ import { PredictionDistribution } from "@/components/PredictionDistribution";
 import { TournamentHero } from "@/components/TournamentHero";
 import { BallIcon, ArrowIcon } from "@/components/icons";
 import { serializeMatch, serializePrediction } from "../page";
+import { getSerializedGoals } from "@/lib/matchGoals";
 
 export const dynamic = "force-dynamic";
 
@@ -99,6 +100,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
         prediction={serializePrediction(myPrediction ?? undefined)}
         winnerOnly={winnerOnly}
         groups={myGroupList}
+        goals={(await getSerializedGoals([match.id])).get(match.id) ?? []}
       />
 
       <p className="mt-3 text-center text-sm text-slate-400">

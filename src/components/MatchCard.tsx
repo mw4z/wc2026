@@ -99,6 +99,7 @@ export function MatchCard({
   groups = [],
   live = false,
   clickable = false,
+  goals = [],
 }: {
   match: SerializedMatch;
   prediction: SerializedPrediction;
@@ -114,6 +115,9 @@ export function MatchCard({
   // List context: lets a FINISHED card act as a button to its detail page (tap
   // anywhere → match details). Off on the detail page itself (you're already there).
   clickable?: boolean;
+  // Goal scorers (server-provided, Arabic resolved) — shown under the final score
+  // on finished matches and as the seed for live cards before the first poll.
+  goals?: LiveGoal[];
 }) {
   const UI = useUI();
   const locale = useLocale();
@@ -176,7 +180,7 @@ export function MatchCard({
     away: match.liveAwayScore,
     status: match.liveStatus,
     at: 0, // set on first poll; 0 means "don't tick the seeded minute yet"
-    goals: [],
+    goals, // seed from the server; the live poll refreshes it
   });
   const endedRef = useRef(false);
   useEffect(() => {
@@ -352,13 +356,18 @@ export function MatchCard({
         <TeamSide name={match.awayTeam?.name ?? UI.tbd} flag={match.awayTeam?.flagUrl} win={awayWin} />
       </div>
 
-      {/* live scorers — player + minute under the score, aligned to each team */}
-      {showLiveScore && liveScore.goals.length > 0 && (
-        <div className="mt-1 flex items-start justify-between gap-4 border-t border-white/[0.06] px-4 py-3">
-          <ScorerList goals={liveScore.goals.filter((g) => g.side === "home")} locale={locale} align="start" />
-          <ScorerList goals={liveScore.goals.filter((g) => g.side === "away")} locale={locale} align="end" />
-        </div>
-      )}
+      {/* scorers — player + minute under the score, aligned to each team. Shown
+          while live AND on finished matches (final score above). */}
+      {(() => {
+        const shown = isLive ? liveScore.goals : goals;
+        if (!(showLiveScore || finished) || shown.length === 0) return null;
+        return (
+          <div className="mt-1 flex items-start justify-between gap-4 border-t border-white/[0.06] px-4 py-3">
+            <ScorerList goals={shown.filter((g) => g.side === "home")} locale={locale} align="start" />
+            <ScorerList goals={shown.filter((g) => g.side === "away")} locale={locale} align="end" />
+          </div>
+        );
+      })()}
 
       {/* meta */}
       <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 pb-1 text-center text-xs text-slate-300">

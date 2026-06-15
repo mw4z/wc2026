@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { calculateMatchPoints } from "@/lib/matches";
 import { recalculateLeaderboard } from "@/lib/leaderboard";
 import { backfillLastMatchMovement } from "@/lib/rankMovement";
+import { backfillMatchGoals } from "@/lib/resultSync";
 import { errorResponse } from "@/lib/api";
 
 export const runtime = "nodejs"; // rescoring may send web-push (needs Node crypto)
@@ -27,7 +28,14 @@ export async function POST(req: NextRequest) {
       movementError = (e as Error).message;
       console.error("[recalculate] movement backfill failed:", movementError);
     }
-    return NextResponse.json({ ok: true, entries: count, movementFrom, moved, movementError });
+    // Backfill goal scorers for all finished matches (best-effort).
+    let goalsBackfill: { matches: number; goals: number } | null = null;
+    try {
+      goalsBackfill = await backfillMatchGoals();
+    } catch (e) {
+      console.error("[recalculate] goal backfill failed:", (e as Error).message);
+    }
+    return NextResponse.json({ ok: true, entries: count, movementFrom, moved, movementError, goalsBackfill });
   } catch (e) {
     return errorResponse(e);
   }
