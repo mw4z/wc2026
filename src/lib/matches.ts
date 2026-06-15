@@ -2,7 +2,7 @@ import { prisma } from "./prisma";
 import { isKnockoutStage } from "./constants";
 import { calculatePredictionPoints } from "./scoring";
 import { recalculateLeaderboard } from "./leaderboard";
-import { snapshotAllRanks } from "./rankMovement";
+import { snapshotMovementForMatch } from "./rankMovement";
 import { notifyMatchScored } from "./notifications";
 import type { MatchResultInput } from "./validation";
 
@@ -141,10 +141,10 @@ export async function calculateMatchPoints(matchId: string, adminUserId?: string
 
   // Keep the leaderboard consistent after any scoring change.
   await recalculateLeaderboard();
-  // Snapshot ranks so the boards can show each member's ▲/▼ vs before this match.
-  // Best-effort — never block scoring on the movement bookkeeping.
+  // Snapshot how this match reshuffled every board, so members see ▲/▼ vs the
+  // standing right before it. Best-effort — never block scoring on the bookkeeping.
   try {
-    await snapshotAllRanks();
+    await snapshotMovementForMatch(matchId);
   } catch (e) {
     console.error("[scoring] rank snapshot failed:", (e as Error).message);
   }
