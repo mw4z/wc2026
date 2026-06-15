@@ -78,7 +78,16 @@ export function AdminControls({
         body: "{}",
       });
       const data = await res.json();
-      setNote(res.ok ? `${UI.admin.recalcDonePrefix} (${data.entries} ${UI.admin.participantsWord})` : data.error);
+      // Surface the rank-arrow backfill result so it's obvious whether the last
+      // match moved anyone (or why nothing showed up).
+      const movement = res.ok
+        ? data.movementError
+          ? ` · ⚠︎ ${data.movementError}`
+          : data.movementFrom == null
+            ? " · no scored match yet"
+            : ` · ${data.moved ?? 0} ▲▼`
+        : "";
+      setNote(res.ok ? `${UI.admin.recalcDonePrefix} (${data.entries} ${UI.admin.participantsWord})${movement}` : data.error);
       router.refresh();
     } finally {
       setBusy(false);

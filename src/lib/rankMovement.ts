@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 import { getGroupLeaderboard } from "./groups";
-import { rankOverallExcluding } from "./leaderboard";
+import { getLeaderboard, rankOverallExcluding } from "./leaderboard";
 
 // Rank movement (green ▲ / red ▼ on the leaderboards). After each match is scored
 // we rotate a snapshot of every user's rank per board, so the read side can show
@@ -21,9 +21,10 @@ export interface RankMovement {
 
 /** Snapshot overall + every active group board. Call AFTER recalculateLeaderboard. */
 export async function snapshotAllRanks(): Promise<void> {
-  // Overall — read the freshly written ranks straight from LeaderboardEntry.
-  const entries = await prisma.leaderboardEntry.findMany({ select: { userId: true, rank: true } });
-  await rotateScope("overall", entries);
+  // Overall — use the SAME ranking the board displays (active users, live order),
+  // so `rank` here lines up exactly with what users see (no population mismatch).
+  const overall = (await getLeaderboard()).map((r) => ({ userId: r.userId, rank: r.rank }));
+  await rotateScope("overall", overall);
 
   // Each active group's live board.
   const groups = await prisma.group.findMany({ where: { isActive: true }, select: { id: true } });
@@ -56,18 +57,24 @@ async function rotateScope(scope: string, ranking: { userId: string; rank: numbe
  * that last match's points removed (i.e. how everyone moved because of it).
  * Idempotent — safe to run repeatedly; always reflects the latest scored match.
  */
-export async function backfillLastMatchMovement(): Promise<{ matchId: string | null }> {
+export async function backfillLastMatchMovement(): Promise<{ matchId: string | null; moved: number }> {
   const last = await prisma.match.findFirst({
     where: { status: "SCORED" },
     orderBy: [{ resultConfirmedAt: "desc" }, { kickoffAt: "desc" }],
     select: { id: true },
   });
-  if (!last) return { matchId: null };
+  if (!last) return { matchId: null, moved: 0 };
 
-  // Overall — current from LeaderboardEntry, previous = recompute minus this match.
-  const currentOverall = await prisma.leaderboardEntry.findMany({ select: { userId: true, rank: true } });
+  // Overall — current = the displayed ranking; previous = recompute minus this
+  // match. Both active-users-only so the two sides use identical methodology.
+  const currentOverall = (await getLeaderboard()).map((r) => ({ userId: r.userId, rank: r.rank }));
   const prevOverall = await rankOverallExcluding(last.id);
   await writeSnapshot("overall", currentOverall, prevOverall);
+  // How many people actually changed overall position because of this match.
+  const moved = currentOverall.filter((r) => {
+    const p = prevOverall.get(r.userId);
+    return p != null && p !== r.rank;
+  }).length;
 
   // Each active group's board, same two-pass approach with its custom scoring.
   const groups = await prisma.group.findMany({ where: { isActive: true }, select: { id: true } });
@@ -77,7 +84,7 @@ export async function backfillLastMatchMovement(): Promise<{ matchId: string | n
     const prevMap = new Map(previous.map((r) => [r.userId, r.rank]));
     await writeSnapshot(`group:${g.id}`, current.map((r) => ({ userId: r.userId, rank: r.rank })), prevMap);
   }
-  return { matchId: last.id };
+  return { matchId: last.id, moved };
 }
 
 /** Write a scope's snapshot with an explicit previous-rank map (used by backfill). */

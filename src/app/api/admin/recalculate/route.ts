@@ -19,12 +19,15 @@ export async function POST(req: NextRequest) {
     const count = await recalculateLeaderboard();
     // Seed rank-movement arrows from the last match already played (best-effort).
     let movementFrom: string | null = null;
+    let moved = 0;
+    let movementError: string | null = null;
     try {
-      ({ matchId: movementFrom } = await backfillLastMatchMovement());
+      ({ matchId: movementFrom, moved } = await backfillLastMatchMovement());
     } catch (e) {
-      console.error("[recalculate] movement backfill failed:", (e as Error).message);
+      movementError = (e as Error).message;
+      console.error("[recalculate] movement backfill failed:", movementError);
     }
-    return NextResponse.json({ ok: true, entries: count, movementFrom });
+    return NextResponse.json({ ok: true, entries: count, movementFrom, moved, movementError });
   } catch (e) {
     return errorResponse(e);
   }
