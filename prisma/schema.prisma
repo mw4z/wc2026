@@ -253,6 +253,23 @@ model LeaderboardEntry {
   @@index([totalPoints])
 }
 
+// Per-scope rank movement. After each match is scored we snapshot every user's
+// rank so the leaderboard can show a green ▲ / red ▼ vs the previous standing.
+// scope = "overall" or "group:<groupId>" — one row per user per board.
+//   rank         = the user's rank as of the latest scoring round
+//   previousRank = their rank one scoring round earlier (null on first appearance)
+// movement shown = previousRank - rank  (positive = climbed, negative = dropped)
+model RankSnapshot {
+  scope        String
+  userId       String
+  rank         Int
+  previousRank Int?
+  updatedAt    DateTime @updatedAt
+
+  @@id([scope, userId])
+  @@index([scope])
+}
+
 // ----------------------------------------------------------------------------
 // Groups (Phase D). Predictions stay GLOBAL; a group leaderboard is just the
 // global LeaderboardEntry filtered to the group's members.

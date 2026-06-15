@@ -14,6 +14,27 @@ export interface LbRow {
   correctQualifiers: number;
   accuracy: number;
   rank: number;
+  // Rank change after the last scored match: >0 climbed, <0 dropped, 0/null none.
+  movement?: number | null;
+}
+
+// Green ▲ / red ▼ with the number of places moved since the last scored match.
+// Nothing renders when the rank is unchanged or there's no prior standing yet.
+export function MovementIndicator({ movement }: { movement?: number | null }) {
+  if (movement == null || movement === 0) return null;
+  const up = movement > 0;
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 text-[10px] font-bold tnum leading-none ${
+        up ? "text-lime-400" : "text-red-400"
+      }`}
+      aria-label={up ? `up ${movement}` : `down ${-movement}`}
+      title={up ? `▲ ${movement}` : `▼ ${-movement}`}
+    >
+      <span aria-hidden>{up ? "▲" : "▼"}</span>
+      {Math.abs(movement)}
+    </span>
+  );
 }
 
 // Leaderboard table where every row is tappable → opens a record sheet for that
@@ -35,11 +56,14 @@ export function LeaderboardTable({
   const Cells = ({ r, pinned }: { r: LbRow; pinned?: boolean }) => (
     <>
       <td className="p-3">
-        {!pinned && r.rank <= 3 ? (
-          <RankMedallion place={r.rank} size="sm" />
-        ) : (
-          <span className={`font-display font-bold tnum ${pinned ? "text-accent-300" : "text-slate-300"}`}>{r.rank}</span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {!pinned && r.rank <= 3 ? (
+            <RankMedallion place={r.rank} size="sm" />
+          ) : (
+            <span className={`font-display font-bold tnum ${pinned ? "text-accent-300" : "text-slate-300"}`}>{r.rank}</span>
+          )}
+          <MovementIndicator movement={r.movement} />
+        </div>
       </td>
       <td className="p-3 font-semibold text-white">
         {r.name}
@@ -146,7 +170,10 @@ function RecordSheet({ row, isMe, onClose }: { row: LbRow; isMe: boolean; onClos
           <RankMedallion place={row.rank} size="lg" />
           <div className="min-w-0">
             <div className="truncate text-lg font-extrabold text-white">{row.name}{isMe && <span className="ms-1 text-xs text-accent-300">({UI.yourPosition})</span>}</div>
-            <div className="text-xs text-slate-400">{UI.overallRank}: #{row.rank}{row.department ? ` · ${row.department}` : ""}</div>
+            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+              <span>{UI.overallRank}: #{row.rank}{row.department ? ` · ${row.department}` : ""}</span>
+              <MovementIndicator movement={row.movement} />
+            </div>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2">

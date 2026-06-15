@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { getMovements } from "./rankMovement";
 
 /**
  * Rebuild the denormalized LeaderboardEntry table from scored predictions.
@@ -126,12 +127,13 @@ function lastPredCompare(a: Date | null, b: Date | null): number {
  * snapshot. O(users + entries) — fine at event scale.
  */
 export async function getLeaderboard() {
-  const [users, entries] = await Promise.all([
+  const [users, entries, movements] = await Promise.all([
     prisma.user.findMany({
       where: { isActive: true },
       select: { id: true, name: true, department: true },
     }),
     prisma.leaderboardEntry.findMany(),
+    getMovements("overall"),
   ]);
   const byUser = new Map(entries.map((e) => [e.userId, e]));
 
@@ -159,5 +161,5 @@ export async function getLeaderboard() {
       y.correctOutcomes - x.correctOutcomes ||
       lastPredCompare(x.lastPredictionAt, y.lastPredictionAt),
   );
-  return rows.map((r, i) => ({ ...r, rank: i + 1 }));
+  return rows.map((r, i) => ({ ...r, rank: i + 1, movement: movements.get(r.userId)?.movement ?? null }));
 }

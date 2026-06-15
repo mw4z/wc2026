@@ -24,6 +24,7 @@ type Row = {
   correctQualifiers: number;
   accuracy: number;
   rank: number;
+  movement?: number | null;
 };
 
 export default async function LeaderboardPage({
@@ -51,6 +52,7 @@ export default async function LeaderboardPage({
         correctQualifiers: r.correctQualifiers,
         accuracy: r.accuracy,
         rank: r.rank,
+        movement: r.movement,
       }));
 
   const myRow = rows.find((r) => r.userId === me.id);

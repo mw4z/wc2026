@@ -396,7 +396,16 @@ export async function getGroupLeaderboard(groupId: string) {
       y.correctOutcomes - x.correctOutcomes ||
       lastPredCompare(x.lastPredictionAt, y.lastPredictionAt),
   );
-  return rows.map((r, i) => ({ ...r, rank: i + 1 }));
+
+  // Rank movement vs the standing before the last scored match (green ▲ / red ▼).
+  const snaps = await prisma.rankSnapshot.findMany({
+    where: { scope: `group:${groupId}` },
+    select: { userId: true, rank: true, previousRank: true },
+  });
+  const movementByUser = new Map(
+    snaps.map((s) => [s.userId, s.previousRank == null ? null : s.previousRank - s.rank]),
+  );
+  return rows.map((r, i) => ({ ...r, rank: i + 1, movement: movementByUser.get(r.userId) ?? null }));
 }
 
 function lastPredCompare(a: Date | null, b: Date | null): number {

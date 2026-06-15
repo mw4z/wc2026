@@ -10,6 +10,7 @@ import { isCustomScoring } from "@/lib/groupScoring";
 import { getUI, getLocale } from "@/lib/locale";
 import { TournamentHero, HeroStat } from "@/components/TournamentHero";
 import { UsersIcon, TrophyIcon, ListIcon } from "@/components/icons";
+import { MovementIndicator } from "@/components/LeaderboardTable";
 import { GroupTodayCard } from "@/components/groups/GroupTodayCard";
 import { GroupInviteCard } from "@/components/groups/GroupInviteCard";
 import { GroupReminderCard } from "@/components/groups/GroupReminderCard";
@@ -147,9 +148,12 @@ export default async function GroupDashboard({ params }: { params: Promise<{ id:
               {board.map((r) => (
                 <tr key={r.userId} className={`border-b border-white/5 ${r.userId === user.id ? "bg-gold-500/15" : ""}`}>
                   <td className="p-3">
-                    <span className={`font-display font-bold tnum ${r.rank === 1 ? "text-gold-400" : "text-slate-300"}`}>
-                      {r.rank}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`font-display font-bold tnum ${r.rank === 1 ? "text-gold-400" : "text-slate-300"}`}>
+                        {r.rank}
+                      </span>
+                      <MovementIndicator movement={r.movement} />
+                    </div>
                   </td>
                   <td className="p-3 font-semibold">{r.name}</td>
                   <td className="p-3 font-extrabold text-gold-400">{r.totalPoints}</td>
