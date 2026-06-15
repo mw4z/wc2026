@@ -34,26 +34,40 @@ function useCountdown(target: string) {
   return ms;
 }
 
-// Estimate the live match clock from elapsed time + the provider's coarse status.
-// The provider (free tier) doesn't give a minute, so we derive one: 1st half =
-// elapsed; ~15-min half-time break; 2nd half = elapsed − 15. Half-time is taken
-// from the authoritative PAUSED status. It's an approximation (stoppage time is
-// unknown), so the tail is shown as "90+" / "extra time" rather than a fake exact
-// minute.
+// The live clock comes straight from ESPN's status (e.g. "39'", "HT", "45+2'",
+// "FT"). For a plain numeric minute we ANCHOR to ESPN's value and tick it locally
+// each second so it advances smoothly between 20s polls instead of jumping; HT /
+// stoppage / extra-time strings are shown verbatim (authoritative, never guessed).
+// `statusAt` is when we received `status`; `nowMs` re-reads every render (1s tick).
 function liveTimeLabel(
-  kickoffISO: string,
   status: string | null,
+  statusAt: number,
+  nowMs: number,
+  kickoffISO: string,
   labels: { halftime: string; extraTime: string; live: string },
 ): string {
-  if (status === "PAUSED") return labels.halftime;
-  const elapsed = Math.floor((Date.now() - Date.parse(kickoffISO)) / 60000);
+  const s = (status ?? "").trim();
+
+  // Authoritative non-clock states from ESPN.
+  if (/half|^ht$/i.test(s)) return labels.halftime;
+  if (/^(et|extra)/i.test(s) || /extra\s*time/i.test(s)) return labels.extraTime;
+  if (/full|^ft\b/i.test(s)) return labels.live; // final → the poll triggers a refresh
+
+  // Plain minute like "39'" / "39" → anchor and tick locally each second.
+  const plain = s.match(/^(\d{1,3})'?$/);
+  if (plain && statusAt > 0) {
+    const ticked = Number(plain[1]) + Math.floor(Math.max(0, nowMs - statusAt) / 60000);
+    return `${ticked}′`;
+  }
+
+  // Stoppage ("45+2'") or any other ESPN string → show exactly as ESPN reports it.
+  if (s && s.toUpperCase() !== "IN_PLAY") return s;
+
+  // No clock from ESPN yet → estimate from elapsed so the card isn't blank.
+  const elapsed = Math.floor((nowMs - Date.parse(kickoffISO)) / 60000);
   if (!Number.isFinite(elapsed) || elapsed < 0) return labels.live;
   if (elapsed <= 45) return `${Math.max(1, elapsed)}′`;
-  if (elapsed < 60) return "45+′"; // first-half stoppage / break before status flips
-  const sh = elapsed - 15; // second half, assuming a standard ~15-min interval
-  if (sh <= 90) return `${sh}′`;
-  if (sh <= 95) return "90+′";
-  return labels.extraTime;
+  return `${elapsed}′`;
 }
 
 function fmtCountdown(ms: number) {
@@ -132,10 +146,11 @@ export function MatchCard({
   // Live (in-play) score: seeded from the server, then polled every ~40s while the
   // match is running. The endpoint is DB-backed + provider-throttled, so many cards
   // polling at once cost almost nothing. On "final" we refresh to get the scored card.
-  const [liveScore, setLiveScore] = useState<{ home: number | null; away: number | null; status: string | null }>({
+  const [liveScore, setLiveScore] = useState<{ home: number | null; away: number | null; status: string | null; at: number }>({
     home: match.liveHomeScore,
     away: match.liveAwayScore,
     status: match.liveStatus,
+    at: 0, // set on first poll; 0 means "don't tick the seeded minute yet"
   });
   const endedRef = useRef(false);
   useEffect(() => {
@@ -157,7 +172,7 @@ export function MatchCard({
           router.refresh(); // match ended → pull the finished/scored card
           return;
         }
-        setLiveScore({ home: mine.home, away: mine.away, status: mine.status });
+        setLiveScore({ home: mine.home, away: mine.away, status: mine.status, at: Date.now() });
       } catch {
         /* keep the last score on a transient error */
       }
@@ -267,7 +282,7 @@ export function MatchCard({
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime-400 opacity-75" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-lime-400" />
                 </span>
-                {liveTimeLabel(match.kickoffAt, liveScore.status, {
+                {liveTimeLabel(liveScore.status, liveScore.at, Date.now(), match.kickoffAt, {
                   halftime: UI.halftime,
                   extraTime: UI.extraTime,
                   live: UI.statuses.LIVE,
