@@ -353,7 +353,7 @@ export function MatchCard({
 
       {/* live scorers — player + minute under the score, aligned to each team */}
       {showLiveScore && liveScore.goals.length > 0 && (
-        <div className="flex items-start justify-between gap-3 px-4 pb-2">
+        <div className="mt-1 flex items-start justify-between gap-4 border-t border-white/[0.06] px-4 py-3">
           <ScorerList goals={liveScore.goals.filter((g) => g.side === "home")} locale={locale} align="start" />
           <ScorerList goals={liveScore.goals.filter((g) => g.side === "away")} locale={locale} align="end" />
         </div>
@@ -682,14 +682,14 @@ function ScorerList({
 }) {
   if (goals.length === 0) return <div className="flex-1" />;
   return (
-    <ul className={`flex-1 space-y-0.5 text-[11px] leading-tight text-slate-300 ${align === "end" ? "text-end" : "text-start"}`}>
+    <ul className={`flex-1 space-y-1.5 text-xs leading-relaxed text-slate-300 ${align === "end" ? "text-end" : "text-start"}`}>
       {goals.map((g, i) => (
-        <li key={i} className="truncate">
-          <span aria-hidden>⚽ </span>
-          {playerDisplayName(g.player, locale)}
-          {g.minute && <span className="text-slate-500 tnum"> {g.minute}</span>}
-          {g.note === "Penalty" && <span className="text-slate-500"> (ب.ج)</span>}
-          {g.note === "Own Goal" && <span className="text-slate-500"> (ع)</span>}
+        <li key={i}>
+          <span aria-hidden className="me-1">⚽</span>
+          <span className="font-medium text-slate-200">{playerDisplayName(g.player, locale)}</span>
+          {g.minute && <span className="ms-1 text-slate-500 tnum">{g.minute}</span>}
+          {g.note === "Penalty" && <span className="ms-1 text-slate-500">(ب.ج)</span>}
+          {g.note === "Own Goal" && <span className="ms-1 text-slate-500">(ع)</span>}
         </li>
       ))}
     </ul>
