@@ -56,23 +56,21 @@ export function LeaderboardTable({
   const Cells = ({ r, pinned }: { r: LbRow; pinned?: boolean }) => (
     <>
       <td className="p-3">
-        {!pinned && r.rank <= 3 ? (
-          <RankMedallion place={r.rank} size="sm" />
-        ) : (
-          <span className={`font-display font-bold tnum ${pinned ? "text-accent-300" : "text-slate-300"}`}>{r.rank}</span>
-        )}
+        <div className="flex items-center gap-2.5">
+          {!pinned && r.rank <= 3 ? (
+            <RankMedallion place={r.rank} size="sm" />
+          ) : (
+            <span className={`font-display font-bold tnum ${pinned ? "text-accent-300" : "text-slate-300"}`}>{r.rank}</span>
+          )}
+          <MovementIndicator movement={r.movement} />
+        </div>
       </td>
       <td className="p-3 font-semibold text-white">
         {r.name}
         {pinned && <span className="ms-1 text-[10px] text-accent-300">({UI.yourPosition})</span>}
       </td>
       <td className="hidden p-3 text-slate-400 sm:table-cell">{r.department ?? "—"}</td>
-      <td className="p-3">
-        <div className="flex items-center gap-2.5">
-          <MovementIndicator movement={r.movement} />
-          <span className="font-display font-extrabold tnum text-gold-400">{r.totalPoints}</span>
-        </div>
-      </td>
+      <td className="p-3 font-display font-extrabold tnum text-gold-400">{r.totalPoints}</td>
       <td className="hidden p-3 tnum md:table-cell">{r.exactScores}</td>
       <td className="hidden p-3 tnum md:table-cell">{r.correctOutcomes}</td>
       <td className="hidden p-3 tnum lg:table-cell">{r.correctQualifiers}</td>
