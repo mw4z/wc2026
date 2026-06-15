@@ -17,7 +17,10 @@ export default async function ProfilePage() {
   const user = await requireUser();
   const [entry, prefs] = await Promise.all([
     prisma.leaderboardEntry.findUnique({ where: { userId: user.id } }),
-    prisma.user.findUnique({ where: { id: user.id }, select: { notifyGoals: true, notifyGoalsScope: true } }),
+    // Tolerate the prefs columns not being migrated yet → fall back to defaults.
+    prisma.user
+      .findUnique({ where: { id: user.id }, select: { notifyGoals: true, notifyGoalsScope: true } })
+      .catch(() => null),
   ]);
 
   const stat = (label: string, value: string | number) => (

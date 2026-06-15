@@ -135,20 +135,30 @@ export async function notifyGoal(opts: {
 }): Promise<number> {
   if (!pushConfigured) return 0;
   try {
-    const [users, predictors] = await Promise.all([
-      prisma.user.findMany({
-        where: { isActive: true, notifyGoals: true },
-        select: { id: true, notifyGoalsScope: true },
-      }),
-      prisma.prediction.findMany({ where: { matchId: opts.matchId }, select: { userId: true } }),
-    ]);
-    const predictorSet = new Set(predictors.map((p) => p.userId));
-    const ids = users
-      .filter((u) => u.notifyGoalsScope !== "PREDICTED" || predictorSet.has(u.id))
-      .map((u) => u.id);
-    if (ids.length === 0) return 0;
-
-    const subs = await prisma.pushSubscription.findMany({ where: { userId: { in: ids } } });
+    // Resolve the audience from per-user prefs. If those columns aren't migrated
+    // yet, fall back to EVERY subscription (the intended default = everyone on),
+    // so goal alerts still fire immediately rather than silently doing nothing.
+    let subs: { endpoint: string; p256dh: string; auth: string }[];
+    try {
+      const [users, predictors] = await Promise.all([
+        prisma.user.findMany({
+          where: { isActive: true, notifyGoals: true },
+          select: { id: true, notifyGoalsScope: true },
+        }),
+        prisma.prediction.findMany({ where: { matchId: opts.matchId }, select: { userId: true } }),
+      ]);
+      const predictorSet = new Set(predictors.map((p) => p.userId));
+      const ids = users
+        .filter((u) => u.notifyGoalsScope !== "PREDICTED" || predictorSet.has(u.id))
+        .map((u) => u.id);
+      if (ids.length === 0) return 0;
+      subs = await prisma.pushSubscription.findMany({
+        where: { userId: { in: ids } },
+        select: { endpoint: true, p256dh: true, auth: true },
+      });
+    } catch {
+      subs = await prisma.pushSubscription.findMany({ select: { endpoint: true, p256dh: true, auth: true } });
+    }
     if (subs.length === 0) return 0;
 
     const payload = goalPayload(opts);

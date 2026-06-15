@@ -425,7 +425,7 @@ export async function refreshLiveScores(): Promise<LiveScore[]> {
 
       // Capture scorers + push new goals (works for both in-play and just-finished).
       try {
-        await processMatchGoals(m, ev, reversed, ourHome, ourAway, now);
+        await processMatchGoals(m, ev, reversed, ourHome, ourAway);
       } catch (e) {
         console.error(`[live-scores] goal sync failed for ${m.id}:`, (e as Error).message);
       }
@@ -457,16 +457,19 @@ export async function refreshLiveScores(): Promise<LiveScore[]> {
 
 /**
  * Mirror ESPN's scoring plays into MatchGoal and push each NEW goal. Goals are
- * oriented to our home/away. On the FIRST time we ever see a match (liveStartedAt
- * null) any already-played goals are seeded silently — so deploying mid-match
- * doesn't blast stale alerts. After that, every fresh goal is claimed atomically
- * (notified flip) and pushed exactly once, even if the cron and a polling client
- * race on the same goal.
+ * oriented to our home/away, then claimed atomically (notified flip) and pushed
+ * exactly once — safe even if the cron and a polling client race on the same goal.
+ *
+ * Deploy guard: the ONLY time we seed silently is the very first time we ever see
+ * a match that ALREADY has multiple goals (deploying mid-match) — so we don't
+ * blast a burst of stale alerts. A normal live match (goals trickling in one at a
+ * time) always pushes, including its first goal. This deliberately avoids relying
+ * on a separate "liveStartedAt" write, so a missing/stuck flag can never silently
+ * suppress every goal.
  */
 async function processMatchGoals(
   m: {
     id: string;
-    liveStartedAt: Date | null;
     homeTeam: { nameAr: string } | null;
     awayTeam: { nameAr: string } | null;
   },
@@ -474,10 +477,8 @@ async function processMatchGoals(
   reversed: boolean,
   ourHome: number | null,
   ourAway: number | null,
-  now: Date,
 ): Promise<void> {
-  if (!m.homeTeam || !m.awayTeam) return;
-  const firstSync = m.liveStartedAt == null;
+  if (!m.homeTeam || !m.awayTeam || ev.goals.length === 0) return;
 
   // Orient each goal's side to our schedule.
   const oriented = ev.goals.map((g, i) => ({
@@ -488,35 +489,32 @@ async function processMatchGoals(
     sortOrder: i,
   }));
 
-  if (oriented.length > 0) {
-    const existing = await prisma.matchGoal.findMany({
-      where: { matchId: m.id },
-      select: { side: true, player: true, minute: true },
-    });
-    const key = (x: { side: string; player: string; minute: string }) => `${x.side}|${x.player}|${x.minute}`;
-    const have = new Set(existing.map(key));
-    const fresh = oriented.filter((g) => !have.has(key(g)));
-    if (fresh.length > 0) {
-      await prisma.matchGoal.createMany({
-        data: fresh.map((g) => ({
-          matchId: m.id,
-          side: g.side,
-          player: g.player,
-          minute: g.minute,
-          sortOrder: g.sortOrder,
-          note: g.note,
-          notified: firstSync, // seed silently on first sight
-        })),
-        skipDuplicates: true,
-      });
-    }
-  }
+  const existing = await prisma.matchGoal.findMany({
+    where: { matchId: m.id },
+    select: { side: true, player: true, minute: true },
+  });
+  const key = (x: { side: string; player: string; minute: string }) => `${x.side}|${x.player}|${x.minute}`;
+  const have = new Set(existing.map(key));
+  const fresh = oriented.filter((g) => !have.has(key(g)));
+  if (fresh.length === 0) return;
 
-  // Establish the match so subsequent goals count as "new" and get pushed.
-  if (firstSync) {
-    await prisma.match.update({ where: { id: m.id }, data: { liveStartedAt: now } });
-    return; // anything present now was seeded silently
-  }
+  // First time we ever see this match AND it already has 2+ goals → backfill from
+  // a mid-match deploy; store but don't notify. Otherwise these are live goals.
+  const silentSeed = existing.length === 0 && fresh.length >= 2;
+
+  await prisma.matchGoal.createMany({
+    data: fresh.map((g) => ({
+      matchId: m.id,
+      side: g.side,
+      player: g.player,
+      minute: g.minute,
+      sortOrder: g.sortOrder,
+      note: g.note,
+      notified: silentSeed,
+    })),
+    skipDuplicates: true,
+  });
+  if (silentSeed) return;
 
   // Claim & push any unnotified goals (exactly-once via the notified flip).
   const pending = await prisma.matchGoal.findMany({
