@@ -191,14 +191,17 @@ export default async function MatchesPage() {
         />
       )}
       {finished.length > 0 && (
-        <div className="mb-3 flex justify-end">
+        <div className="mb-4 flex justify-center">
           <a
             href="#finished-matches"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 transition hover:text-accent-400"
+            className="group inline-flex items-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-4 py-2.5 text-sm font-bold text-slate-200 transition hover:border-accent-500/50 hover:bg-accent-500/10 hover:text-white active:scale-[0.98]"
           >
-            <ClockIcon className="text-[13px]" />
-            {UI.viewPrevious}
-            <span className="text-slate-500">({finished.length})</span>
+            <ClockIcon className="text-base text-accent-400" />
+            <span>{UI.viewPrevious}</span>
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-bold tnum text-slate-300 group-hover:bg-white/20">
+              {finished.length}
+            </span>
+            <ArrowIcon className="-rotate-90 text-sm text-slate-400 transition group-hover:translate-y-0.5" />
           </a>
         </div>
       )}
