@@ -213,13 +213,13 @@ export default async function MatchesPage() {
       {section(UI.upcomingMatches, upcoming)}
       {section(UI.finishedMatches, finished, { id: "finished-matches" })}
       {finished.length > 0 && (
-        <div className="mt-2 flex justify-center">
+        <div className="mt-4 flex justify-center">
           <a
             href="#matches-top"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 transition hover:text-accent-400"
+            className="group inline-flex items-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-4 py-2.5 text-sm font-bold text-slate-200 transition hover:border-accent-500/50 hover:bg-accent-500/10 hover:text-white active:scale-[0.98]"
           >
-            <ArrowIcon className="rotate-90 text-[13px]" />
-            {UI.backToTop}
+            <ArrowIcon className="rotate-90 text-base text-accent-400 transition group-hover:-translate-y-0.5" />
+            <span>{UI.backToTop}</span>
           </a>
         </div>
       )}
