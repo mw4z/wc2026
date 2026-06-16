@@ -691,24 +691,26 @@ function ScorerList({
   align: "start" | "end";
 }) {
   if (goals.length === 0) return <div className="flex-1" />;
+  // Home column (start) puts the ball on the right (outer) edge, away on the left —
+  // each row is a DETERMINISTIC ltr flex so the minute never bidi-flips between
+  // Arabic and Latin names; the name itself is bdi-isolated so it still renders
+  // correctly in either script.
+  const home = align === "start";
   return (
-    <ul className={`flex flex-1 flex-col gap-1.5 ${align === "end" ? "items-end" : "items-start"}`}>
+    <ul className={`flex flex-1 flex-col gap-1.5 ${home ? "items-start" : "items-end"}`}>
       {goals.map((g, i) => (
-        <li key={i} className="flex items-center gap-1.5 text-xs text-slate-300">
+        <li
+          key={i}
+          dir="ltr"
+          className={`flex items-center gap-1.5 text-xs text-slate-300 ${home ? "flex-row-reverse" : ""}`}
+        >
           <span aria-hidden className="text-[13px] leading-none">⚽</span>
-          {/* bdi isolates the (often Latin) name so it can't scramble the RTL line.
-              Prefer the auto-resolved Arabic name for ar; fall back to the map/Latin. */}
           <bdi className="font-medium text-slate-200">
             {locale === "ar" ? g.playerAr || playerDisplayName(g.player, locale) : g.player}
           </bdi>
-          {g.minute && (
-            <span className="tnum text-slate-500" dir="ltr">
-              {g.minute}
-            </span>
-          )}
+          {g.minute && <span className="tnum text-slate-500">{g.minute}</span>}
           {g.note && (
             <span
-              dir="ltr"
               title={g.note === "Penalty" ? "ركلة جزاء" : "هدف عكسي"}
               className="rounded bg-white/10 px-1 text-[9px] font-bold leading-none text-slate-400"
             >

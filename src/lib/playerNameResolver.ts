@@ -54,7 +54,11 @@ export async function resolveArabic(latin: string): Promise<string | null> {
   const cached = await lookupArabic(latin);
   if (cached !== undefined) return cached;
 
-  const ar = await fromWikidata(latin).catch(() => null);
+  // Wikidata is structured but its label search misses romanization variants
+  // (e.g. ESPN "Mohebbi" vs Wikidata "Mohebi"); Wikipedia search is fuzzier, so
+  // fall back to it and follow the Arabic language link.
+  let ar = await fromWikidata(latin).catch(() => null);
+  if (!ar) ar = await fromWikipedia(latin).catch(() => null);
   const n = norm(latin);
   mem.set(n, ar);
   try {
@@ -74,6 +78,47 @@ interface WdSearch {
 }
 interface WdEntities {
   entities?: Record<string, { labels?: { ar?: { value?: string } } }>;
+}
+interface WpSearch {
+  query?: { search?: { title: string }[] };
+}
+interface WpLanglinks {
+  query?: { pages?: Record<string, { langlinks?: { "*"?: string }[] }> };
+}
+
+const WIKI_UA = "wc2026-gamepredict/1.0 (goal scorer names)";
+
+// Fuzzier fallback: search English Wikipedia for the player and follow the Arabic
+// interlanguage link (its title IS the Arabic name). Handles spelling variants the
+// Wikidata label search misses. The " footballer" hint biases to the right person.
+async function fromWikipedia(latin: string): Promise<string | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 3500);
+  const headers = { "User-Agent": WIKI_UA };
+  try {
+    const searchUrl =
+      "https://en.wikipedia.org/w/api.php?action=query&format=json&list=search&srlimit=5" +
+      `&srsearch=${encodeURIComponent(latin + " footballer")}`;
+    const sres = await fetch(searchUrl, { signal: ctrl.signal, headers, cache: "no-store" });
+    if (!sres.ok) return null;
+    const sjson = (await sres.json()) as WpSearch;
+    for (const hit of (sjson.query?.search ?? []).slice(0, 3)) {
+      const llUrl =
+        "https://en.wikipedia.org/w/api.php?action=query&format=json&prop=langlinks&lllang=ar&redirects=1" +
+        `&titles=${encodeURIComponent(hit.title)}`;
+      const lres = await fetch(llUrl, { signal: ctrl.signal, headers, cache: "no-store" });
+      if (!lres.ok) continue;
+      const ljson = (await lres.json()) as WpLanglinks;
+      const page = Object.values(ljson.query?.pages ?? {})[0];
+      const ar = page?.langlinks?.[0]?.["*"];
+      if (ar && ar.trim()) return ar.trim();
+    }
+    return null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function fromWikidata(latin: string): Promise<string | null> {
