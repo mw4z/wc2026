@@ -15,17 +15,19 @@ function fmt(ms: number): string {
   return d > 0 ? `${d}ي ${p(h)}:${p(m)}:${p(sec)}` : `${p(h)}:${p(m)}:${p(sec)}`;
 }
 
-// Nudge on /matches: how many OPEN predictions you still need to fill (across all
-// available matches, not just today), plus a countdown to the nearest lock.
+// Today summary on /matches. ONE consistent scope: today's matches only — so the
+// numbers never mix "today" with "all open across days". `todayOpen` = today's
+// matches you can still predict; `todayMissing` = those not predicted yet. The
+// nearest-lock countdown is for today's open matches.
 export function TodaySummary({
   todayTotal,
-  openTotal,
-  openMissing,
+  todayOpen,
+  todayMissing,
   nextLockAt,
 }: {
   todayTotal: number;
-  openTotal: number;
-  openMissing: number;
+  todayOpen: number;
+  todayMissing: number;
   nextLockAt: string | null;
 }) {
   const UI = useUI();
@@ -35,8 +37,6 @@ export function TodaySummary({
     const id = setInterval(() => setMs(Date.parse(nextLockAt) - Date.now()), 1000);
     return () => clearInterval(id);
   }, [nextLockAt]);
-
-  const done = openMissing === 0;
 
   return (
     <div className="card edge-accent mb-6 p-4">
@@ -51,15 +51,15 @@ export function TodaySummary({
         )}
       </div>
 
-      {/* Primary, actionable line: open predictions still to fill. */}
+      {/* Primary line — strictly today-scoped (denominator = today's total). */}
       <div className="mt-2 text-base font-bold">
-        {openTotal === 0 ? (
-          <span className="text-slate-300">{UI.summaryNoOpen}</span>
-        ) : done ? (
-          <span className="text-lime-400">{UI.summaryAllDone}</span>
+        {todayOpen === 0 ? (
+          <span className="text-slate-300">{UI.summaryNoOpenToday}</span>
+        ) : todayMissing === 0 ? (
+          <span className="text-lime-400">{UI.summaryTodayDone}</span>
         ) : (
           <span className="text-amber-200">
-            {UI.summaryOpenRemaining.replace("{m}", String(openMissing)).replace("{t}", String(openTotal))}
+            {UI.summaryTodayRemaining.replace("{m}", String(todayMissing)).replace("{t}", String(todayTotal))}
           </span>
         )}
       </div>

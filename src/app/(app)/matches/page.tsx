@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { lockDueMatches } from "@/lib/matches";
@@ -15,16 +16,22 @@ import { InstallPrompt } from "@/components/InstallPrompt";
 import { AwardsPromo } from "@/components/AwardsPromo";
 import { userCanUseAwards, isAwardsLocked, getAwardsProgress } from "@/lib/awards";
 import { tournamentName } from "@/lib/tournament";
-import { ArrowIcon, BallIcon, ClockIcon, TrophyIcon } from "@/components/icons";
+import { BallIcon, ClockIcon, TrophyIcon } from "@/components/icons";
 import { AdSlot } from "@/components/AdSlot";
 import { AD_SLOTS } from "@/lib/ads";
 
 export const dynamic = "force-dynamic";
 
-export default async function MatchesPage() {
+type MatchFilter = "all" | "today" | "upcoming" | "past";
+
+export default async function MatchesPage({ searchParams }: { searchParams: Promise<{ show?: string }> }) {
   const UI = await getUI();
   const locale = await getLocale();
   const user = await requireUser();
+  const { show: showParam } = await searchParams;
+  const show: MatchFilter = (["all", "today", "upcoming", "past"] as const).includes(showParam as MatchFilter)
+    ? (showParam as MatchFilter)
+    : "all";
   await lockDueMatches(); // keep status badges accurate on load
 
   const [matches, myPredictions, myGroups] = await Promise.all([
@@ -115,27 +122,31 @@ export default async function MatchesPage() {
     const o = predictionOpensAt(m.kickoffAt, lead);
     return !o || o.getTime() <= nowMs;
   });
+  // Today summary — ONE scope: today's matches only (no mixing with all-day open
+  // counts). todayOpen = today's matches still open to predict.
   const todayAll = matches.filter((m) => isSameDayInTz(m.kickoffAt, now));
+  const todayOpen = openToPredict.filter((m) => isSameDayInTz(m.kickoffAt, now));
   const summary = {
     todayTotal: todayAll.length,
-    openTotal: openToPredict.length,
-    openMissing: openToPredict.filter((m) => !predByMatch.has(m.id)).length,
-    nextLockAt: openToPredict.length
-      ? new Date(Math.min(...openToPredict.map((m) => m.kickoffAt.getTime()))).toISOString()
+    todayOpen: todayOpen.length,
+    todayMissing: todayOpen.filter((m) => !predByMatch.has(m.id)).length,
+    nextLockAt: todayOpen.length
+      ? new Date(Math.min(...todayOpen.map((m) => m.kickoffAt.getTime()))).toISOString()
       : null,
   };
 
-  const section = (title: string, list: typeof matches, opts?: { id?: string; live?: boolean }) =>
+  const section = (title: string, list: typeof matches, opts?: { id?: string; live?: boolean; urgent?: boolean }) =>
     list.length > 0 && (
       <section id={opts?.id} className="mb-8 scroll-mt-6">
         <div className="mb-3 flex items-center justify-between">
-          <span className="eyebrow flex items-center gap-2">
+          <span className={`eyebrow flex items-center gap-2 ${opts?.urgent ? "text-amber-300" : ""}`}>
             {opts?.live && (
               <span className="relative flex h-2 w-2" aria-hidden>
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-lime-400" />
               </span>
             )}
+            {opts?.urgent && <ClockIcon className="text-sm" />}
             {title}
           </span>
           <span className="rounded-full bg-white/[0.06] px-2.5 py-0.5 font-display text-[11px] font-bold text-slate-300">
@@ -158,6 +169,16 @@ export default async function MatchesPage() {
         </div>
       </section>
     );
+
+  // Filter tabs control ONLY the list below the priority sections. "Closing soon"
+  // is intentionally NOT a filter — it lives as a priority section above.
+  const allCount = today.length + upcoming.length + finished.length;
+  const filters = [
+    { key: "all", label: UI.filterAll, count: allCount },
+    { key: "today", label: UI.todayMatches, count: today.length },
+    { key: "upcoming", label: UI.filterUpcoming, count: upcoming.length },
+    { key: "past", label: UI.viewPrevious, count: finished.length },
+  ] as const;
 
   return (
     <div id="matches-top" className="reveal-stack scroll-mt-4">
@@ -182,49 +203,64 @@ export default async function MatchesPage() {
         <AwardsPromo locked={awardsLocked} predicted={awardsProgress.predicted} total={awardsProgress.total} />
       )}
       <InstallPrompt />
-      {(summary.openTotal > 0 || summary.todayTotal > 0) && (
+      {summary.todayTotal > 0 && (
         <TodaySummary
           todayTotal={summary.todayTotal}
-          openTotal={summary.openTotal}
-          openMissing={summary.openMissing}
+          todayOpen={summary.todayOpen}
+          todayMissing={summary.todayMissing}
           nextLockAt={summary.nextLockAt}
         />
       )}
-      {finished.length > 0 && (
-        <div className="mb-4 flex justify-center">
-          <a
-            href="#finished-matches"
-            className="group inline-flex items-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-4 py-2.5 text-sm font-bold text-slate-200 transition hover:border-accent-500/50 hover:bg-accent-500/10 hover:text-white active:scale-[0.98]"
-          >
-            <ClockIcon className="text-base text-accent-400" />
-            <span>{UI.viewPrevious}</span>
-            <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-bold tnum text-slate-300 group-hover:bg-white/20">
-              {finished.length}
-            </span>
-            <ArrowIcon className="-rotate-90 text-sm text-slate-400 transition group-hover:translate-y-0.5" />
-          </a>
-        </div>
-      )}
       <AdSlot slotId={AD_SLOTS.matchesTop} slotName="matches-top" />
       {matches.length === 0 && <EmptyState title={UI.noMatchesTitle} hint={UI.noMatchesHint} />}
+
+      {/* PRIORITY sections — always shown, independent of the filter below. */}
       {section(UI.liveNow, live, { live: true })}
-      {section(UI.closingSoonTitle, closingSoon)}
-      {section(UI.todayMatches, today)}
-      {section(UI.upcomingMatches, upcoming)}
-      {section(UI.finishedMatches, finished, { id: "finished-matches" })}
-      {finished.length > 0 && (
-        <div className="mt-4 flex justify-center">
-          <a
-            href="#matches-top"
-            className="group inline-flex items-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-4 py-2.5 text-sm font-bold text-slate-200 transition hover:border-accent-500/50 hover:bg-accent-500/10 hover:text-white active:scale-[0.98]"
-          >
-            <ArrowIcon className="rotate-90 text-base text-accent-400 transition group-hover:-translate-y-0.5" />
-            <span>{UI.backToTop}</span>
-          </a>
+      {section(UI.closingSoonTitle, closingSoon, { urgent: true })}
+
+      {/* Filter — controls only the list below it (not the priority sections). */}
+      {matches.length > 0 && (
+        <div className="mb-5 flex flex-wrap gap-2">
+          {filters.map((f) => (
+            <Link
+              key={f.key}
+              href={f.key === "all" ? "/matches" : `/matches?show=${f.key}`}
+              scroll={false}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold whitespace-nowrap transition ${
+                show === f.key
+                  ? "border-accent-500 bg-accent-500/15 text-accent-400"
+                  : "border-white/10 text-slate-300 hover:border-white/25 hover:bg-white/5"
+              }`}
+            >
+              {f.label}
+              <span className={`tnum text-xs ${show === f.key ? "text-accent-300/80" : "text-slate-500"}`}>
+                {f.count}
+              </span>
+            </Link>
+          ))}
         </div>
+      )}
+
+      {/* Filtered list. "past" shows only finished/scored — never future matches. */}
+      {show === "all" ? (
+        <>
+          {section(UI.todayMatches, today)}
+          {section(UI.upcomingMatches, upcoming)}
+          {section(UI.finishedMatches, finished)}
+        </>
+      ) : show === "today" ? (
+        section(UI.todayMatches, today) || <FilterEmpty text={UI.noMatchesHint} />
+      ) : show === "upcoming" ? (
+        section(UI.upcomingMatches, upcoming) || <FilterEmpty text={UI.noMatchesHint} />
+      ) : (
+        section(UI.finishedMatches, finished) || <FilterEmpty text={UI.noMatchesHint} />
       )}
     </div>
   );
+}
+
+function FilterEmpty({ text }: { text: string }) {
+  return <p className="card p-6 text-center text-sm text-slate-500">{text}</p>;
 }
 
 type MatchWithTeams = Prisma.MatchGetPayload<{ include: { homeTeam: true; awayTeam: true } }>;
