@@ -233,15 +233,14 @@ export function scoredPayload(opts: {
   points: number;
   matchId: string;
 }): PushPayload {
-  // Final result, clearly between the two teams: "مصر 1 - 1 بلجيكا".
+  // Final result, clearly between the two teams (title only — not repeated below).
   const result = `${opts.home} ${opts.homeScore} - ${opts.awayScore} ${opts.away}`;
-  const tail =
-    opts.points > 0
-      ? `كسبت +${opts.points} نقطة في الترتيب العام! 🎯`
-      : `لم تُوفَّق هذه المرة، حظًا أوفر في القادمة! 💪`;
   return {
     title: `🏁 صافرة النهاية: ${result}`,
-    body: `${result} ⚽ — ${tail}`,
+    body:
+      opts.points > 0
+        ? `كسبت +${opts.points} نقطة في الترتيب العام! 🎯`
+        : `لم تُوفَّق هذه المرة، حظًا أوفر في القادمة! 💪`,
     url: `/matches/${opts.matchId}`,
     tag: `wc26-scored-${opts.matchId}`,
   };
