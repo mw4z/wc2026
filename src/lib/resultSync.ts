@@ -688,8 +688,8 @@ async function processMatchGoals(
 async function reconcileGoalsSilent(
   m: { id: string; homeTeam: { nameEn: string } | null; awayTeam: { nameEn: string } | null },
   ev: EspnEvent,
-): Promise<{ inserted: number; removed: number }> {
-  if (!m.homeTeam || !m.awayTeam) return { inserted: 0, removed: 0 };
+): Promise<{ inserted: number; removed: number; players: string[] }> {
+  if (!m.homeTeam || !m.awayTeam) return { inserted: 0, removed: 0, players: [] };
   const reversed = teamsEqual(ev.homeName, m.awayTeam.nameEn) && teamsEqual(ev.awayName, m.homeTeam.nameEn);
   const oriented = ev.goals.map((g, i) => ({
     side: reversed ? (g.side === "home" ? "away" : "home") : g.side,
@@ -732,9 +732,11 @@ async function reconcileGoalsSilent(
       })),
       skipDuplicates: true,
     });
-    await Promise.all(fresh.map((g) => resolveArabic(g.player).catch(() => null)));
   }
-  return { inserted: fresh.length, removed };
+  // Arabic-name resolution (Wikidata, slow) is intentionally NOT awaited here — it
+  // would bottleneck the reconcile loop and risk a timeout that leaves later
+  // matches uncleaned. Callers warm the names afterwards (best-effort).
+  return { inserted: fresh.length, removed, players: fresh.map((g) => g.player) };
 }
 
 /**
@@ -781,6 +783,7 @@ export async function backfillMatchGoals(
   let goalsInserted = 0;
   let removed = 0;
   let corrected = 0;
+  const newPlayers = new Set<string>();
   for (const m of matches) {
     if (!m.homeTeam || !m.awayTeam) continue;
     const home = m.homeTeam.nameEn;
@@ -802,12 +805,21 @@ export async function backfillMatchGoals(
       console.error(`[goal-backfill] reconcile failed for ${m.id}:`, (e as Error).message);
     }
 
-    const { inserted, removed: rm } = await reconcileGoalsSilent(m, ev);
-    removed += rm;
-    if (inserted === 0 && rm === 0) continue;
-    matchesTouched++;
-    goalsInserted += inserted;
+    try {
+      const { inserted, removed: rm, players } = await reconcileGoalsSilent(m, ev);
+      removed += rm;
+      for (const p of players) newPlayers.add(p);
+      if (inserted === 0 && rm === 0) continue;
+      matchesTouched++;
+      goalsInserted += inserted;
+    } catch (e) {
+      console.error(`[goal-backfill] reconcile failed for ${m.id}:`, (e as Error).message);
+    }
   }
+  // Now that every match is reconciled (removals + scores committed), warm the
+  // Arabic names best-effort. A timeout here can't undo the cleanup above.
+  for (const p of newPlayers) await resolveArabic(p).catch(() => null);
+
   return { matches: matchesTouched, goals: goalsInserted, removed, corrected };
 }
 

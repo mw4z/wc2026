@@ -7,6 +7,7 @@ import { backfillMatchGoals } from "@/lib/resultSync";
 import { errorResponse } from "@/lib/api";
 
 export const runtime = "nodejs"; // rescoring may send web-push (needs Node crypto)
+export const maxDuration = 60; // goal/score backfill across all matches can be slow
 
 // Body: { matchId } to rescore one match, or {} for a full leaderboard rebuild.
 export async function POST(req: NextRequest) {
