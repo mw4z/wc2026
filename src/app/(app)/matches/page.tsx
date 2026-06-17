@@ -113,6 +113,9 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
       finished.push(m);
     }
   }
+  // Finished/previous matches read newest → oldest, so the last game played is on
+  // top. (today/upcoming stay ascending — next match first.)
+  finished.sort((a, b) => b.kickoffAt.getTime() - a.kickoffAt.getTime());
 
   // Open-to-predict = scheduled, teams known, kickoff ahead, and the global
   // prediction window has opened. This is the ACTIONABLE set across ALL days, so
