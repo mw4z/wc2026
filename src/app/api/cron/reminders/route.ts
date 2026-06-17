@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getPredictionLead, predictionOpensAt } from "@/lib/settings";
 import { pushConfigured, sendPush, type StoredSubscription, type PushPayload } from "@/lib/push";
 import { openedPayload, closingPayload, scoredPayload, revealedPayload } from "@/lib/notifications";
+import { fetchEspnLive, type EspnEvent } from "@/lib/espn";
+import { teamsEqual } from "@/lib/fixtureMapping";
 
 // Hourly reminder cron. Fires THREE kinds of push, each deduped per (user,
 // match, kind) via PushReminder so nothing repeats:
@@ -74,15 +76,45 @@ export async function GET(req: NextRequest) {
     select: { id: true, homeScore: true, awayScore: true, homeTeam: true, awayTeam: true },
   });
 
-  // Matches that just kicked off → group picks are now revealed for members.
-  const revealedMatches = await prisma.match.findMany({
+  // Matches whose scheduled kickoff has passed (group picks are now revealed).
+  const revealedCandidates = await prisma.match.findMany({
     where: {
       homeTeamId: { not: null },
       awayTeamId: { not: null },
       kickoffAt: { lte: now, gte: new Date(nowMs - REVEAL_LOOKBACK_H * 3600_000) },
     },
-    select: { id: true },
+    select: {
+      id: true,
+      kickoffAt: true,
+      homeTeam: { select: { nameEn: true } },
+      awayTeam: { select: { nameEn: true } },
+    },
   });
+  // Only announce "match started" once ESPN confirms real kickoff. A delayed match
+  // still shows as state="pre" on ESPN, so we hold the alert until it's in/post —
+  // fixing false "started" pushes. If ESPN is unreachable or doesn't list the match,
+  // fall back to the schedule so legit reveals aren't lost.
+  let espnLive: EspnEvent[] = [];
+  try {
+    espnLive = await fetchEspnLive();
+  } catch {
+    /* ESPN down → fall back to schedule below */
+  }
+  const REVEAL_TOL = 3 * 3600_000;
+  const hasReallyStarted = (m: (typeof revealedCandidates)[number]): boolean => {
+    if (!m.homeTeam || !m.awayTeam) return true;
+    const ev = espnLive.find((e) => {
+      const t = Date.parse(e.dateISO);
+      const near = !Number.isFinite(t) || Math.abs(t - m.kickoffAt.getTime()) <= REVEAL_TOL;
+      const samePair =
+        (teamsEqual(e.homeName, m.homeTeam!.nameEn) && teamsEqual(e.awayName, m.awayTeam!.nameEn)) ||
+        (teamsEqual(e.homeName, m.awayTeam!.nameEn) && teamsEqual(e.awayName, m.homeTeam!.nameEn));
+      return near && samePair;
+    });
+    if (!ev) return true; // not found on ESPN → trust the schedule
+    return ev.state !== "pre"; // pre = not actually kicked off yet → hold the alert
+  };
+  const revealedMatches = revealedCandidates.filter(hasReallyStarted).map((m) => ({ id: m.id }));
 
   // Map each push-user to one of their active groups (with ≥2 members) for the link.
   const memberships = await prisma.groupMember.findMany({
