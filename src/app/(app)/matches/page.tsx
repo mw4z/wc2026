@@ -203,8 +203,8 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
         </span>
         <HeroStat label={UI.yourPoints} value={myPoints} />
       </TournamentHero>
-      <p className="-mt-2 mb-5 flex items-center justify-center gap-1.5 text-center text-xs text-slate-300">
-        <ClockIcon className="text-sm text-accent-400" />
+      <p className="-mt-1 mb-3 flex items-center justify-center gap-1 text-center text-[11px] text-slate-400">
+        <ClockIcon className="text-[12px] text-accent-400/80" />
         {UI.timezoneNote}
       </p>
       {SHOW_AWARDS_PROMO && canAwards && (
