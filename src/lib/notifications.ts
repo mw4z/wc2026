@@ -220,6 +220,63 @@ export async function notifyGoalCancelled(opts: {
   }
 }
 
+/**
+ * Notify group members that a match just KICKED OFF (their picks are now revealed),
+ * the moment ESPN reports it in-play. Audience = users in an active group (≥2
+ * members). Deduped per (user, match) via PushReminder kind="revealed", so the
+ * every-minute caller fires it exactly once and the hourly cron never repeats it.
+ * Best-effort — never throws.
+ */
+export async function notifyMatchStarted(matchId: string): Promise<number> {
+  if (!pushConfigured) return 0;
+  try {
+    const memberships = await prisma.groupMember.findMany({
+      where: { group: { isActive: true } },
+      select: { userId: true, groupId: true },
+    });
+    if (memberships.length === 0) return 0;
+    const size = new Map<string, number>();
+    for (const m of memberships) size.set(m.groupId, (size.get(m.groupId) ?? 0) + 1);
+    const userGroup = new Map<string, string>(); // userId → first group with ≥2 members
+    for (const m of memberships) {
+      if (!userGroup.has(m.userId) && (size.get(m.groupId) ?? 0) >= 2) userGroup.set(m.userId, m.groupId);
+    }
+    const userIds = [...userGroup.keys()];
+    if (userIds.length === 0) return 0;
+
+    const [already, subs] = await Promise.all([
+      prisma.pushReminder.findMany({
+        where: { matchId, kind: "revealed", userId: { in: userIds } },
+        select: { userId: true },
+      }),
+      prisma.pushSubscription.findMany({ where: { userId: { in: userIds } } }),
+    ]);
+    const alreadySet = new Set(already.map((r) => r.userId));
+    const subsByUser = new Map<string, StoredSubscription[]>();
+    for (const s of subs) {
+      const list = subsByUser.get(s.userId) ?? [];
+      list.push({ endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth });
+      subsByUser.set(s.userId, list);
+    }
+
+    const recorded: { userId: string; matchId: string; kind: string }[] = [];
+    for (const userId of userIds) {
+      if (alreadySet.has(userId)) continue;
+      const list = subsByUser.get(userId);
+      if (!list || list.length === 0) continue;
+      const payload = revealedPayload(1, userGroup.get(userId)!);
+      let ok = false;
+      for (const sub of list) if (await sendPush(sub, payload)) ok = true;
+      if (ok) recorded.push({ userId, matchId, kind: "revealed" });
+    }
+    if (recorded.length) await prisma.pushReminder.createMany({ data: recorded, skipDuplicates: true });
+    return recorded.length;
+  } catch (e) {
+    console.error("notifyMatchStarted failed:", (e as Error).message);
+    return 0;
+  }
+}
+
 export function openedPayload(n: number): PushPayload {
   return {
     title: "🟢 فُتح باب التوقّع!",

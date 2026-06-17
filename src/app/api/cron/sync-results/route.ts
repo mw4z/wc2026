@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { syncResultsFromEspn, refreshLiveScores } from "@/lib/resultSync";
+import { notifyMatchStarted } from "@/lib/notifications";
 
 // Auto result sync. Fetches final results from the football provider and scores
 // finished matches via the existing scoring path. Manual admin entry remains the
@@ -32,6 +33,12 @@ async function handle(req: NextRequest) {
     try {
       const live = await refreshLiveScores();
       liveCount = live.length;
+      // The moment ESPN confirms a match is in-play, tell group members it kicked
+      // off (deduped). This is prompt (every minute) and ESPN-gated, so it never
+      // fires for a delayed kickoff and isn't stuck on the hourly cron.
+      for (const ls of live) {
+        if (!ls.final) await notifyMatchStarted(ls.matchId).catch(() => 0);
+      }
     } catch (e) {
       console.error("[sync-results] live refresh failed:", (e as Error).message);
     }
