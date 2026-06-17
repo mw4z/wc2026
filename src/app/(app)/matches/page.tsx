@@ -129,6 +129,12 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
   // counts). todayOpen = today's matches still open to predict.
   const todayAll = matches.filter((m) => isSameDayInTz(m.kickoffAt, now));
   const todayOpen = openToPredict.filter((m) => isSameDayInTz(m.kickoffAt, now));
+  // Filter sets (intuitive, complete): "today" = every match today; "upcoming" =
+  // matches on a FUTURE day not yet started. Independent of the live/closing
+  // priority split so the filter counts reflect what users expect.
+  const upcomingDays = matches.filter(
+    (m) => !isDone(m) && !isLive(m) && m.kickoffAt.getTime() > nowMs && !isSameDayInTz(m.kickoffAt, now),
+  );
   const summary = {
     todayTotal: todayAll.length,
     todayOpen: todayOpen.length,
@@ -175,11 +181,10 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
 
   // Filter tabs control ONLY the list below the priority sections. "Closing soon"
   // is intentionally NOT a filter — it lives as a priority section above.
-  const allCount = today.length + upcoming.length + finished.length;
   const filters = [
-    { key: "all", label: UI.filterAll, count: allCount },
-    { key: "today", label: UI.filterToday, count: today.length },
-    { key: "upcoming", label: UI.filterUpcoming, count: upcoming.length },
+    { key: "all", label: UI.filterAll, count: matches.length },
+    { key: "today", label: UI.filterToday, count: todayAll.length },
+    { key: "upcoming", label: UI.filterUpcoming, count: upcomingDays.length },
     { key: "past", label: UI.filterPast, count: finished.length },
   ] as const;
 
@@ -217,25 +222,24 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
       <AdSlot slotId={AD_SLOTS.matchesTop} slotName="matches-top" />
       {matches.length === 0 && <EmptyState title={UI.noMatchesTitle} hint={UI.noMatchesHint} />}
 
-      {/* Filter at the top. Live + closing-soon stay always-shown below it,
-          independent of the selected filter. */}
+      {/* Filter at the top. */}
       {matches.length > 0 && <MatchFilters filters={filters.map((f) => ({ ...f }))} active={show} />}
 
-      {/* PRIORITY sections — urgent, always shown regardless of the filter. */}
-      {section(UI.liveNow, live, { live: true })}
-      {section(UI.closingSoonTitle, closingSoon, { urgent: true })}
-
-      {/* Filtered list. "past" shows only finished/scored — never future matches. */}
+      {/* "All" is the curated view: urgent live + closing-soon on top, then the rest.
+          A specific filter shows that category's COMPLETE list (no priority split),
+          so "Today" lists every match today instead of an empty leftover bucket. */}
       {show === "all" ? (
         <>
+          {section(UI.liveNow, live, { live: true })}
+          {section(UI.closingSoonTitle, closingSoon, { urgent: true })}
           {section(UI.todayMatches, today)}
           {section(UI.upcomingMatches, upcoming)}
           {section(UI.finishedMatches, finished)}
         </>
       ) : show === "today" ? (
-        section(UI.todayMatches, today) || <FilterEmpty text={UI.noMatchesHint} />
+        section(UI.todayMatches, todayAll) || <FilterEmpty text={UI.noMatchesHint} />
       ) : show === "upcoming" ? (
-        section(UI.upcomingMatches, upcoming) || <FilterEmpty text={UI.noMatchesHint} />
+        section(UI.upcomingMatches, upcomingDays) || <FilterEmpty text={UI.noMatchesHint} />
       ) : (
         section(UI.finishedMatches, finished) || <FilterEmpty text={UI.noMatchesHint} />
       )}
