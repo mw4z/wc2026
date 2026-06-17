@@ -217,12 +217,13 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
       <AdSlot slotId={AD_SLOTS.matchesTop} slotName="matches-top" />
       {matches.length === 0 && <EmptyState title={UI.noMatchesTitle} hint={UI.noMatchesHint} />}
 
-      {/* PRIORITY sections — always shown, independent of the filter below. */}
+      {/* Filter at the top. Live + closing-soon stay always-shown below it,
+          independent of the selected filter. */}
+      {matches.length > 0 && <MatchFilters filters={filters.map((f) => ({ ...f }))} active={show} />}
+
+      {/* PRIORITY sections — urgent, always shown regardless of the filter. */}
       {section(UI.liveNow, live, { live: true })}
       {section(UI.closingSoonTitle, closingSoon, { urgent: true })}
-
-      {/* Filter — controls only the list below it (not the priority sections). */}
-      {matches.length > 0 && <MatchFilters filters={filters.map((f) => ({ ...f }))} active={show} />}
 
       {/* Filtered list. "past" shows only finished/scored — never future matches. */}
       {show === "all" ? (
