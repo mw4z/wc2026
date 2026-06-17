@@ -42,6 +42,12 @@ export default async function ProfilePage() {
         <HeroStat label={UI.statPredictions} value={entry?.totalPredictions ?? 0} />
       </TournamentHero>
 
+      <Link href="/my-predictions" className="tile mb-6">
+        <span className="tile-ic"><ListIcon /></span>
+        <span className="tile-label">{UI.myPredictions}</span>
+        <ArrowIcon className="tile-chev" />
+      </Link>
+
       <div className="card mb-6 p-5">
         <Row label={UI.name} value={user.name} />
         <Row label={UI.department} value={user.department ?? "—"} />
@@ -64,12 +70,6 @@ export default async function ProfilePage() {
         {stat(UI.statExact, entry?.exactScores ?? 0)}
         {stat(UI.statPredictions, entry?.totalPredictions ?? 0)}
       </div>
-
-      <Link href="/my-predictions" className="tile mt-4">
-        <span className="tile-ic"><ListIcon /></span>
-        <span className="tile-label">{UI.myPredictions}</span>
-        <ArrowIcon className="tile-chev" />
-      </Link>
 
       <p className="mt-6 text-center text-xs text-slate-500">{UI.changeNameNote}</p>
 
