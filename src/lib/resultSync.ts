@@ -4,7 +4,7 @@ import { fetchAllFixtures, footballApiConfigured, footballProvider, rateLimitRem
 import { deriveMatchResult, orientToMatch, type ParsedFixture } from "./resultSyncCore";
 import { evaluateMapping, teamsEqual } from "./fixtureMapping";
 import { fetchEspnLive, fetchEspnEvents, fetchEspnDates, yyyymmdd, type EspnEvent } from "./espn";
-import { notifyGoal } from "./notifications";
+import { notifyGoal, notifyGoalCancelled } from "./notifications";
 import { resolveArabic } from "./playerNameResolver";
 import type { Stage } from "@prisma/client";
 
@@ -532,16 +532,17 @@ export async function refreshLiveScores(): Promise<LiveScore[]> {
 }
 
 /**
- * Mirror ESPN's scoring plays into MatchGoal and push each NEW goal. Goals are
- * oriented to our home/away, then claimed atomically (notified flip) and pushed
- * exactly once — safe even if the cron and a polling client race on the same goal.
+ * Mirror ESPN's scoring plays into MatchGoal: insert NEW goals (push once each),
+ * and DELETE goals ESPN has dropped (VAR-cancelled) — pushing a cancellation alert
+ * and letting the score recompute. Goals are oriented to our home/away. All pushes
+ * are claimed atomically so the cron and a polling client never double-notify.
  *
- * Deploy guard: the ONLY time we seed silently is the very first time we ever see
- * a match that ALREADY has multiple goals (deploying mid-match) — so we don't
- * blast a burst of stale alerts. A normal live match (goals trickling in one at a
- * time) always pushes, including its first goal. This deliberately avoids relying
- * on a separate "liveStartedAt" write, so a missing/stuck flag can never silently
- * suppress every goal.
+ * Deploy guard: we seed silently only the first time we ever see a match that
+ * ALREADY has 2+ goals (deploying mid-match). A normal live match always pushes.
+ *
+ * Cancellation guard: removals are only trusted when ESPN's goal COUNT matches its
+ * SCORE — this skips the score-lag window (new goal in the feed before the score
+ * ticks) and any transient empty feed, so we never falsely cancel a real goal.
  */
 async function processMatchGoals(
   m: {
@@ -552,7 +553,7 @@ async function processMatchGoals(
   ev: EspnEvent,
   reversed: boolean,
 ): Promise<void> {
-  if (!m.homeTeam || !m.awayTeam || ev.goals.length === 0) return;
+  if (!m.homeTeam || !m.awayTeam) return;
 
   // Orient each goal's side to our schedule.
   const oriented = ev.goals.map((g, i) => ({
@@ -562,12 +563,41 @@ async function processMatchGoals(
     note: g.note,
     sortOrder: i,
   }));
-
-  const existing = await prisma.matchGoal.findMany({
-    where: { matchId: m.id },
-    select: { side: true, player: true, minute: true },
-  });
   const key = (x: { side: string; player: string; minute: string }) => `${x.side}|${x.player}|${x.minute}`;
+  const currentKeys = new Set(oriented.map(key));
+
+  let existing = await prisma.matchGoal.findMany({
+    where: { matchId: m.id },
+    select: { id: true, side: true, player: true, minute: true, notified: true },
+  });
+
+  // --- Cancellations (VAR): stored goals that ESPN no longer reports. ---
+  const feedConsistent = oriented.length === (ev.homeScore ?? 0) + (ev.awayScore ?? 0);
+  if (feedConsistent) {
+    const cancelled = existing.filter((e) => !currentKeys.has(key(e)));
+    if (cancelled.length) {
+      // Score AFTER the cancellations = current ESPN goal set.
+      let ch = 0;
+      let ca = 0;
+      for (const g of oriented) {
+        if (g.side === "home") ch++;
+        else ca++;
+      }
+      const line = `${m.homeTeam.nameAr} ${ch}-${ca} ${m.awayTeam.nameAr}`;
+      for (const c of cancelled) {
+        // Claim the deletion so only one worker announces it.
+        const del = await prisma.matchGoal.deleteMany({ where: { id: c.id } });
+        if (del.count !== 1) continue;
+        if (!c.notified) continue; // never announced → nothing to retract
+        const teamAr = c.side === "home" ? m.homeTeam.nameAr : m.awayTeam.nameAr;
+        const playerAr = (await resolveArabic(c.player).catch(() => null)) ?? undefined;
+        await notifyGoalCancelled({ matchId: m.id, teamAr, player: c.player, playerAr, minute: c.minute, line });
+      }
+      existing = existing.filter((e) => currentKeys.has(key(e)));
+    }
+  }
+
+  // --- New goals. ---
   const have = new Set(existing.map(key));
   const fresh = oriented.filter((g) => !have.has(key(g)));
   if (fresh.length === 0) return;

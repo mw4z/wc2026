@@ -127,10 +127,54 @@ export function goalPayload(opts: {
   };
 }
 
+// A VAR-cancelled goal: tell users it was disallowed and show the corrected score.
+export function goalCancelledPayload(opts: {
+  teamAr: string;
+  player: string;
+  playerAr?: string;
+  minute: string;
+  line: string; // corrected score, e.g. "مصر 1-0 بلجيكا"
+  matchId: string;
+}): PushPayload {
+  const who = opts.playerAr || playerDisplayName(opts.player, "ar");
+  const min = opts.minute ? ` ${opts.minute}` : "";
+  return {
+    title: `🚫 هدف ملغى — ${opts.teamAr}`,
+    body: `أُلغي هدف ${who}${min} (حكم الفيديو). النتيجة الآن: ${opts.line}`,
+    url: `/matches/${opts.matchId}`,
+    tag: `wc26-goalcancel-${opts.matchId}`,
+  };
+}
+
+// Audience for goal alerts: users with goal alerts ON; PREDICTED scope is limited
+// to the match's predictors. Falls back to EVERY subscription if the prefs columns
+// aren't migrated. Best-effort.
+async function goalAudienceSubs(matchId: string): Promise<{ endpoint: string; p256dh: string; auth: string }[]> {
+  try {
+    const [users, predictors] = await Promise.all([
+      prisma.user.findMany({
+        where: { isActive: true, notifyGoals: true },
+        select: { id: true, notifyGoalsScope: true },
+      }),
+      prisma.prediction.findMany({ where: { matchId }, select: { userId: true } }),
+    ]);
+    const predictorSet = new Set(predictors.map((p) => p.userId));
+    const ids = users
+      .filter((u) => u.notifyGoalsScope !== "PREDICTED" || predictorSet.has(u.id))
+      .map((u) => u.id);
+    if (ids.length === 0) return [];
+    return prisma.pushSubscription.findMany({
+      where: { userId: { in: ids } },
+      select: { endpoint: true, p256dh: true, auth: true },
+    });
+  } catch {
+    return prisma.pushSubscription.findMany({ select: { endpoint: true, p256dh: true, auth: true } });
+  }
+}
+
 /**
- * Push a single goal to every eligible user. Audience = users with goal alerts
- * ON; users whose scope is "PREDICTED" are included only if they predicted this
- * match. Best-effort — never throws. Returns how many subscriptions were notified.
+ * Push a single goal to every eligible user. Best-effort — never throws. Returns
+ * how many subscriptions were notified.
  */
 export async function notifyGoal(opts: {
   matchId: string;
@@ -143,39 +187,35 @@ export async function notifyGoal(opts: {
 }): Promise<number> {
   if (!pushConfigured) return 0;
   try {
-    // Resolve the audience from per-user prefs. If those columns aren't migrated
-    // yet, fall back to EVERY subscription (the intended default = everyone on),
-    // so goal alerts still fire immediately rather than silently doing nothing.
-    let subs: { endpoint: string; p256dh: string; auth: string }[];
-    try {
-      const [users, predictors] = await Promise.all([
-        prisma.user.findMany({
-          where: { isActive: true, notifyGoals: true },
-          select: { id: true, notifyGoalsScope: true },
-        }),
-        prisma.prediction.findMany({ where: { matchId: opts.matchId }, select: { userId: true } }),
-      ]);
-      const predictorSet = new Set(predictors.map((p) => p.userId));
-      const ids = users
-        .filter((u) => u.notifyGoalsScope !== "PREDICTED" || predictorSet.has(u.id))
-        .map((u) => u.id);
-      if (ids.length === 0) return 0;
-      subs = await prisma.pushSubscription.findMany({
-        where: { userId: { in: ids } },
-        select: { endpoint: true, p256dh: true, auth: true },
-      });
-    } catch {
-      subs = await prisma.pushSubscription.findMany({ select: { endpoint: true, p256dh: true, auth: true } });
-    }
+    const subs = await goalAudienceSubs(opts.matchId);
     if (subs.length === 0) return 0;
-
     const payload = goalPayload(opts);
-    const results = await Promise.all(
-      subs.map((s) => sendPush({ endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth }, payload)),
-    );
+    const results = await Promise.all(subs.map((s) => sendPush(s, payload)));
     return results.filter(Boolean).length;
   } catch (e) {
     console.error("notifyGoal failed:", (e as Error).message);
+    return 0;
+  }
+}
+
+/** Push a goal-cancellation (VAR) alert to the same audience. Best-effort. */
+export async function notifyGoalCancelled(opts: {
+  matchId: string;
+  teamAr: string;
+  player: string;
+  playerAr?: string;
+  minute: string;
+  line: string;
+}): Promise<number> {
+  if (!pushConfigured) return 0;
+  try {
+    const subs = await goalAudienceSubs(opts.matchId);
+    if (subs.length === 0) return 0;
+    const payload = goalCancelledPayload(opts);
+    const results = await Promise.all(subs.map((s) => sendPush(s, payload)));
+    return results.filter(Boolean).length;
+  } catch (e) {
+    console.error("notifyGoalCancelled failed:", (e as Error).message);
     return 0;
   }
 }
