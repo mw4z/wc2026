@@ -175,9 +175,9 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
   const allCount = today.length + upcoming.length + finished.length;
   const filters = [
     { key: "all", label: UI.filterAll, count: allCount },
-    { key: "today", label: UI.todayMatches, count: today.length },
+    { key: "today", label: UI.filterToday, count: today.length },
     { key: "upcoming", label: UI.filterUpcoming, count: upcoming.length },
-    { key: "past", label: UI.viewPrevious, count: finished.length },
+    { key: "past", label: UI.filterPast, count: finished.length },
   ] as const;
 
   return (
@@ -220,20 +220,20 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
 
       {/* Filter — controls only the list below it (not the priority sections). */}
       {matches.length > 0 && (
-        <div className="mb-5 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mb-5 grid grid-cols-4 gap-1.5">
           {filters.map((f) => (
             <Link
               key={f.key}
               href={f.key === "all" ? "/matches" : `/matches?show=${f.key}`}
               scroll={false}
-              className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold whitespace-nowrap transition ${
+              className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border px-1 py-1.5 text-center transition ${
                 show === f.key
                   ? "border-accent-500 bg-accent-500/15 text-accent-400"
-                  : "border-white/10 text-slate-300 hover:border-white/25 hover:bg-white/5"
+                  : "border-white/10 text-slate-300 active:bg-white/5"
               }`}
             >
-              {f.label}
-              <span className={`tnum text-xs ${show === f.key ? "text-accent-300/80" : "text-slate-500"}`}>
+              <span className="truncate text-[13px] font-semibold leading-none">{f.label}</span>
+              <span className={`tnum text-[10px] leading-none ${show === f.key ? "text-accent-300/80" : "text-slate-500"}`}>
                 {f.count}
               </span>
             </Link>
