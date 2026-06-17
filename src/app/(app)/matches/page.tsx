@@ -1,5 +1,4 @@
 import type { Prisma } from "@prisma/client";
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { lockDueMatches } from "@/lib/matches";
@@ -9,6 +8,7 @@ import { getPredictionLead, predictionOpensAt, type PredictionLead } from "@/lib
 import type { Locale } from "@/lib/i18n";
 import { getUI, getLocale } from "@/lib/locale";
 import { MatchCard } from "@/components/MatchCard";
+import { MatchFilters } from "@/components/MatchFilters";
 import { getSerializedGoals } from "@/lib/matchGoals";
 import { TournamentHero, HeroStat, EmptyState } from "@/components/TournamentHero";
 import { TodaySummary } from "@/components/TodaySummary";
@@ -219,27 +219,7 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
       {section(UI.closingSoonTitle, closingSoon, { urgent: true })}
 
       {/* Filter — controls only the list below it (not the priority sections). */}
-      {matches.length > 0 && (
-        <div className="mb-5 grid grid-cols-4 gap-1.5">
-          {filters.map((f) => (
-            <Link
-              key={f.key}
-              href={f.key === "all" ? "/matches" : `/matches?show=${f.key}`}
-              scroll={false}
-              className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border px-1 py-1.5 text-center transition ${
-                show === f.key
-                  ? "border-accent-500 bg-accent-500/15 text-accent-400"
-                  : "border-white/10 text-slate-300 active:bg-white/5"
-              }`}
-            >
-              <span className="truncate text-[13px] font-semibold leading-none">{f.label}</span>
-              <span className={`tnum text-[10px] leading-none ${show === f.key ? "text-accent-300/80" : "text-slate-500"}`}>
-                {f.count}
-              </span>
-            </Link>
-          ))}
-        </div>
-      )}
+      {matches.length > 0 && <MatchFilters filters={filters.map((f) => ({ ...f }))} active={show} />}
 
       {/* Filtered list. "past" shows only finished/scored — never future matches. */}
       {show === "all" ? (

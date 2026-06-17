@@ -312,6 +312,34 @@ export async function syncResultsFromEspn(opts: { matchIds?: string[]; force?: b
     }
   }
 
+  // Auto-clean goals for recently-finished matches — catches a late VAR
+  // cancellation that froze at full-time (the live reconcile can't run once the
+  // match is SCORED). Reuses the events already fetched; silent (no push).
+  try {
+    const recent = await prisma.match.findMany({
+      where: {
+        status: "SCORED",
+        homeScore: { not: null },
+        resultConfirmedAt: { gte: new Date(now.getTime() - 12 * 3600_000) },
+      },
+      include: { homeTeam: true, awayTeam: true },
+    });
+    for (const m of recent) {
+      if (!m.homeTeam || !m.awayTeam) continue;
+      const ev = events.find((e) => {
+        const t = Date.parse(e.dateISO);
+        const near = !Number.isFinite(t) || Math.abs(t - m.kickoffAt.getTime()) <= TOL;
+        const samePair =
+          (teamsEqual(e.homeName, m.homeTeam!.nameEn) && teamsEqual(e.awayName, m.awayTeam!.nameEn)) ||
+          (teamsEqual(e.homeName, m.awayTeam!.nameEn) && teamsEqual(e.awayName, m.homeTeam!.nameEn));
+        return near && samePair;
+      });
+      if (ev) await reconcileGoalsSilent(m, ev).catch(() => null);
+    }
+  } catch (e) {
+    console.error("[result-sync:espn] recent goal reconcile failed:", (e as Error).message);
+  }
+
   return report;
 }
 
@@ -652,11 +680,69 @@ async function processMatchGoals(
 }
 
 /**
+ * Reconcile a match's stored goals against an ESPN event SILENTLY (no push):
+ * insert goals ESPN reports that we're missing, and DELETE stale/cancelled goals
+ * ESPN no longer reports (only when the feed is consistent: goal count == score).
+ * Shared by the historical backfill and the recently-finished auto-clean.
+ */
+async function reconcileGoalsSilent(
+  m: { id: string; homeTeam: { nameEn: string } | null; awayTeam: { nameEn: string } | null },
+  ev: EspnEvent,
+): Promise<{ inserted: number; removed: number }> {
+  if (!m.homeTeam || !m.awayTeam) return { inserted: 0, removed: 0 };
+  const reversed = teamsEqual(ev.homeName, m.awayTeam.nameEn) && teamsEqual(ev.awayName, m.homeTeam.nameEn);
+  const oriented = ev.goals.map((g, i) => ({
+    side: reversed ? (g.side === "home" ? "away" : "home") : g.side,
+    player: g.player,
+    minute: g.minute,
+    note: g.note,
+    sortOrder: i,
+  }));
+  const key = (x: { side: string; player: string; minute: string }) => `${x.side}|${x.player}|${x.minute}`;
+  const currentKeys = new Set(oriented.map(key));
+  const existing = await prisma.matchGoal.findMany({
+    where: { matchId: m.id },
+    select: { id: true, side: true, player: true, minute: true },
+  });
+
+  let removed = 0;
+  let kept = existing;
+  const feedConsistent = oriented.length === (ev.homeScore ?? 0) + (ev.awayScore ?? 0);
+  if (feedConsistent) {
+    const stale = existing.filter((e) => !currentKeys.has(key(e)));
+    if (stale.length) {
+      await prisma.matchGoal.deleteMany({ where: { id: { in: stale.map((s) => s.id) } } });
+      kept = existing.filter((e) => currentKeys.has(key(e)));
+      removed = stale.length;
+    }
+  }
+
+  const have = new Set(kept.map(key));
+  const fresh = oriented.filter((g) => !have.has(key(g)));
+  if (fresh.length) {
+    await prisma.matchGoal.createMany({
+      data: fresh.map((g) => ({
+        matchId: m.id,
+        side: g.side,
+        player: g.player,
+        minute: g.minute,
+        sortOrder: g.sortOrder,
+        note: g.note,
+        notified: true, // silent
+      })),
+      skipDuplicates: true,
+    });
+    await Promise.all(fresh.map((g) => resolveArabic(g.player).catch(() => null)));
+  }
+  return { inserted: fresh.length, removed };
+}
+
+/**
  * Backfill goal scorers for matches that already finished (e.g. before the goals
  * feature existed, or any match missing its scorers). Fetches ESPN's scoreboard
- * for each relevant day, matches by team-pair + date, and stores goals SILENTLY
- * (no push — these are historical). Idempotent: skips matches that already have
- * goals unless force is set. Admin-triggered (best-effort, capped).
+ * for each relevant day, matches by team-pair + date, stores missing goals and
+ * removes stale ones SILENTLY (no push). Also reconciles a wrong stored score.
+ * Idempotent. Admin-triggered (best-effort, capped).
  */
 export async function backfillMatchGoals(
   opts: { force?: boolean } = {},
@@ -716,53 +802,11 @@ export async function backfillMatchGoals(
       console.error(`[goal-backfill] reconcile failed for ${m.id}:`, (e as Error).message);
     }
 
-    const reversed = teamsEqual(ev.homeName, away) && teamsEqual(ev.awayName, home);
-    const oriented = ev.goals.map((g, i) => ({
-      side: reversed ? (g.side === "home" ? "away" : "home") : g.side,
-      player: g.player,
-      minute: g.minute,
-      note: g.note,
-      sortOrder: i,
-    }));
-    const key = (x: { side: string; player: string; minute: string }) => `${x.side}|${x.player}|${x.minute}`;
-    const currentKeys = new Set(oriented.map(key));
-    const existing = await prisma.matchGoal.findMany({
-      where: { matchId: m.id },
-      select: { id: true, side: true, player: true, minute: true },
-    });
-
-    // Remove stale/cancelled goals no longer in ESPN's final feed (silent — the
-    // match is over). Only when the feed is consistent (goal count == final score).
-    const feedConsistent = oriented.length === (ev.homeScore ?? 0) + (ev.awayScore ?? 0);
-    let kept = existing;
-    if (feedConsistent) {
-      const stale = existing.filter((e) => !currentKeys.has(key(e)));
-      if (stale.length) {
-        await prisma.matchGoal.deleteMany({ where: { id: { in: stale.map((s) => s.id) } } });
-        kept = existing.filter((e) => currentKeys.has(key(e)));
-        removed += stale.length;
-      }
-    }
-
-    const have = new Set(kept.map(key));
-    const fresh = oriented.filter((g) => !have.has(key(g)));
-    if (fresh.length === 0) continue;
-
-    await prisma.matchGoal.createMany({
-      data: fresh.map((g) => ({
-        matchId: m.id,
-        side: g.side,
-        player: g.player,
-        minute: g.minute,
-        sortOrder: g.sortOrder,
-        note: g.note,
-        notified: true, // historical → never push
-      })),
-      skipDuplicates: true,
-    });
-    await Promise.all(fresh.map((g) => resolveArabic(g.player).catch(() => null))); // warm Arabic cache
+    const { inserted, removed: rm } = await reconcileGoalsSilent(m, ev);
+    removed += rm;
+    if (inserted === 0 && rm === 0) continue;
     matchesTouched++;
-    goalsInserted += fresh.length;
+    goalsInserted += inserted;
   }
   return { matches: matchesTouched, goals: goalsInserted, removed, corrected };
 }
