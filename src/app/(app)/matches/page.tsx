@@ -220,13 +220,13 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
 
       {/* Filter — controls only the list below it (not the priority sections). */}
       {matches.length > 0 && (
-        <div className="mb-5 flex flex-wrap gap-2">
+        <div className="mb-5 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {filters.map((f) => (
             <Link
               key={f.key}
               href={f.key === "all" ? "/matches" : `/matches?show=${f.key}`}
               scroll={false}
-              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold whitespace-nowrap transition ${
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold whitespace-nowrap transition ${
                 show === f.key
                   ? "border-accent-500 bg-accent-500/15 text-accent-400"
                   : "border-white/10 text-slate-300 hover:border-white/25 hover:bg-white/5"
