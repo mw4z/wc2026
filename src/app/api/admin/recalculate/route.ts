@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     // Backfill goal scorers AND reconcile any wrong stored result (e.g. a frozen
     // 0-0) against ESPN — re-scoring as needed. Runs BEFORE the movement backfill
     // so the arrows reflect corrected standings. Best-effort.
-    let goalsBackfill: { matches: number; goals: number; corrected: number } | null = null;
+    let goalsBackfill: { matches: number; goals: number; removed: number; corrected: number } | null = null;
     try {
       goalsBackfill = await backfillMatchGoals();
     } catch (e) {

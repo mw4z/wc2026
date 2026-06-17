@@ -660,7 +660,7 @@ async function processMatchGoals(
  */
 export async function backfillMatchGoals(
   opts: { force?: boolean } = {},
-): Promise<{ matches: number; goals: number; corrected: number }> {
+): Promise<{ matches: number; goals: number; removed: number; corrected: number }> {
   void opts;
   const now = new Date();
   // ALL finished matches — goal insertion is idempotent (skips existing) and we
@@ -674,7 +674,7 @@ export async function backfillMatchGoals(
     include: { homeTeam: true, awayTeam: true },
     orderBy: { kickoffAt: "asc" },
   });
-  if (matches.length === 0) return { matches: 0, goals: 0, corrected: 0 };
+  if (matches.length === 0) return { matches: 0, goals: 0, removed: 0, corrected: 0 };
 
   // One ESPN fetch per relevant UTC day (± a day, since late kickoffs can land on
   // the adjacent date). Dedupe across all matches.
@@ -687,12 +687,13 @@ export async function backfillMatchGoals(
     events = await fetchEspnDates([...dateSet]);
   } catch (e) {
     console.error("[goal-backfill] ESPN fetch failed:", (e as Error).message);
-    return { matches: 0, goals: 0, corrected: 0 };
+    return { matches: 0, goals: 0, removed: 0, corrected: 0 };
   }
 
   const TOL = 3 * 3600_000;
   let matchesTouched = 0;
   let goalsInserted = 0;
+  let removed = 0;
   let corrected = 0;
   for (const m of matches) {
     if (!m.homeTeam || !m.awayTeam) continue;
@@ -715,8 +716,6 @@ export async function backfillMatchGoals(
       console.error(`[goal-backfill] reconcile failed for ${m.id}:`, (e as Error).message);
     }
 
-    if (ev.goals.length === 0) continue;
-
     const reversed = teamsEqual(ev.homeName, away) && teamsEqual(ev.awayName, home);
     const oriented = ev.goals.map((g, i) => ({
       side: reversed ? (g.side === "home" ? "away" : "home") : g.side,
@@ -725,12 +724,27 @@ export async function backfillMatchGoals(
       note: g.note,
       sortOrder: i,
     }));
+    const key = (x: { side: string; player: string; minute: string }) => `${x.side}|${x.player}|${x.minute}`;
+    const currentKeys = new Set(oriented.map(key));
     const existing = await prisma.matchGoal.findMany({
       where: { matchId: m.id },
-      select: { side: true, player: true, minute: true },
+      select: { id: true, side: true, player: true, minute: true },
     });
-    const key = (x: { side: string; player: string; minute: string }) => `${x.side}|${x.player}|${x.minute}`;
-    const have = new Set(existing.map(key));
+
+    // Remove stale/cancelled goals no longer in ESPN's final feed (silent — the
+    // match is over). Only when the feed is consistent (goal count == final score).
+    const feedConsistent = oriented.length === (ev.homeScore ?? 0) + (ev.awayScore ?? 0);
+    let kept = existing;
+    if (feedConsistent) {
+      const stale = existing.filter((e) => !currentKeys.has(key(e)));
+      if (stale.length) {
+        await prisma.matchGoal.deleteMany({ where: { id: { in: stale.map((s) => s.id) } } });
+        kept = existing.filter((e) => currentKeys.has(key(e)));
+        removed += stale.length;
+      }
+    }
+
+    const have = new Set(kept.map(key));
     const fresh = oriented.filter((g) => !have.has(key(g)));
     if (fresh.length === 0) continue;
 
@@ -750,7 +764,7 @@ export async function backfillMatchGoals(
     matchesTouched++;
     goalsInserted += fresh.length;
   }
-  return { matches: matchesTouched, goals: goalsInserted, corrected };
+  return { matches: matchesTouched, goals: goalsInserted, removed, corrected };
 }
 
 /** Mark a final match as needing admin review (store status, don't score). */
