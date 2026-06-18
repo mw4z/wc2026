@@ -33,6 +33,19 @@ export async function GET() {
   const inPlay = candidates.filter((m) => nowMs - m.kickoffAt.getTime() <= LIVE_WINDOW_MS);
   if (inPlay.length === 0) return NextResponse.json({ matches: [] });
 
+  // Refresh from ESPN FIRST when stale — this may insert new goals + update the
+  // live score. Reading goals afterwards means a just-scored goal shows on the
+  // SAME poll (no extra round-trip), staying in sync with the goal notification.
+  let refreshed: Awaited<ReturnType<typeof refreshLiveScores>> | null = null;
+  const freshest = Math.max(0, ...inPlay.map((m) => m.lastSyncedAt?.getTime() ?? 0));
+  if (nowMs - freshest > STALE_MS) {
+    try {
+      refreshed = await refreshLiveScores();
+    } catch {
+      /* fall back to DB values on any provider/refresh error */
+    }
+  }
+
   // Goal scorers for these matches. `playerAr` is the auto-resolved Arabic name
   // (cache-only here — never blocks the live response; the cron warms it).
   const goalRows = await prisma.matchGoal.findMany({
@@ -50,31 +63,12 @@ export async function GET() {
   }
   const goalsFor = (id: string) => goalsByMatch.get(id) ?? [];
 
-  // Refresh from the provider only if our newest live data is stale.
-  const freshest = Math.max(0, ...inPlay.map((m) => m.lastSyncedAt?.getTime() ?? 0));
-  if (nowMs - freshest > STALE_MS) {
-    try {
-      const refreshed = await refreshLiveScores();
-      const byId = new Map(refreshed.map((r) => [r.matchId, r]));
-      const matches = inPlay.map((m) => {
-        const r = byId.get(m.id);
-        return r
-          ? { id: m.id, home: r.home, away: r.away, status: r.status, final: r.final, goals: goalsFor(m.id) }
-          : { id: m.id, home: m.liveHomeScore, away: m.liveAwayScore, status: m.externalStatus, final: false, goals: goalsFor(m.id) };
-      });
-      return NextResponse.json({ matches });
-    } catch {
-      // Fall through to DB values on any provider/refresh error.
-    }
-  }
-
-  const matches = inPlay.map((m) => ({
-    id: m.id,
-    home: m.liveHomeScore,
-    away: m.liveAwayScore,
-    status: m.externalStatus,
-    final: false,
-    goals: goalsFor(m.id),
-  }));
+  const byId = refreshed ? new Map(refreshed.map((r) => [r.matchId, r])) : null;
+  const matches = inPlay.map((m) => {
+    const r = byId?.get(m.id);
+    return r
+      ? { id: m.id, home: r.home, away: r.away, status: r.status, final: r.final, goals: goalsFor(m.id) }
+      : { id: m.id, home: m.liveHomeScore, away: m.liveAwayScore, status: m.externalStatus, final: false, goals: goalsFor(m.id) };
+  });
   return NextResponse.json({ matches });
 }

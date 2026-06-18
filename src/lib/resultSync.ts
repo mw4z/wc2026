@@ -540,17 +540,27 @@ export async function refreshLiveScores(): Promise<LiveScore[]> {
         continue;
       }
 
-      // In play — mirror the running score for the card.
+      // In play — derive the running score from the GOAL COUNT (just synced above),
+      // NOT ESPN's `score` field. The score field trails the goal feed by up to
+      // ~1 min, which made the card lag behind the goal notification. Counting the
+      // stored goals keeps the card score, the scorer list, and the alert in sync.
+      const goalRows = await prisma.matchGoal.findMany({ where: { matchId: m.id }, select: { side: true } });
+      let gh = 0;
+      let ga = 0;
+      for (const g of goalRows) {
+        if (g.side === "home") gh++;
+        else ga++;
+      }
       await prisma.match.update({
         where: { id: m.id },
         data: {
-          liveHomeScore: ourHome,
-          liveAwayScore: ourAway,
+          liveHomeScore: gh,
+          liveAwayScore: ga,
           externalStatus: ev.detail || "IN_PLAY",
           lastSyncedAt: now,
         },
       });
-      out.push({ matchId: m.id, home: ourHome, away: ourAway, status: ev.detail || "IN_PLAY", final: false });
+      out.push({ matchId: m.id, home: gh, away: ga, status: ev.detail || "IN_PLAY", final: false });
     }
     return out;
   })().finally(() => {
