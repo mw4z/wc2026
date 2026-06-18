@@ -596,8 +596,10 @@ function LockedView({
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-xs text-slate-400">{UI.yourPrediction}</div>
-          <div className="font-display text-lg font-bold tnum text-white">
-            {prediction.predictedHomeScore} : {prediction.predictedAwayScore}
+          <div className="inline-flex items-center gap-1.5 font-display text-lg font-bold tnum text-white">
+            <span>{prediction.predictedHomeScore}</span>
+            <span className="text-slate-600">:</span>
+            <span>{prediction.predictedAwayScore}</span>
           </div>
           {winnerName && <div className="text-xs text-slate-400">{UI.qualifierLabel} {winnerName}</div>}
         </div>
@@ -616,8 +618,10 @@ function LockedView({
     <div className="flex flex-col items-center gap-1 text-center">
       <div className="flex items-baseline gap-2">
         <span className="text-xs text-slate-400">{UI.yourPrediction}</span>
-        <span className="font-display text-lg font-bold tnum text-white">
-          {prediction.predictedHomeScore} : {prediction.predictedAwayScore}
+        <span className="inline-flex items-center gap-1.5 font-display text-lg font-bold tnum text-white">
+          <span>{prediction.predictedHomeScore}</span>
+          <span className="text-slate-600">:</span>
+          <span>{prediction.predictedAwayScore}</span>
         </span>
       </div>
       {winnerName && <div className="text-xs text-slate-400">{UI.qualifierLabel} {winnerName}</div>}

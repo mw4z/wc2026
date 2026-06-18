@@ -136,8 +136,12 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
                   {p.user.name}
                   {p.userId === user.id && <span className="ms-1 text-[10px] text-accent-300">({UI.yourPick})</span>}
                 </span>
-                <span className="shrink-0 font-display tnum text-slate-200">
-                  {p.predictedHomeScore}-{p.predictedAwayScore}
+                {/* Flex spans (not a string) so home/away don't bidi-flip in RTL —
+                    home on the right, away on the left, matching the match card. */}
+                <span className="inline-flex shrink-0 items-center gap-1 font-display tnum text-slate-200">
+                  <span>{p.predictedHomeScore}</span>
+                  <span className="text-slate-600">-</span>
+                  <span>{p.predictedAwayScore}</span>
                 </span>
                 {p.predictedWinner && (
                   <span className="hidden shrink-0 text-xs text-slate-500 sm:inline">

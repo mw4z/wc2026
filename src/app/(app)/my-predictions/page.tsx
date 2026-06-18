@@ -55,12 +55,22 @@ export default async function MyPredictionsPage() {
                   </div>
                   <div className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-slate-400">
                     <span>
-                      {UI.yourPick}: <span className="font-display tnum text-slate-200">{p.predictedHomeScore}-{p.predictedAwayScore}</span>
+                      {UI.yourPick}:{" "}
+                      <span className="inline-flex items-center gap-1 font-display tnum text-slate-200">
+                        <span>{p.predictedHomeScore}</span>
+                        <span className="text-slate-600">-</span>
+                        <span>{p.predictedAwayScore}</span>
+                      </span>
                       {p.predictedWinner && <span className="text-slate-500"> · {tn(p.predictedWinner)}</span>}
                     </span>
                     {finished && (
                       <span>
-                        {UI.result}: <span className="font-display tnum text-gold-300">{m.homeScore}-{m.awayScore}</span>
+                        {UI.result}:{" "}
+                        <span className="inline-flex items-center gap-1 font-display tnum text-gold-300">
+                          <span>{m.homeScore}</span>
+                          <span className="text-slate-600">-</span>
+                          <span>{m.awayScore}</span>
+                        </span>
                       </span>
                     )}
                   </div>
