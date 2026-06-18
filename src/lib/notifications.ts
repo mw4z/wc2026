@@ -230,6 +230,14 @@ export async function notifyGoalCancelled(opts: {
 export async function notifyMatchStarted(matchId: string): Promise<number> {
   if (!pushConfigured) return 0;
   try {
+    // Name the teams so the alert is specific to this match.
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      select: { homeTeam: { select: { nameAr: true } }, awayTeam: { select: { nameAr: true } } },
+    });
+    const label =
+      match?.homeTeam && match?.awayTeam ? `${match.homeTeam.nameAr} ضد ${match.awayTeam.nameAr}` : null;
+
     const memberships = await prisma.groupMember.findMany({
       where: { group: { isActive: true } },
       select: { userId: true, groupId: true },
@@ -264,7 +272,7 @@ export async function notifyMatchStarted(matchId: string): Promise<number> {
       if (alreadySet.has(userId)) continue;
       const list = subsByUser.get(userId);
       if (!list || list.length === 0) continue;
-      const payload = revealedPayload(1, userGroup.get(userId)!);
+      const payload = revealedPayload(1, userGroup.get(userId)!, label ? { id: matchId, label } : undefined);
       let ok = false;
       for (const sub of list) if (await sendPush(sub, payload)) ok = true;
       if (ok) recorded.push({ userId, matchId, kind: "revealed" });
@@ -310,15 +318,23 @@ export function memberJoinedPayload(name: string, groupName: string, groupId: st
   };
 }
 
-export function revealedPayload(n: number, groupId: string): PushPayload {
+// `match` (a single kicked-off match) makes the alert specific — naming the teams
+// and giving it its own tag so each match's start shows separately. Without it
+// (hourly digest of several), it stays a generic group message.
+export function revealedPayload(
+  n: number,
+  groupId: string,
+  match?: { id: string; label: string },
+): PushPayload {
   return {
     title: "👀 ظهرت توقعات مجموعتك!",
-    body:
-      n === 1
+    body: match
+      ? `بدأت مباراة ${match.label} — شاهد ماذا توقّع بقية أعضاء مجموعتك! 🔮`
+      : n === 1
         ? "بدأت مباراة — شاهد ماذا توقّع بقية أعضاء مجموعتك! 🔮"
         : `بدأت ${n} مباريات — شاهد توقعات أعضاء مجموعتك الآن! 🔮`,
     url: `/groups/${groupId}/predictions`,
-    tag: "wc26-revealed",
+    tag: match ? `wc26-revealed-${match.id}` : "wc26-revealed",
   };
 }
 
