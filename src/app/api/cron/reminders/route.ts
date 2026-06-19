@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getPredictionLead, predictionOpensAt } from "@/lib/settings";
 import { pushConfigured, sendPush, type StoredSubscription, type PushPayload } from "@/lib/push";
-import { openedPayload, closingPayload, scoredPayload, revealedPayload } from "@/lib/notifications";
+import { openedPayload, closingPayload, scoredPayload, revealedPayload, notifyInstallReminders } from "@/lib/notifications";
 import { fetchEspnLive, type EspnEvent } from "@/lib/espn";
 import { teamsEqual } from "@/lib/fixtureMapping";
 
@@ -225,9 +225,14 @@ export async function GET(req: NextRequest) {
     await prisma.pushReminder.createMany({ data: reminderRows, skipDuplicates: true });
   }
 
+  // Nudge notification-enabled-but-not-installed users to add the app to their
+  // home screen (throttled to every few days per user; stops once installed).
+  const installReminded = await notifyInstallReminders();
+
   return NextResponse.json({
     pushed,
     ...counts,
+    installReminded,
     candidates: {
       open: openMatches.length,
       closing: closingMatches.length,

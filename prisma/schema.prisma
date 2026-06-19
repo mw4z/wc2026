@@ -78,6 +78,11 @@ model User {
   // matches the user predicted.
   notifyGoals      Boolean @default(true)
   notifyGoalsScope String  @default("ALL")
+  // PWA install tracking. appInstalledAt is set the first time the app is opened in
+  // standalone (home-screen) mode; installRemindedAt throttles the "add to home
+  // screen" push so not-yet-installed users get nudged but never spammed.
+  appInstalledAt    DateTime?
+  installRemindedAt DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

@@ -58,8 +58,12 @@ export function InstallPrompt() {
     window.addEventListener("appinstalled", () => setInstalled(true));
 
     const timers: ReturnType<typeof setTimeout>[] = [];
-    // iOS can't trigger install programmatically — auto-open the how-to once.
-    if (ios && !localStorage.getItem(IOS_SEEN_KEY)) {
+    // Arrived from the install push (?install=1) → open the step-by-step guide.
+    const fromInstallPush = new URLSearchParams(window.location.search).get("install") === "1";
+    if (fromInstallPush && (ios || android)) {
+      timers.push(setTimeout(() => setSheetOpen(true), 600));
+    } else if (ios && !localStorage.getItem(IOS_SEEN_KEY)) {
+      // iOS can't trigger install programmatically — auto-open the how-to once.
       localStorage.setItem(IOS_SEEN_KEY, "1");
       timers.push(setTimeout(() => setSheetOpen(true), 1200));
     }

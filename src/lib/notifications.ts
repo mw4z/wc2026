@@ -285,6 +285,64 @@ export async function notifyMatchStarted(matchId: string): Promise<number> {
   }
 }
 
+export function installReminderPayload(): PushPayload {
+  return {
+    title: "📲 ثبّت GamePredict على شاشتك الرئيسية",
+    body: "أضِف التطبيق إلى شاشتك الرئيسية لفتحٍ أسرع وتنبيهات فورية — اضغط لمعرفة الخطوات بالصور.",
+    url: "/matches?install=1",
+    tag: "wc26-install",
+  };
+}
+
+/**
+ * Nudge users who enabled notifications but HAVEN'T installed the app yet to add it
+ * to their home screen (they often ignore the in-app banner). Throttled to once
+ * every few days per user via installRemindedAt; stops automatically once the user
+ * opens the app in standalone mode (appInstalledAt set). Best-effort.
+ */
+export async function notifyInstallReminders(): Promise<number> {
+  if (!pushConfigured) return 0;
+  try {
+    const INTERVAL_MS = 3 * 24 * 3600_000; // at most once every 3 days
+    const cutoff = new Date(Date.now() - INTERVAL_MS);
+    const users = await prisma.user.findMany({
+      where: {
+        isActive: true,
+        appInstalledAt: null,
+        pushSubscriptions: { some: {} },
+        OR: [{ installRemindedAt: null }, { installRemindedAt: { lt: cutoff } }],
+      },
+      select: { id: true },
+    });
+    if (users.length === 0) return 0;
+    const ids = users.map((u) => u.id);
+    const subs = await prisma.pushSubscription.findMany({ where: { userId: { in: ids } } });
+    const subsByUser = new Map<string, StoredSubscription[]>();
+    for (const s of subs) {
+      const list = subsByUser.get(s.userId) ?? [];
+      list.push({ endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth });
+      subsByUser.set(s.userId, list);
+    }
+
+    const payload = installReminderPayload();
+    const remindedIds: string[] = [];
+    for (const id of ids) {
+      const list = subsByUser.get(id);
+      if (!list || list.length === 0) continue;
+      let ok = false;
+      for (const sub of list) if (await sendPush(sub, payload)) ok = true;
+      if (ok) remindedIds.push(id);
+    }
+    if (remindedIds.length) {
+      await prisma.user.updateMany({ where: { id: { in: remindedIds } }, data: { installRemindedAt: new Date() } });
+    }
+    return remindedIds.length;
+  } catch (e) {
+    console.error("notifyInstallReminders failed:", (e as Error).message);
+    return 0;
+  }
+}
+
 export function openedPayload(n: number): PushPayload {
   return {
     title: "🟢 فُتح باب التوقّع!",
