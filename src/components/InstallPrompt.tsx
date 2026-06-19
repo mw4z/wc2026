@@ -119,9 +119,20 @@ export function InstallPrompt() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
-            <h3 className="mb-4 text-center font-display text-lg font-bold text-white">
-              {isIOS ? UI.installIosSheetTitle : UI.installAndroidSheetTitle}
-            </h3>
+            <h3 className="mb-1 text-center font-display text-lg font-bold text-white">{UI.installTitle}</h3>
+            <p className="mb-4 text-center text-xs text-slate-400">{UI.installDesc}</p>
+            {/* WHY first — concrete benefits so it's not just instructions. */}
+            <ul className="mb-5 space-y-2">
+              {[UI.installBenefit1, UI.installBenefit2, UI.installBenefit3].map((t, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-lime-500/20 text-lime-400">
+                    <CheckMarkIcon className="text-[13px]" />
+                  </span>
+                  <span className="flex-1 text-sm font-medium text-slate-100">{t}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">{UI.installStepsLabel}</div>
             {isIOS ? (
               <ol className="space-y-3">
                 <Step n={1} text={UI.installIosStep1} icon={<ShareIosIcon className="text-xl text-accent-400" />} />
@@ -157,6 +168,14 @@ function Step({ n, text, icon }: { n: number; text: string; icon?: React.ReactNo
       <span className="flex-1 text-sm text-slate-200">{text}</span>
       {icon}
     </li>
+  );
+}
+
+function CheckMarkIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+      <path d="M5 12.5 10 17 19 7" />
+    </svg>
   );
 }
 

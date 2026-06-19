@@ -91,26 +91,38 @@ export function InstallAppModal() {
           <HomeIcon className="text-3xl" />
         </div>
         <h2 className="mb-1 font-display text-xl font-extrabold text-white">{UI.installTitle}</h2>
-        <p className="mb-5 text-sm text-slate-300">{UI.installDesc}</p>
+        <p className="mb-4 text-sm text-slate-300">{UI.installDesc}</p>
+
+        {/* WHY — concrete benefits first, so it doesn't read as just instructions. */}
+        <ul className="mb-5 space-y-2 text-start">
+          <Benefit text={UI.installBenefit1} />
+          <Benefit text={UI.installBenefit2} />
+          <Benefit text={UI.installBenefit3} />
+        </ul>
 
         {mode === "native" ? (
           <button onClick={nativeInstall} className="btn-primary w-full">{UI.installAdd}</button>
         ) : (
-          <ol className="mb-1 space-y-3 text-start">
-            {mode === "ios" ? (
-              <>
-                <Step n={1} text={UI.installIosStep1} icon={<ShareIosIcon />} />
-                <Step n={2} text={UI.installIosStep2} icon={<AddSquareIcon />} />
-                <Step n={3} text={UI.installIosStep3} />
-              </>
-            ) : (
-              <>
-                <Step n={1} text={UI.installAndroidStep1} />
-                <Step n={2} text={UI.installAndroidStep2} icon={<AddSquareIcon />} />
-                <Step n={3} text={UI.installAndroidStep3} />
-              </>
-            )}
-          </ol>
+          <>
+            <div className="mb-2 text-start text-xs font-bold uppercase tracking-wider text-slate-500">
+              {UI.installStepsLabel}
+            </div>
+            <ol className="mb-1 space-y-3 text-start">
+              {mode === "ios" ? (
+                <>
+                  <Step n={1} text={UI.installIosStep1} icon={<ShareIosIcon />} />
+                  <Step n={2} text={UI.installIosStep2} icon={<AddSquareIcon />} />
+                  <Step n={3} text={UI.installIosStep3} />
+                </>
+              ) : (
+                <>
+                  <Step n={1} text={UI.installAndroidStep1} />
+                  <Step n={2} text={UI.installAndroidStep2} icon={<AddSquareIcon />} />
+                  <Step n={3} text={UI.installAndroidStep3} />
+                </>
+              )}
+            </ol>
+          </>
         )}
 
         <button onClick={dismiss} className="mt-3 w-full py-2 text-sm text-slate-400 hover:text-slate-200">
@@ -118,6 +130,25 @@ export function InstallAppModal() {
         </button>
       </div>
     </div>
+  );
+}
+
+function Benefit({ text }: { text: string }) {
+  return (
+    <li className="flex items-start gap-2.5">
+      <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-lime-500/20 text-lime-400">
+        <CheckIcon className="text-[13px]" />
+      </span>
+      <span className="flex-1 text-sm font-medium text-slate-100">{text}</span>
+    </li>
+  );
+}
+
+function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+      <path d="M5 12.5 10 17 19 7" />
+    </svg>
   );
 }
 
