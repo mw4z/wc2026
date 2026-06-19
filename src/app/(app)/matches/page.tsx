@@ -42,7 +42,7 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
     prisma.prediction.findMany({ where: { userId: user.id } }),
     prisma.groupMember.findMany({
       where: { userId: user.id, group: { isActive: true } },
-      select: { group: { select: { id: true, name: true, winnerOnly: true } } },
+      select: { group: { select: { id: true, name: true } } },
       orderBy: { joinedAt: "asc" },
     }),
   ]);
@@ -66,9 +66,6 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
   // `true` after the World Cup final to surface the awarded prizes again.
   const SHOW_AWARDS_PROMO = false;
 
-  // Show the goal-free result picker only when EVERY group the user belongs to is
-  // winner-only (no group needs exact goals). Mixed membership keeps score inputs.
-  const winnerOnly = myGroups.length > 0 && myGroups.every((m) => m.group.winnerOnly);
   // The user's groups — the card links to each group's revealed member picks once
   // a match starts (a picker when there's more than one).
   const myGroupList = myGroups.map((m) => ({ id: m.group.id, name: m.group.name }));
@@ -168,7 +165,6 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
               key={m.id}
               match={serializeMatch(m, locale, lead)}
               prediction={serializePrediction(predByMatch.get(m.id))}
-              winnerOnly={winnerOnly}
               groups={myGroupList}
               live={opts?.live}
               clickable

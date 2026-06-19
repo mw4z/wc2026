@@ -41,13 +41,11 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
     where: { userId_matchId: { userId: user.id, matchId: match.id } },
   });
 
-  // Goal-free picker when every group the user is in is winner-only.
   const myGroups = await prisma.groupMember.findMany({
     where: { userId: user.id, group: { isActive: true } },
-    select: { group: { select: { id: true, name: true, winnerOnly: true } } },
+    select: { group: { select: { id: true, name: true } } },
     orderBy: { joinedAt: "asc" },
   });
-  const winnerOnly = myGroups.length > 0 && myGroups.every((m) => m.group.winnerOnly);
   const myGroupList = myGroups.map((m) => ({ id: m.group.id, name: m.group.name }));
 
   // Mirror the server lock guard: a match is locked once it leaves SCHEDULED or
@@ -98,7 +96,6 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
       <MatchCard
         match={serializeMatch(match, locale)}
         prediction={serializePrediction(myPrediction ?? undefined)}
-        winnerOnly={winnerOnly}
         groups={myGroupList}
         goals={(await getSerializedGoals([match.id])).get(match.id) ?? []}
       />

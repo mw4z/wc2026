@@ -95,7 +95,6 @@ function fmtCountdown(ms: number) {
 export function MatchCard({
   match,
   prediction,
-  winnerOnly = false,
   groups = [],
   live = false,
   clickable = false,
@@ -103,9 +102,6 @@ export function MatchCard({
 }: {
   match: SerializedMatch;
   prediction: SerializedPrediction;
-  // True when ALL of the viewer's groups are winner-only: show a result picker
-  // instead of goal boxes. The stored score is a placeholder (1-0 / 0-0 / 0-1).
-  winnerOnly?: boolean;
   // The viewer's groups — once the match starts, the card links to each group's
   // revealed member predictions (a picker when there's more than one).
   groups?: { id: string; name: string }[];
@@ -153,13 +149,6 @@ export function MatchCard({
   const [home, setHome] = useState(prediction?.predictedHomeScore?.toString() ?? "");
   const [away, setAway] = useState(prediction?.predictedAwayScore?.toString() ?? "");
   const [winner, setWinner] = useState(prediction?.predictedWinnerTeamId ?? "");
-  // Winner-only group-stage selection ("" until chosen), derived from any score.
-  const [outcome, setOutcome] = useState<"HOME" | "DRAW" | "AWAY" | "">(() => {
-    if (!prediction) return "";
-    if (prediction.predictedHomeScore > prediction.predictedAwayScore) return "HOME";
-    if (prediction.predictedHomeScore < prediction.predictedAwayScore) return "AWAY";
-    return "DRAW";
-  });
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
   // True once this match has a saved prediction (prop or just-saved), so the
@@ -226,29 +215,12 @@ export function MatchCard({
   async function save() {
     setMsg(null);
 
-    // In winner-only mode the score is a placeholder derived from the pick:
-    // knockout → chosen team wins 1-0; group stage → HOME 1-0 / DRAW 0-0 / AWAY 0-1.
-    let hScore = Number(home);
-    let aScore = Number(away);
-    let winnerId: string | null = isKnockout ? winner || null : null;
-    if (winnerOnly) {
-      if (isKnockout) {
-        if (!winner) {
-          setMsg({ type: "err", text: UI.predictedWinner });
-          return;
-        }
-        winnerId = winner;
-        hScore = winner === match.homeTeam!.id ? 1 : 0;
-        aScore = winner === match.awayTeam!.id ? 1 : 0;
-      } else {
-        if (!outcome) {
-          setMsg({ type: "err", text: UI.whoWins });
-          return;
-        }
-        hScore = outcome === "HOME" ? 1 : 0;
-        aScore = outcome === "AWAY" ? 1 : 0;
-      }
-    }
+    // Always store the real predicted goals. Winner-only is a GROUP scoring rule
+    // (the group counts only the correct outcome) — it never changes what we save,
+    // so these users still keep their exact score for the general leaderboard.
+    const hScore = Number(home);
+    const aScore = Number(away);
+    const winnerId: string | null = isKnockout ? winner || null : null;
 
     setSaving(true);
     try {
@@ -421,26 +393,7 @@ export function MatchCard({
               {UI.closesAtKickoff}
             </p>
 
-            {winnerOnly ? (
-              // Result picker (no goals): all of the viewer's groups are winner-only.
-              <div>
-                <p className="mb-2 text-center text-xs text-slate-500">{UI.winnerOnlyInputHint}</p>
-                {isKnockout ? (
-                  <div className="flex gap-2">
-                    {[match.homeTeam!, match.awayTeam!].map((t) => (
-                      <PickButton key={t.id} active={winner === t.id} onClick={() => setWinner(t.id)} label={t.name} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <PickButton active={outcome === "HOME"} onClick={() => setOutcome("HOME")} label={match.homeTeam!.name} />
-                    <PickButton active={outcome === "DRAW"} onClick={() => setOutcome("DRAW")} label={UI.outcomeDraw} />
-                    <PickButton active={outcome === "AWAY"} onClick={() => setOutcome("AWAY")} label={match.awayTeam!.name} />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <>
+            <>
                 {/* Each score input sits directly under its team (mirrors the
                     scoreline above), so it's unambiguous which score is whose. */}
                 <div className="flex items-start justify-between gap-2">
@@ -471,8 +424,7 @@ export function MatchCard({
                     </div>
                   </div>
                 )}
-              </>
-            )}
+            </>
 
             {msg ? (
               <p
@@ -495,10 +447,7 @@ export function MatchCard({
 
             <button
               onClick={save}
-              disabled={
-                saving ||
-                (winnerOnly ? (isKnockout ? !winner : !outcome) : home === "" || away === "")
-              }
+              disabled={saving || home === "" || away === ""}
               className="btn-primary w-full"
             >
               {saving ? <Spinner /> : submitted ? UI.updatePrediction : UI.submitPrediction}
