@@ -123,7 +123,8 @@ export function goalPayload(opts: {
     title: `⚽ هدف! ${opts.teamAr}`,
     body: `${who}${min}${noteAr} — ${opts.line}`,
     url: `/matches/${opts.matchId}`,
-    tag: `wc26-goal-${opts.matchId}`,
+    // Unique per goal so two goals in the same match don't collapse into one.
+    tag: `wc26-goal-${opts.matchId}-${opts.minute}-${opts.player}`,
   };
 }
 
@@ -142,7 +143,7 @@ export function goalCancelledPayload(opts: {
     title: `🚫 هدف ملغى — ${opts.teamAr}`,
     body: `أُلغي هدف ${who}${min} (حكم الفيديو). النتيجة الآن: ${opts.line}`,
     url: `/matches/${opts.matchId}`,
-    tag: `wc26-goalcancel-${opts.matchId}`,
+    tag: `wc26-goalcancel-${opts.matchId}-${opts.minute}-${opts.player}`,
   };
 }
 

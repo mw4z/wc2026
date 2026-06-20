@@ -15,12 +15,16 @@ self.addEventListener("push", (event) => {
     badge: "/icon.svg",
     dir: "rtl",
     lang: "ar",
-    // Distinct tags per reminder type so opened/closing/scored don't replace
-    // each other; same tag still collapses repeats of the same type.
-    tag: data.tag || "wc2026-reminder",
-    renotify: true,
     data: { url: data.url || "/matches" },
   };
+  // Only collapse when the payload provides a tag (same tag = update-in-place, with
+  // renotify so it re-alerts). WITHOUT a tag we must NOT collapse — otherwise two
+  // notifications arriving together would replace each other and one is lost.
+  // (renotify requires a tag, so it's only set alongside one.)
+  if (data.tag) {
+    options.tag = data.tag;
+    options.renotify = true;
+  }
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
