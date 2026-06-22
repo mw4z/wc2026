@@ -55,13 +55,27 @@ function liveTimeLabel(
   statusAt: number,
   nowMs: number,
   kickoffISO: string,
-  labels: { halftime: string; extraTime: string; live: string },
+  labels: {
+    halftime: string;
+    extraTime: string;
+    live: string;
+    delayed: string;
+    postponed: string;
+    suspended: string;
+    abandoned: string;
+    penalties: string;
+  },
 ): string {
   const s = (status ?? "").trim();
 
-  // Authoritative non-clock states from ESPN.
+  // Authoritative non-clock states from ESPN → Arabic labels (never raw English).
   if (/half|^ht$/i.test(s)) return labels.halftime;
   if (/^(et|extra)/i.test(s) || /extra\s*time/i.test(s)) return labels.extraTime;
+  if (/penalt|shootout|^pens?\b/i.test(s)) return labels.penalties;
+  if (/delay/i.test(s)) return labels.delayed;
+  if (/postpon/i.test(s)) return labels.postponed;
+  if (/suspend/i.test(s)) return labels.suspended;
+  if (/abandon/i.test(s)) return labels.abandoned;
   if (/full|^ft\b/i.test(s)) return labels.live; // final → the poll triggers a refresh
 
   // Plain minute like "39'" / "39" → anchor and tick locally each second.
@@ -71,8 +85,10 @@ function liveTimeLabel(
     return `${ticked}′`;
   }
 
-  // Stoppage ("45+2'") or any other ESPN string → show exactly as ESPN reports it.
-  if (s && s.toUpperCase() !== "IN_PLAY") return s;
+  // Stoppage ("45+2'") or any clock-like value with digits → show as-is. A purely
+  // textual ESPN status we don't recognize would otherwise leak English, so fall
+  // through to the generic live label instead.
+  if (/\d/.test(s)) return s;
 
   // No clock from ESPN yet → estimate from elapsed so the card isn't blank.
   const elapsed = Math.floor((nowMs - Date.parse(kickoffISO)) / 60000);
@@ -316,6 +332,11 @@ export function MatchCard({
                   halftime: UI.halftime,
                   extraTime: UI.extraTime,
                   live: UI.statuses.LIVE,
+                  delayed: UI.statusDelayed,
+                  postponed: UI.statusPostponed,
+                  suspended: UI.statusSuspended,
+                  abandoned: UI.statusAbandoned,
+                  penalties: UI.statusPenalties,
                 })}
               </span>
             </div>
