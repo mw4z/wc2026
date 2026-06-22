@@ -5,6 +5,7 @@ import { pushConfigured, sendPush, type StoredSubscription, type PushPayload } f
 import { openedPayload, closingPayload, scoredPayload, revealedPayload, notifyInstallReminders } from "@/lib/notifications";
 import { fetchEspnLive, type EspnEvent } from "@/lib/espn";
 import { teamsEqual } from "@/lib/fixtureMapping";
+import { assignKnockoutTeamsFromEspn } from "@/lib/resultSync";
 
 // Hourly reminder cron. Fires THREE kinds of push, each deduped per (user,
 // match, kind) via PushReminder so nothing repeats:
@@ -229,10 +230,19 @@ export async function GET(req: NextRequest) {
   // home screen (throttled to every few days per user; stops once installed).
   const installReminded = await notifyInstallReminders();
 
+  // Fill knockout (TBD) matches with teams as ESPN determines them (best-effort).
+  let knockoutAssigned = 0;
+  try {
+    ({ assigned: knockoutAssigned } = await assignKnockoutTeamsFromEspn({ apply: true }));
+  } catch (e) {
+    console.error("[reminders] knockout team assign failed:", (e as Error).message);
+  }
+
   return NextResponse.json({
     pushed,
     ...counts,
     installReminded,
+    knockoutAssigned,
     candidates: {
       open: openMatches.length,
       closing: closingMatches.length,

@@ -750,6 +750,62 @@ async function reconcileGoalsSilent(
 }
 
 /**
+ * Fill in the teams for knockout (TBD) matches as they're decided. Each of our
+ * knockout matches has a fixed kickoff time but no teams yet; ESPN's bracket
+ * fixture at the SAME kickoff time names the teams once a group finishes. We pair
+ * them by time (exact, ±90m), map ESPN's team name to our Team, and set the slot —
+ * only when ESPN gives a real team (placeholders like "Group A 2nd Place" don't map
+ * to any Team and are skipped). Never overwrites an already-set team.
+ */
+export async function assignKnockoutTeamsFromEspn(
+  opts: { apply?: boolean } = {},
+): Promise<{ applied: boolean; assigned: number; updates: { matchNumber: number; home: string | null; away: string | null }[] }> {
+  const now = new Date();
+  // Only look ahead a couple of weeks — teams qualify shortly before their match,
+  // and this bounds the ESPN fetch. Once every slot is filled, this early-returns.
+  const horizon = new Date(now.getTime() + 16 * 24 * 3600_000);
+  const tbd = await prisma.match.findMany({
+    where: { OR: [{ homeTeamId: null }, { awayTeamId: null }], kickoffAt: { lte: horizon } },
+    orderBy: { matchNumber: "asc" },
+  });
+  if (tbd.length === 0) return { applied: !!opts.apply, assigned: 0, updates: [] };
+
+  const teams = await prisma.team.findMany({ select: { id: true, nameEn: true } });
+  const findTeam = (name: string) => (name ? (teams.find((t) => teamsEqual(t.nameEn, name)) ?? null) : null);
+
+  const dateSet = new Set<string>();
+  for (const m of tbd) for (const off of [-1, 0, 1]) dateSet.add(yyyymmdd(new Date(m.kickoffAt.getTime() + off * 86400_000)));
+  let events: EspnEvent[];
+  try {
+    events = await fetchEspnDates([...dateSet]);
+  } catch (e) {
+    console.error("[knockout-teams] ESPN fetch failed:", (e as Error).message);
+    return { applied: !!opts.apply, assigned: 0, updates: [] };
+  }
+
+  const TOL = 90 * 60_000;
+  const updates: { matchNumber: number; home: string | null; away: string | null }[] = [];
+  let assigned = 0;
+  for (const m of tbd) {
+    const ev = events.find((e) => {
+      const t = Date.parse(e.dateISO);
+      return Number.isFinite(t) && Math.abs(t - m.kickoffAt.getTime()) <= TOL;
+    });
+    if (!ev) continue;
+    const home = m.homeTeamId == null ? findTeam(ev.homeName) : null;
+    const away = m.awayTeamId == null ? findTeam(ev.awayName) : null;
+    const data: { homeTeamId?: string; awayTeamId?: string } = {};
+    if (home) data.homeTeamId = home.id;
+    if (away) data.awayTeamId = away.id;
+    if (!data.homeTeamId && !data.awayTeamId) continue;
+    assigned += Object.keys(data).length;
+    updates.push({ matchNumber: m.matchNumber, home: home?.nameEn ?? null, away: away?.nameEn ?? null });
+    if (opts.apply) await prisma.match.update({ where: { id: m.id }, data });
+  }
+  return { applied: !!opts.apply, assigned, updates };
+}
+
+/**
  * Backfill goal scorers for matches that already finished (e.g. before the goals
  * feature existed, or any match missing its scorers). Fetches ESPN's scoreboard
  * for each relevant day, matches by team-pair + date, stores missing goals and
