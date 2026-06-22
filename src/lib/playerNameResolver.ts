@@ -20,7 +20,19 @@ function norm(name: string): string {
     .toLowerCase()
     .replace(/[^a-z]+/g, "");
 }
-const cacheKey = (n: string) => `pn:${n}`;
+// v2: cache version bumped after fixing the person-only filter, so any previously
+// cached wrong matches (e.g. a club name) are ignored and re-resolved.
+const cacheKey = (n: string) => `pn2:${n}`;
+
+// Accept only descriptions that look like a PERSON (footballer), never a club,
+// team, competition, venue, etc. — so we don't grab the club a player belongs to.
+function isPersonDescription(desc: string | undefined): boolean {
+  if (!desc) return false;
+  if (/\b(club|team|stadium|arena|league|cup|tournament|competition|venue|ground|academy|federation|national|squad|season)\b/i.test(desc)) {
+    return false;
+  }
+  return /foot(ball)?|soccer|player|midfielder|forward|defender|goalkeeper|winger|striker/i.test(desc);
+}
 
 /**
  * Cache-only lookup (map → memory → Setting). Returns:
@@ -83,7 +95,7 @@ interface WpSearch {
   query?: { search?: { title: string }[] };
 }
 interface WpLanglinks {
-  query?: { pages?: Record<string, { langlinks?: { "*"?: string }[] }> };
+  query?: { pages?: Record<string, { description?: string; langlinks?: { "*"?: string }[] }> };
 }
 
 const WIKI_UA = "wc2026-gamepredict/1.0 (goal scorer names)";
@@ -104,12 +116,14 @@ async function fromWikipedia(latin: string): Promise<string | null> {
     const sjson = (await sres.json()) as WpSearch;
     for (const hit of (sjson.query?.search ?? []).slice(0, 3)) {
       const llUrl =
-        "https://en.wikipedia.org/w/api.php?action=query&format=json&prop=langlinks&lllang=ar&redirects=1" +
+        "https://en.wikipedia.org/w/api.php?action=query&format=json&prop=langlinks|description&lllang=ar&redirects=1" +
         `&titles=${encodeURIComponent(hit.title)}`;
       const lres = await fetch(llUrl, { signal: ctrl.signal, headers, cache: "no-store" });
       if (!lres.ok) continue;
       const ljson = (await lres.json()) as WpLanglinks;
       const page = Object.values(ljson.query?.pages ?? {})[0];
+      // Skip pages that aren't a person (clubs/teams/competitions the player belongs to).
+      if (!isPersonDescription(page?.description)) continue;
       const ar = page?.langlinks?.[0]?.["*"];
       if (ar && ar.trim()) return ar.trim();
     }
@@ -132,8 +146,8 @@ async function fromWikidata(latin: string): Promise<string | null> {
     const sres = await fetch(searchUrl, { signal: ctrl.signal, headers, cache: "no-store" });
     if (!sres.ok) return null;
     const sjson = (await sres.json()) as WdSearch;
-    // Require a football-looking match so we don't grab a random person of the same name.
-    const hit = (sjson.search ?? []).find((r) => /foot(ball)?|soccer/i.test(r.description || ""));
+    // Require a footballer (person) match — never a club/team of the same name.
+    const hit = (sjson.search ?? []).find((r) => isPersonDescription(r.description));
     if (!hit) return null;
 
     const labelUrl =

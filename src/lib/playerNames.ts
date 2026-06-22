@@ -29,6 +29,8 @@ const RAW: Record<string, string> = {
   "Mohamed Elneny": "محمد النني",
   "Mahmoud Trezeguet": "محمود تريزيجيه",
   "Mohamed Hany": "محمد هاني",
+  "Mostafa Zico": "مصطفى عبدالرؤوف زيكو",
+  "Mostafa Abdelraouf": "مصطفى عبدالرؤوف زيكو",
   "Mohamed Abdelmonem": "محمد عبد المنعم",
   "Mohanad Lasheen": "مهند لاشين",
   "Ahmed Sayed": "أحمد سيد زيزو",
