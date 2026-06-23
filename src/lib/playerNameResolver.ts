@@ -24,6 +24,14 @@ function norm(name: string): string {
 // cached wrong matches (e.g. a club name) are ignored and re-resolved.
 const cacheKey = (n: string) => `pn2:${n}`;
 
+// Strip a trailing disambiguation parenthetical from a name — Arabic Wikipedia
+// titles add e.g. "(لاعب كرة قدم، مواليد 2002)". We want ONLY the name.
+function cleanName(name: string | null | undefined): string | null {
+  if (!name) return null;
+  const cleaned = name.replace(/(\s*\([^)]*\))+\s*$/u, "").trim();
+  return cleaned || null;
+}
+
 // Accept only descriptions that look like a PERSON (footballer), never a club,
 // team, competition, venue, etc. — so we don't grab the club a player belongs to.
 function isPersonDescription(desc: string | undefined): boolean {
@@ -51,7 +59,8 @@ export async function lookupArabic(latin: string): Promise<string | null | undef
   try {
     const row = await prisma.setting.findUnique({ where: { key: cacheKey(n) } });
     if (row) {
-      const v = row.value || null;
+      // Clean any disambiguation suffix from a value cached before this fix.
+      const v = cleanName(row.value);
       mem.set(n, v);
       return v;
     }
@@ -124,8 +133,8 @@ async function fromWikipedia(latin: string): Promise<string | null> {
       const page = Object.values(ljson.query?.pages ?? {})[0];
       // Skip pages that aren't a person (clubs/teams/competitions the player belongs to).
       if (!isPersonDescription(page?.description)) continue;
-      const ar = page?.langlinks?.[0]?.["*"];
-      if (ar && ar.trim()) return ar.trim();
+      const ar = cleanName(page?.langlinks?.[0]?.["*"]);
+      if (ar) return ar;
     }
     return null;
   } catch {
@@ -156,8 +165,7 @@ async function fromWikidata(latin: string): Promise<string | null> {
     const lres = await fetch(labelUrl, { signal: ctrl.signal, headers, cache: "no-store" });
     if (!lres.ok) return null;
     const ljson = (await lres.json()) as WdEntities;
-    const ar = ljson.entities?.[hit.id]?.labels?.ar?.value;
-    return ar && ar.trim() ? ar.trim() : null;
+    return cleanName(ljson.entities?.[hit.id]?.labels?.ar?.value);
   } catch {
     return null;
   } finally {
