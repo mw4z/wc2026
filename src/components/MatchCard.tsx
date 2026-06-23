@@ -8,6 +8,7 @@ import Link from "next/link";
 import type { SerializedMatch, SerializedPrediction } from "@/app/(app)/matches/page";
 import { useUI, useLocale } from "./I18nProvider";
 import { playerDisplayName } from "@/lib/playerNames";
+import { playGoal, playWhistle, playWin, playLose } from "@/lib/sounds";
 import { ClockIcon, CheckIcon, LockIcon, UsersIcon, ArrowIcon } from "./icons";
 import { Flag } from "./Flag";
 
@@ -188,6 +189,16 @@ export function MatchCard({
     goals, // seed from the server; the live poll refreshes it
   });
   const endedRef = useRef(false);
+  const goalsCountRef = useRef(goals.length);
+  // Latest prediction, read inside the poll without restarting it on each render.
+  const predictionRef = useRef(prediction);
+  predictionRef.current = prediction;
+  // Whistle when a match KICKS OFF while you're watching (isLive flips false→true).
+  const wasLiveRef = useRef(isLive);
+  useEffect(() => {
+    if (isLive && !wasLiveRef.current) playWhistle();
+    wasLiveRef.current = isLive;
+  }, [isLive]);
   useEffect(() => {
     if (!isLive) return;
     endedRef.current = false;
@@ -211,10 +222,23 @@ export function MatchCard({
         if (!mine || !active) return;
         if (mine.final) {
           endedRef.current = true;
+          // Result sound for the match you were watching: win if your predicted
+          // outcome matched the final, otherwise the "missed" sound.
+          const pred = predictionRef.current;
+          if (pred && mine.home != null && mine.away != null) {
+            const predOutcome = Math.sign(pred.predictedHomeScore - pred.predictedAwayScore);
+            const realOutcome = Math.sign(mine.home - mine.away);
+            if (predOutcome === realOutcome) playWin();
+            else playLose();
+          }
           router.refresh(); // match ended → pull the finished/scored card
           return;
         }
-        setLiveScore({ home: mine.home, away: mine.away, status: mine.status, at: Date.now(), goals: mine.goals ?? [] });
+        const nextGoals = mine.goals ?? [];
+        // A new goal arrived this poll → celebratory sound (muteable in profile).
+        if (nextGoals.length > goalsCountRef.current) playGoal();
+        goalsCountRef.current = nextGoals.length;
+        setLiveScore({ home: mine.home, away: mine.away, status: mine.status, at: Date.now(), goals: nextGoals });
       } catch {
         /* keep the last score on a transient error */
       }

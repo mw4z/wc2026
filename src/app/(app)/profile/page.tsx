@@ -8,6 +8,7 @@ import { EmailManager } from "@/components/EmailManager";
 import { otpConfigured } from "@/lib/authentica";
 import { ReminderToggle } from "@/components/ReminderToggle";
 import { GoalNotifyPrefs } from "@/components/GoalNotifyPrefs";
+import { SoundToggle } from "@/components/SoundToggle";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +63,7 @@ export default async function ProfilePage() {
           initialEnabled={prefs?.notifyGoals ?? true}
           initialScope={(prefs?.notifyGoalsScope as "ALL" | "PREDICTED") ?? "ALL"}
         />
+        <SoundToggle />
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">

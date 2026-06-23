@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/AppShell";
 import { GroupNudge } from "@/components/GroupNudge";
 import { InstallTracker } from "@/components/InstallTracker";
+import { SoundUnlocker } from "@/components/SoundUnlocker";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -16,6 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AppShell isAdmin={user.role === "ADMIN"}>{children}</AppShell>
       <GroupNudge hasGroup={groupCount > 0} />
       <InstallTracker />
+      <SoundUnlocker />
     </>
   );
 }
