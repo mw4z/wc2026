@@ -23,6 +23,7 @@ export interface StandingTeam {
   gd: number;
   points: number;
   advanced: boolean;
+  movement: number | null; // position change since the last completed matchday (+up / -down)
 }
 export interface StandingGroup {
   name: string;
@@ -46,8 +47,14 @@ export interface BracketRound {
   stage: Stage;
   matches: BracketMatch[];
 }
+export interface ThirdPlaceRow {
+  group: string;
+  team: StandingTeam;
+  movement: number | null; // change in the 3rd-place ranking since the last matchday
+}
 export interface TournamentData {
   groups: StandingGroup[];
+  thirdPlace: ThirdPlaceRow[];
   bracket: BracketRound[];
 }
 
@@ -156,6 +163,7 @@ export async function getTournamentData(): Promise<TournamentData> {
         gd: t.gd,
         points: t.points,
         advanced: t.advanced,
+        movement: null as number | null,
       };
     }),
   }));
@@ -185,5 +193,95 @@ export async function getTournamentData(): Promise<TournamentData> {
     matches: byStage.get(s)!,
   }));
 
-  return { groups, bracket };
+  // Best third-placed teams — the 8 best of the 12 group 3rd-placers also qualify.
+  // Take each group's 3rd team (sorted index 2) and rank by points → GD → GF → wins.
+  const thirdPlace: ThirdPlaceRow[] = groups
+    .filter((g) => g.teams.length >= 3)
+    .map((g) => ({ group: g.name, team: g.teams[2]!, movement: null as number | null }))
+    .sort(
+      (a, b) =>
+        b.team.points - a.team.points ||
+        b.team.gd - a.team.gd ||
+        b.team.gf - a.team.gf ||
+        b.team.win - a.team.win,
+    );
+
+  // Position-movement arrows (▲/▼), like the leaderboard. Snapshot ranks per group
+  // (and the 3rd-place ranking) and compare across completed matchdays.
+  await applyMovements(groups, thirdPlace);
+
+  return { groups, thirdPlace, bracket };
+}
+
+interface PosSnap {
+  round: number;
+  ranks: Record<string, number>;
+  prev: Record<string, number>;
+}
+type PosStore = Record<string, PosSnap>;
+
+// Rotate one ranking's snapshot and return movement (prevRank - currentRank) per key.
+// Movement persists until a new match is completed in that ranking (round advances).
+function rotatePositions(store: PosStore, key: string, ranks: Record<string, number>, round: number): Record<string, number | null> {
+  const prev = store[key];
+  let baseline: Record<string, number>;
+  if (!prev) {
+    store[key] = { round, ranks, prev: ranks };
+    baseline = ranks;
+  } else if (round > prev.round) {
+    store[key] = { round, ranks, prev: prev.ranks };
+    baseline = prev.ranks;
+  } else {
+    baseline = prev.prev;
+  }
+  const moves: Record<string, number | null> = {};
+  for (const code of Object.keys(ranks)) {
+    const b = baseline[code];
+    moves[code] = b == null ? null : b - ranks[code]!;
+  }
+  return moves;
+}
+
+async function applyMovements(groups: StandingGroup[], thirdPlace: ThirdPlaceRow[]): Promise<void> {
+  let store: PosStore = {};
+  try {
+    const row = await prisma.setting.findUnique({ where: { key: "tournament_pos" } });
+    if (row?.value) store = JSON.parse(row.value) as PosStore;
+  } catch {
+    /* start fresh if unreadable */
+  }
+  const before = JSON.stringify(store);
+  const codeOf = (t: StandingTeam) => t.code || t.nameEn;
+
+  for (const g of groups) {
+    const ranks: Record<string, number> = {};
+    let round = 0;
+    g.teams.forEach((t, i) => {
+      ranks[codeOf(t)] = i + 1;
+      round += t.played;
+    });
+    const moves = rotatePositions(store, `G:${g.name}`, ranks, round);
+    g.teams.forEach((t) => (t.movement = moves[codeOf(t)] ?? null));
+  }
+
+  const tpRanks: Record<string, number> = {};
+  let tpRound = 0;
+  thirdPlace.forEach((r, i) => {
+    tpRanks[codeOf(r.team)] = i + 1;
+    tpRound += r.team.played;
+  });
+  const tpMoves = rotatePositions(store, "THIRD", tpRanks, tpRound);
+  thirdPlace.forEach((r) => (r.movement = tpMoves[codeOf(r.team)] ?? null));
+
+  if (JSON.stringify(store) !== before) {
+    try {
+      await prisma.setting.upsert({
+        where: { key: "tournament_pos" },
+        create: { key: "tournament_pos", value: JSON.stringify(store) },
+        update: { value: JSON.stringify(store) },
+      });
+    } catch {
+      /* best-effort */
+    }
+  }
 }

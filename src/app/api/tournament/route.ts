@@ -13,6 +13,6 @@ export async function GET() {
     return NextResponse.json(data);
   } catch (e) {
     console.error("[tournament] failed:", (e as Error).message);
-    return NextResponse.json({ groups: [], bracket: [] });
+    return NextResponse.json({ groups: [], thirdPlace: [], bracket: [] });
   }
 }

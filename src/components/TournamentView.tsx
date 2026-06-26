@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useUI } from "./I18nProvider";
 import { Flag } from "./Flag";
-import type { TournamentData, StandingGroup, BracketRound, BracketMatch } from "@/lib/standings";
+import { MovementIndicator } from "./LeaderboardTable";
+import type { TournamentData, StandingGroup, ThirdPlaceRow, BracketRound, BracketMatch } from "@/lib/standings";
 
 const POLL_MS = 25_000;
 
@@ -57,11 +58,14 @@ export function TournamentView({ initial }: { initial: TournamentData }) {
         data.groups.length === 0 ? (
           <p className="card p-6 text-center text-sm text-slate-500">{UI.standingsSoon}</p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {data.groups.map((g) => (
-              <GroupTable key={g.name} group={g} />
-            ))}
-          </div>
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {data.groups.map((g) => (
+                <GroupTable key={g.name} group={g} />
+              ))}
+            </div>
+            {data.thirdPlace.length > 0 && <ThirdPlaceTable rows={data.thirdPlace} />}
+          </>
         )
       ) : data.bracket.length === 0 ? (
         <p className="card p-6 text-center text-sm text-slate-500">{UI.standingsKnockoutSoon}</p>
@@ -103,10 +107,11 @@ function GroupTable({ group }: { group: StandingGroup }) {
               className={`border-t border-white/[0.05] ${t.advanced ? "bg-lime-500/[0.07]" : ""}`}
             >
               <td className="py-2 ps-3">
-                <span className="relative inline-flex items-center">
+                <div className="relative flex items-center gap-1.5">
                   {t.advanced && <span className="absolute -start-2 h-3.5 w-1 rounded-full bg-lime-400" aria-hidden />}
                   <span className="font-display font-bold tnum text-slate-300">{i + 1}</span>
-                </span>
+                  <MovementIndicator movement={t.movement} />
+                </div>
               </td>
               <td className="py-2 ps-2 text-start">
                 <span className="flex items-center gap-2">
@@ -126,6 +131,69 @@ function GroupTable({ group }: { group: StandingGroup }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+// Best third-placed teams — the 8 best also qualify (a cut line marks the top 8).
+function ThirdPlaceTable({ rows }: { rows: ThirdPlaceRow[] }) {
+  const UI = useUI();
+  return (
+    <div className="mt-6">
+      <h2 className="eyebrow mb-2">{UI.thirdPlaceTitle}</h2>
+      <p className="mb-3 text-xs text-slate-500">{UI.thirdPlaceHint}</p>
+      <div className="card overflow-x-auto">
+        <table className="w-full text-right text-xs">
+          <thead className="text-[10px] text-slate-400">
+            <tr>
+              <th className="py-1.5 ps-3 font-bold">#</th>
+              <th className="py-1.5 ps-2 text-start font-bold">{UI.colTeam}</th>
+              <th className="py-1.5 px-1 font-bold">{UI.colGroup}</th>
+              <th className="py-1.5 px-1 font-bold">{UI.colPlayed}</th>
+              <th className="hidden py-1.5 px-1 font-bold min-[400px]:table-cell">{UI.colWin}</th>
+              <th className="hidden py-1.5 px-1 font-bold min-[400px]:table-cell">{UI.colDraw}</th>
+              <th className="hidden py-1.5 px-1 font-bold min-[400px]:table-cell">{UI.colLoss}</th>
+              <th className="py-1.5 px-1 font-bold">{UI.colGd}</th>
+              <th className="py-1.5 pe-3 font-bold">{UI.colPts}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => {
+              const qualifies = i < 8;
+              return (
+                <tr
+                  key={r.team.nameEn}
+                  className={`border-t border-white/[0.05] ${qualifies ? "bg-lime-500/[0.06]" : ""} ${
+                    i === 7 ? "border-b-2 border-b-lime-500/40" : ""
+                  }`}
+                >
+                  <td className="py-2 ps-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-display font-bold tnum text-slate-300">{i + 1}</span>
+                      <MovementIndicator movement={r.movement} />
+                    </div>
+                  </td>
+                  <td className="py-2 ps-2 text-start">
+                    <span className="flex items-center gap-2">
+                      <Flag src={r.team.flagUrl} className="h-4 w-4 shrink-0" />
+                      <span className="truncate font-semibold text-slate-100">{r.team.nameAr}</span>
+                    </span>
+                  </td>
+                  <td className="py-2 px-1 text-center text-slate-400">{r.group.replace(/^Group\s*/i, "")}</td>
+                  <td className="py-2 px-1 text-center tnum text-slate-300">{r.team.played}</td>
+                  <td className="hidden py-2 px-1 text-center tnum text-slate-300 min-[400px]:table-cell">{r.team.win}</td>
+                  <td className="hidden py-2 px-1 text-center tnum text-slate-300 min-[400px]:table-cell">{r.team.draw}</td>
+                  <td className="hidden py-2 px-1 text-center tnum text-slate-300 min-[400px]:table-cell">{r.team.loss}</td>
+                  <td className="py-2 px-1 text-center tnum text-slate-300" dir="ltr">
+                    {r.team.gd > 0 ? `+${r.team.gd}` : r.team.gd}
+                  </td>
+                  <td className="py-2 pe-3 text-center font-display font-extrabold tnum text-gold-400">{r.team.points}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
