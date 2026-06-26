@@ -18,7 +18,7 @@ export function MobileTabBar({ isAdmin }: { isAdmin: boolean }) {
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/15 bg-navy-950 shadow-[0_-8px_24px_rgba(0,0,0,0.5)] xl:hidden">
       <div className="h-[3px] w-full bg-gradient-to-l from-accent-500 via-[#7c5cff] to-lime-500" />
       <div className="flex items-stretch justify-around pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1.5">
-        {items.map(({ href, label, Icon }) => {
+        {items.map(({ href, label, Icon, badge }) => {
           const on = active(href);
           return (
             <Link
@@ -28,7 +28,14 @@ export function MobileTabBar({ isAdmin }: { isAdmin: boolean }) {
                 on ? "text-accent-400" : "text-slate-300"
               }`}
             >
-              <Icon className={`text-2xl ${on ? "drop-shadow-[0_0_8px_rgba(56,128,255,0.5)]" : ""}`} />
+              <span className="relative">
+                <Icon className={`text-2xl ${on ? "drop-shadow-[0_0_8px_rgba(56,128,255,0.5)]" : ""}`} />
+                {badge && (
+                  <span className="absolute -top-1.5 -end-2.5 rounded-full bg-lime-500 px-1 py-px text-[8px] font-extrabold leading-none text-navy-950">
+                    {badge}
+                  </span>
+                )}
+              </span>
               <span className="max-w-full truncate px-0.5">{label}</span>
             </Link>
           );

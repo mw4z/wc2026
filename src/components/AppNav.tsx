@@ -16,7 +16,7 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <nav className="no-scrollbar hidden items-center gap-0.5 overflow-x-auto xl:flex">
-      {items.map(({ href, label, Icon }) => (
+      {items.map(({ href, label, Icon, badge }) => (
         <Link
           key={href}
           href={href}
@@ -26,6 +26,11 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
         >
           <Icon className="text-base" />
           <span>{label}</span>
+          {badge && (
+            <span className="rounded-full bg-lime-500 px-1.5 py-px text-[9px] font-extrabold leading-none text-navy-950">
+              {badge}
+            </span>
+          )}
         </Link>
       ))}
     </nav>
