@@ -242,7 +242,7 @@ function BracketCard({ m }: { m: BracketMatch }) {
         <BracketSide team={m.away} tbd={UI.tbd} align="end" />
       </div>
       {!m.live && (
-        <div className="mt-1.5 border-t border-white/[0.06] pt-1 text-center text-[10px] tnum text-slate-500" dir="ltr">
+        <div className="mt-2 border-t border-white/[0.06] pt-1.5 text-center text-[11px] font-semibold tnum text-slate-300">
           {kickoffLabel(m.kickoffISO, locale)}
         </div>
       )}
