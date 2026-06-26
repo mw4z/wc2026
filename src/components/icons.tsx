@@ -103,6 +103,17 @@ export function ListIcon(props: IconProps) {
   );
 }
 
+// Standings / tournament — a podium of bars.
+export function StandingsIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <rect x="3" y="11" width="5" height="9" rx="1" />
+      <rect x="9.5" y="5" width="5" height="15" rx="1" />
+      <rect x="16" y="14" width="5" height="6" rx="1" />
+    </Base>
+  );
+}
+
 export function ClockIcon(props: IconProps) {
   return (
     <Base {...props}>

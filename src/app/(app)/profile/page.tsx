@@ -73,6 +73,12 @@ export default async function ProfilePage() {
         {stat(UI.statPredictions, entry?.totalPredictions ?? 0)}
       </div>
 
+      <Link href="/rules" className="tile mt-4">
+        <span className="tile-ic"><ListIcon /></span>
+        <span className="tile-label">{UI.rules}</span>
+        <ArrowIcon className="tile-chev" />
+      </Link>
+
       <p className="mt-6 text-center text-xs text-slate-500">{UI.changeNameNote}</p>
 
       <DeleteAccountButton />
