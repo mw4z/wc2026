@@ -1,12 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useUI } from "./I18nProvider";
+import { useUI, useLocale } from "./I18nProvider";
 import { Flag } from "./Flag";
 import { MovementIndicator } from "./LeaderboardTable";
 import type { TournamentData, StandingGroup, ThirdPlaceRow, BracketRound, BracketMatch } from "@/lib/standings";
 
 const POLL_MS = 25_000;
+const DISPLAY_TZ = process.env.NEXT_PUBLIC_DISPLAY_TZ || "Asia/Riyadh";
+
+// Short "day month · time" label for a bracket match, in the user's locale/timezone.
+function kickoffLabel(iso: string, locale: string): string {
+  const d = new Date(iso);
+  const day = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: DISPLAY_TZ }).format(d);
+  const time = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", timeZone: DISPLAY_TZ }).format(d);
+  return `${day} · ${time}`;
+}
 
 // Live tournament page: group standings + knockout bracket. Polls /api/tournament
 // so points, positions, and live in-match scores update without a refresh.
@@ -214,21 +223,29 @@ function BracketSection({ round }: { round: BracketRound }) {
 
 function BracketCard({ m }: { m: BracketMatch }) {
   const UI = useUI();
+  const locale = useLocale();
   const hasScore = m.homeScore != null && m.awayScore != null;
   return (
-    <div className={`card flex items-center justify-between gap-2 px-3 py-2.5 ${m.live ? "card-live" : ""}`}>
-      <BracketSide team={m.home} tbd={UI.tbd} />
-      <div className="flex shrink-0 flex-col items-center px-1">
-        {hasScore ? (
-          <span className="font-display text-lg font-extrabold tnum" dir="ltr">
-            {m.homeScore} : {m.awayScore}
-          </span>
-        ) : (
-          <span className="text-xs text-slate-500">{UI.vs}</span>
-        )}
-        {m.live && <span className="text-[9px] font-bold uppercase text-lime-400">{UI.statuses.LIVE}</span>}
+    <div className={`card px-3 py-2.5 ${m.live ? "card-live" : ""}`}>
+      <div className="flex items-center justify-between gap-2">
+        <BracketSide team={m.home} tbd={UI.tbd} />
+        <div className="flex shrink-0 flex-col items-center px-1">
+          {hasScore ? (
+            <span className="font-display text-lg font-extrabold tnum" dir="ltr">
+              {m.homeScore} : {m.awayScore}
+            </span>
+          ) : (
+            <span className="text-xs text-slate-500">{UI.vs}</span>
+          )}
+          {m.live && <span className="text-[9px] font-bold uppercase text-lime-400">{UI.statuses.LIVE}</span>}
+        </div>
+        <BracketSide team={m.away} tbd={UI.tbd} align="end" />
       </div>
-      <BracketSide team={m.away} tbd={UI.tbd} align="end" />
+      {!m.live && (
+        <div className="mt-1.5 border-t border-white/[0.06] pt-1 text-center text-[10px] tnum text-slate-500" dir="ltr">
+          {kickoffLabel(m.kickoffISO, locale)}
+        </div>
+      )}
     </div>
   );
 }
