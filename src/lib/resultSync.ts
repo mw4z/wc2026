@@ -535,7 +535,13 @@ export async function refreshLiveScores(): Promise<LiveScore[]> {
       }
 
       if (ev.state === "post") {
-        // ESPN says full-time — let the results cron set the official final + score.
+        // ESPN says full-time — finalize the result NOW (don't wait for the separate
+        // cron) so the match leaves the live list the instant the client refreshes.
+        try {
+          await finalizeMatchFromEspn(m, ev, now);
+        } catch (e) {
+          console.error(`[live-scores] finalize failed for ${m.id}:`, (e as Error).message);
+        }
         out.push({ matchId: m.id, home: ourHome, away: ourAway, status: ev.detail || "FT", final: true });
         continue;
       }
