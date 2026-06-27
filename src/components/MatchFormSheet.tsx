@@ -167,32 +167,42 @@ function TeamFormBlock({ form, teamName, flag }: { form: TeamForm | null; teamNa
 
   return (
     <div>
+      {/* Team header + record summary (e.g. "فوز ١ · تعادل ١ · خسارة ٠") */}
       <div className="mb-2 flex items-center gap-2">
         <Flag src={flag} className="h-5 w-5" />
         <span className="font-bold text-slate-100">{teamName}</span>
-        <span className="ms-auto flex items-center gap-1">
-          {form.games.map((g, i) => (
-            <ResultDot key={i} r={g.result} />
-          ))}
+        <span className="ms-auto text-[11px] font-semibold text-slate-400">
+          <span className="text-lime-400">{w}</span>
+          <span className="mx-0.5 text-slate-600">-</span>
+          <span className="text-slate-300">{d}</span>
+          <span className="mx-0.5 text-slate-600">-</span>
+          <span className="text-red-400">{l}</span>
+          <span className="ms-1 text-slate-500">{UI.formRecord}</span>
         </span>
       </div>
 
       {total > 0 && (
-        <div className="mb-2">
-          {/* Proportional W/D/L bar — follows the locale direction so the green
-              "won" end lines up with the "won" label (right in RTL, left in LTR). */}
-          <div className="flex h-2 overflow-hidden rounded-full bg-white/5">
+        <div className="mb-2.5">
+          {/* Proportional win/draw/loss bar — follows the locale direction so the
+              green "won" end lines up with the "won" label. */}
+          <div className="flex h-2.5 overflow-hidden rounded-full bg-white/5">
             {w > 0 && <span className="bg-lime-500" style={{ width: `${pct(w)}%` }} />}
             {d > 0 && <span className="bg-slate-500" style={{ width: `${pct(d)}%` }} />}
             {l > 0 && <span className="bg-red-500" style={{ width: `${pct(l)}%` }} />}
           </div>
           <div className="mt-1.5 flex items-center justify-between text-[11px] font-semibold">
-            <span className="text-lime-400">{UI.formWon} {pct(w)}% <span className="text-slate-500">({w})</span></span>
-            <span className="text-slate-300">{UI.formDrawn} {pct(d)}% <span className="text-slate-500">({d})</span></span>
-            <span className="text-red-400">{UI.formLost} {pct(l)}% <span className="text-slate-500">({l})</span></span>
-          </div>
-          <div className="mt-0.5 text-center text-[10px] text-slate-600">
-            {UI.formFromGames.replace("{n}", String(total))}
+            <span className="flex items-center gap-1 text-lime-400">
+              <span className="h-2 w-2 rounded-full bg-lime-500" />
+              {UI.formWon} {pct(w)}%
+            </span>
+            <span className="flex items-center gap-1 text-slate-300">
+              <span className="h-2 w-2 rounded-full bg-slate-500" />
+              {UI.formDrawn} {pct(d)}%
+            </span>
+            <span className="flex items-center gap-1 text-red-400">
+              <span className="h-2 w-2 rounded-full bg-red-500" />
+              {UI.formLost} {pct(l)}%
+            </span>
           </div>
         </div>
       )}
@@ -206,37 +216,39 @@ function TeamFormBlock({ form, teamName, flag }: { form: TeamForm | null; teamNa
   );
 }
 
-function ResultDot({ r }: { r: FormGame["result"] }) {
-  const cls = r === "W" ? "bg-lime-500" : r === "L" ? "bg-red-500" : r === "D" ? "bg-slate-500" : "bg-white/20";
-  return <span className={`h-2.5 w-2.5 rounded-full ${cls}`} aria-hidden />;
-}
-
 function FormRow({ g }: { g: FormGame }) {
   const UI = useUI();
   const locale = useLocale();
   const date = g.dateISO
     ? new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(new Date(g.dateISO))
     : "";
+  const word = g.result === "W" ? UI.formWon : g.result === "L" ? UI.formLost : UI.formDrawn;
   const tone =
     g.result === "W"
-      ? "bg-lime-500 text-navy-950"
+      ? "bg-lime-500/15 text-lime-300 ring-lime-500/30"
       : g.result === "L"
-        ? "bg-red-500 text-white"
-        : "bg-slate-500 text-white";
+        ? "bg-red-500/15 text-red-300 ring-red-500/30"
+        : "bg-white/10 text-slate-300 ring-white/15";
   return (
-    <div className="flex items-center gap-2.5 px-3 py-2 text-sm">
-      <span className={`grid h-5 w-5 shrink-0 place-items-center rounded text-[11px] font-extrabold ${tone}`}>
-        {UI.formResult[g.result || "D"]}
+    <div className="flex items-center gap-3 px-3 py-2.5">
+      <Flag src={g.opponentLogo} className="h-6 w-6 shrink-0" />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-semibold text-slate-100">
+          <span className="text-slate-500">{UI.vs} </span>
+          {g.opponent}
+        </div>
+        <div className="text-[10px] text-slate-500">
+          {g.home ? UI.formAtHome : UI.formAway}
+          {date ? ` · ${date}` : ""}
+        </div>
+      </div>
+      {/* One pill says the outcome AND the score, so there's no ambiguity. */}
+      <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-bold ring-1 ring-inset ${tone}`}>
+        {word}
+        <span dir="ltr" className="font-display tnum">
+          {g.gf ?? "-"}-{g.ga ?? "-"}
+        </span>
       </span>
-      <Flag src={g.opponentLogo} className="h-4 w-4 shrink-0" />
-      <span className="min-w-0 flex-1 truncate text-slate-200">{g.opponent}</span>
-      <span className="shrink-0 rounded bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-bold text-slate-400">
-        {g.home ? UI.formAtHome : UI.formAway}
-      </span>
-      <span className="shrink-0 font-display font-bold tnum text-slate-100" dir="ltr">
-        {g.gf ?? "-"}-{g.ga ?? "-"}
-      </span>
-      {date && <span className="hidden shrink-0 text-[11px] text-slate-500 min-[400px]:inline">{date}</span>}
     </div>
   );
 }
