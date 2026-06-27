@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useUI, useLocale } from "./I18nProvider";
 import { Flag } from "./Flag";
 import { MovementIndicator } from "./LeaderboardTable";
@@ -8,6 +8,36 @@ import type { TournamentData, StandingGroup, ThirdPlaceRow, BracketRound, Bracke
 
 const POLL_MS = 25_000;
 const DISPLAY_TZ = process.env.NEXT_PUBLIC_DISPLAY_TZ || "Asia/Riyadh";
+
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
+// FLIP animation: when the row order changes (live re-sort), each <tr> glides from
+// its previous spot to the new one instead of snapping. Returns a ref map to attach
+// to each row by a stable key.
+function useFlipRows(orderKey: string) {
+  const rows = useRef(new Map<string, HTMLTableRowElement>());
+  const prev = useRef(new Map<string, number>());
+  useIsoLayoutEffect(() => {
+    const cur = new Map<string, number>();
+    rows.current.forEach((el, key) => {
+      const top = el.offsetTop; // relative to the table → unaffected by page scroll
+      cur.set(key, top);
+      const old = prev.current.get(key);
+      if (old != null && old !== top) {
+        const dy = old - top;
+        el.style.transition = "none";
+        el.style.transform = `translateY(${dy}px)`;
+        void el.offsetHeight; // force reflow so the start position sticks
+        requestAnimationFrame(() => {
+          el.style.transition = "transform 400ms cubic-bezier(0.22, 1, 0.36, 1)";
+          el.style.transform = "";
+        });
+      }
+    });
+    prev.current = cur;
+  }, [orderKey]);
+  return rows;
+}
 
 // Short "day month · time" label for a bracket match, in the user's locale/timezone.
 function kickoffLabel(iso: string, locale: string): string {
@@ -113,6 +143,7 @@ function LiveBadge({ score }: { score: { gf: number; ga: number } }) {
 
 function GroupTable({ group }: { group: StandingGroup }) {
   const UI = useUI();
+  const rowRefs = useFlipRows(group.teams.map((t) => t.nameEn).join(","));
   return (
     <div className="card overflow-hidden">
       <div className="border-b border-white/10 bg-white/[0.03] px-3 py-2 text-sm font-bold text-gold-400">
@@ -140,6 +171,10 @@ function GroupTable({ group }: { group: StandingGroup }) {
             return (
             <tr
               key={t.nameEn}
+              ref={(el) => {
+                if (el) rowRefs.current.set(t.nameEn, el);
+                else rowRefs.current.delete(t.nameEn);
+              }}
               className={`border-t border-white/[0.05] ${qualifies ? "bg-lime-500/[0.07]" : t.live ? "bg-white/[0.04]" : ""}`}
             >
               <td className="py-2 ps-3">
@@ -181,6 +216,7 @@ function GroupTable({ group }: { group: StandingGroup }) {
 // Best third-placed teams — the 8 best also qualify (a cut line marks the top 8).
 function ThirdPlaceTable({ rows }: { rows: ThirdPlaceRow[] }) {
   const UI = useUI();
+  const rowRefs = useFlipRows(rows.map((r) => r.team.nameEn).join(","));
   return (
     <div className="mt-6">
       <h2 className="eyebrow mb-2">{UI.thirdPlaceTitle}</h2>
@@ -206,6 +242,10 @@ function ThirdPlaceTable({ rows }: { rows: ThirdPlaceRow[] }) {
               return (
                 <tr
                   key={r.team.nameEn}
+                  ref={(el) => {
+                    if (el) rowRefs.current.set(r.team.nameEn, el);
+                    else rowRefs.current.delete(r.team.nameEn);
+                  }}
                   className={`border-t border-white/[0.05] ${qualifies ? "bg-lime-500/[0.06]" : ""} ${
                     i === 7 ? "border-b-2 border-b-lime-500/40" : ""
                   }`}
