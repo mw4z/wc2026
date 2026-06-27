@@ -419,10 +419,18 @@ export async function getMatchCenter(matchId: string): Promise<MatchCenter> {
   return { available: hasLineups, state, statusDetail, home, away, events };
 }
 
+// Same championship = the World Cup finals (not friendlies, not qualifiers).
+function isSameChampionship(competition?: string): boolean {
+  if (!competition) return false;
+  return /world cup/i.test(competition) && !/qualif/i.test(competition);
+}
+
 function parseForm(raw: RawLastFive, side: Side): TeamForm {
   const teamId = raw.team?.id ?? "";
   const num = (s?: string) => (s != null && s !== "" ? Number(s) : null);
-  const games: FormGame[] = (raw.events ?? []).map((e) => {
+  const games: FormGame[] = (raw.events ?? [])
+    .filter((e) => isSameChampionship(e.competitionName))
+    .map((e) => {
     const wasHome = e.atVs !== "@";
     // Orient the score to THIS team (gf) vs the opponent (ga).
     const isHomeById = teamId !== "" && String(e.homeTeamId) === teamId;

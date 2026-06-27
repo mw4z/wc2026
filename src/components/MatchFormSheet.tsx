@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useUI, useLocale } from "./I18nProvider";
 import { Flag } from "./Flag";
 import { Spinner } from "./Spinner";
@@ -26,6 +27,9 @@ export function MatchFormSheet({
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<MatchForm | null>(null);
   const [loading, setLoading] = useState(false);
+  // Portal target only exists on the client; gate so SSR doesn't try to portal.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   async function openSheet() {
     setOpen(true);
@@ -55,9 +59,11 @@ export function MatchFormSheet({
         {UI.formButton}
       </button>
 
-      {open && (
+      {open &&
+        mounted &&
+        createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center"
+          className="fixed inset-0 z-[60] flex items-end justify-center"
           onClick={(e) => {
             e.stopPropagation();
             setOpen(false);
@@ -98,8 +104,9 @@ export function MatchFormSheet({
               </div>
             )}
           </div>
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
     </>
   );
 }
