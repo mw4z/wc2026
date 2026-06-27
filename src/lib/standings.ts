@@ -218,18 +218,16 @@ export async function getTournamentData(): Promise<TournamentData> {
     matches: byStage.get(s)!,
   }));
 
+  const cmp = (a: StandingTeam, b: StandingTeam) =>
+    b.points - a.points || b.gd - a.gd || b.gf - a.gf || b.win - a.win;
+  const codeOf = (t: StandingTeam) => t.code || t.nameEn;
+
   // Best third-placed teams — the 8 best of the 12 group 3rd-placers also qualify.
   // Take each group's 3rd team (sorted index 2) and rank by points → GD → GF → wins.
-  const thirdPlace: ThirdPlaceRow[] = groups
+  let thirdPlace: ThirdPlaceRow[] = groups
     .filter((g) => g.teams.length >= 3)
     .map((g) => ({ group: g.name, team: g.teams[2]!, movement: null as number | null }))
-    .sort(
-      (a, b) =>
-        b.team.points - a.team.points ||
-        b.team.gd - a.team.gd ||
-        b.team.gf - a.team.gf ||
-        b.team.win - a.team.win,
-    );
+    .sort((a, b) => cmp(a.team, b.team));
   // The 8 best third-placed teams also qualify — mark them (same object refs as in
   // `groups`, so the group tables light up green too).
   thirdPlace.forEach((r, i) => {
@@ -237,8 +235,47 @@ export async function getTournamentData(): Promise<TournamentData> {
   });
 
   // Position-movement arrows (▲/▼), like the leaderboard. Snapshot ranks per group
-  // (and the 3rd-place ranking) and compare across completed matchdays.
+  // (and the 3rd-place ranking) and compare across completed matchdays. Computed on
+  // OFFICIAL (full-time) stats, before the live provisional fold below, so in-play
+  // matches don't churn the matchday snapshot.
   await applyMovements(groups, thirdPlace);
+
+  // ---- Live provisional standings ----
+  // While matches are in play, fold each live team's running result into its tally
+  // and re-sort, so points and positions update in real time — not only at
+  // full-time. (Recomputed each request from fresh ESPN data; never persisted.)
+  if (groups.some((g) => g.teams.some((t) => t.live))) {
+    for (const g of groups) {
+      for (const t of g.teams) {
+        if (!t.live) continue;
+        const { gf, ga } = t.live;
+        t.played += 1;
+        t.gf += gf;
+        t.ga += ga;
+        t.gd = t.gf - t.ga;
+        if (gf > ga) {
+          t.win += 1;
+          t.points += 3;
+        } else if (gf === ga) {
+          t.draw += 1;
+          t.points += 1;
+        } else {
+          t.loss += 1;
+        }
+      }
+      g.teams.sort(cmp);
+    }
+    // Re-derive the best-third cut from the provisional order (carry movement by team).
+    const moves = new Map(thirdPlace.map((r) => [codeOf(r.team), r.movement] as const));
+    for (const g of groups) for (const t of g.teams) t.thirdQualified = false;
+    thirdPlace = groups
+      .filter((g) => g.teams.length >= 3)
+      .map((g) => ({ group: g.name, team: g.teams[2]!, movement: moves.get(codeOf(g.teams[2]!)) ?? null }))
+      .sort((a, b) => cmp(a.team, b.team));
+    thirdPlace.forEach((r, i) => {
+      r.team.thirdQualified = i < 8;
+    });
+  }
 
   return { groups, thirdPlace, bracket };
 }
