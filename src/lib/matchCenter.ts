@@ -138,7 +138,8 @@ export interface FormGame {
   result: "W" | "D" | "L" | "";
   gf: number | null; // this team's goals
   ga: number | null; // opponent's goals
-  opponent: string;
+  opponent: string; // English (from ESPN)
+  opponentAr: string | null; // Arabic, resolved from our team DB when known
   opponentLogo: string | null;
   home: boolean; // this team played at home
   competition: string;
@@ -425,7 +426,7 @@ function isSameChampionship(competition?: string): boolean {
   return /world cup/i.test(competition) && !/qualif/i.test(competition);
 }
 
-function parseForm(raw: RawLastFive, side: Side): TeamForm {
+function parseForm(raw: RawLastFive, side: Side, arabicOf: (nameEn: string) => string | null): TeamForm {
   const teamId = raw.team?.id ?? "";
   const num = (s?: string) => (s != null && s !== "" ? Number(s) : null);
   const games: FormGame[] = (raw.events ?? [])
@@ -444,6 +445,7 @@ function parseForm(raw: RawLastFive, side: Side): TeamForm {
       gf,
       ga,
       opponent: e.opponent?.displayName ?? e.opponent?.abbreviation ?? "",
+      opponentAr: arabicOf(e.opponent?.displayName ?? ""),
       opponentLogo: e.opponent?.logo ?? null,
       home,
       competition: e.competitionName ?? "",
@@ -471,6 +473,14 @@ export async function getMatchForm(matchId: string): Promise<MatchForm> {
   const sum = await fetchSummary(eventId);
   if (!sum) return empty;
 
+  // Resolve opponent names to Arabic from our team DB (ESPN gives English only).
+  const dbTeams = await prisma.team.findMany({ select: { nameEn: true, nameAr: true } });
+  const arabicOf = (nameEn: string): string | null => {
+    if (!nameEn) return null;
+    const t = dbTeams.find((x) => teamsEqual(x.nameEn, nameEn));
+    return t?.nameAr ?? null;
+  };
+
   let home: TeamForm | null = null;
   let away: TeamForm | null = null;
   for (const lf of sum.lastFiveGames ?? []) {
@@ -481,7 +491,7 @@ export async function getMatchForm(matchId: string): Promise<MatchForm> {
         ? "away"
         : null;
     if (!side) continue;
-    const form = parseForm(lf, side);
+    const form = parseForm(lf, side, arabicOf);
     if (side === "home") home = form;
     else away = form;
   }

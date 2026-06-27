@@ -235,7 +235,7 @@ function FormRow({ g }: { g: FormGame }) {
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold text-slate-100">
           <span className="text-slate-500">{UI.vs} </span>
-          {g.opponent}
+          {locale === "ar" ? g.opponentAr || g.opponent : g.opponent}
         </div>
         <div className="text-[10px] text-slate-500">
           {g.home ? UI.formAtHome : UI.formAway}
