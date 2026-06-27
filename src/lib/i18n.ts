@@ -46,6 +46,7 @@ const ar = {
   thirdPlaceHint: "أفضل 8 منتخبات تتأهّل للأدوار الإقصائية.",
   // match center
   mcTitle: "مركز المباراة",
+  viewLineups: "التشكيلة والأحداث",
   mcLineups: "التشكيلة",
   mcEvents: "الأحداث",
   mcBench: "البدلاء",
@@ -708,6 +709,7 @@ const en: Dict = {
   thirdPlaceHint: "The 8 best qualify for the knockout rounds.",
   // match center
   mcTitle: "Match Center",
+  viewLineups: "Lineups & events",
   mcLineups: "Lineups",
   mcEvents: "Events",
   mcBench: "Substitutes",

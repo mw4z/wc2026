@@ -115,7 +115,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
       <p className="mt-1 text-center text-xs text-slate-500">{UI.timezoneNote}</p>
 
       {showCenter && center && (
-        <div className="mt-6">
+        <div className="mt-6 scroll-mt-20" id="match-center">
           <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-gold-400">
             <BallIcon /> {UI.mcTitle}
           </h2>

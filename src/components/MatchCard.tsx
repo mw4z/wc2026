@@ -9,7 +9,7 @@ import type { SerializedMatch, SerializedPrediction } from "@/app/(app)/matches/
 import { useUI, useLocale } from "./I18nProvider";
 import { playerDisplayName } from "@/lib/playerNames";
 import { playGoal, playWhistle, playWin, playLose } from "@/lib/sounds";
-import { ClockIcon, CheckIcon, LockIcon, UsersIcon, ArrowIcon } from "./icons";
+import { ClockIcon, CheckIcon, LockIcon, UsersIcon, ArrowIcon, BallIcon } from "./icons";
 import { Flag } from "./Flag";
 
 const KNOCKOUT = new Set([
@@ -413,8 +413,16 @@ export function MatchCard({
         ) : locked ? (
           <>
             <LockedView prediction={prediction} isKnockout={isKnockout} match={match} />
-            {/* Stop clicks here from bubbling to a clickable card (→ match detail). */}
+            {/* Two distinct actions: the live lineup/Match Center, and members'
+                predictions. Stop clicks bubbling to a clickable card (→ detail). */}
             <div onClick={(e) => e.stopPropagation()}>
+              <Link
+                href={`/matches/${match.id}#match-center`}
+                className="btn-ghost mt-3 inline-flex w-full items-center justify-center gap-1.5 border-accent-500/40 text-sm text-accent-300"
+              >
+                <BallIcon className="text-base" />
+                {UI.viewLineups}
+              </Link>
               <GroupPicksButton groups={groups} />
             </div>
           </>
