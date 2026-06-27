@@ -140,7 +140,7 @@ function GroupTable({ group }: { group: StandingGroup }) {
             return (
             <tr
               key={t.nameEn}
-              className={`border-t border-white/[0.05] ${t.live ? "bg-white/[0.04]" : qualifies ? "bg-lime-500/[0.07]" : ""}`}
+              className={`border-t border-white/[0.05] ${qualifies ? "bg-lime-500/[0.07]" : t.live ? "bg-white/[0.04]" : ""}`}
             >
               <td className="py-2 ps-3">
                 <div className="relative flex items-center gap-1.5">
