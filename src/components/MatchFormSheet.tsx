@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useUI, useLocale } from "./I18nProvider";
 import { Flag } from "./Flag";
@@ -40,6 +40,33 @@ export function MatchFormSheet({
       document.body.style.overflow = prev;
     };
   }, [open]);
+
+  // Swipe-down-to-dismiss. Only drags when the panel is scrolled to the top, so it
+  // doesn't fight the inner scroll.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const startY = useRef<number | null>(null);
+  const [dragY, setDragY] = useState(0);
+  const [dragging, setDragging] = useState(false);
+
+  function onTouchStart(e: React.TouchEvent) {
+    if ((panelRef.current?.scrollTop ?? 0) > 0) {
+      startY.current = null;
+      return;
+    }
+    startY.current = e.touches[0]!.clientY;
+    setDragging(true);
+  }
+  function onTouchMove(e: React.TouchEvent) {
+    if (startY.current == null) return;
+    const dy = e.touches[0]!.clientY - startY.current;
+    setDragY(dy > 0 ? dy : 0);
+  }
+  function onTouchEnd() {
+    if (dragY > 110) setOpen(false);
+    startY.current = null;
+    setDragging(false);
+    setDragY(0);
+  }
 
   async function openSheet() {
     setOpen(true);
@@ -83,9 +110,15 @@ export function MatchFormSheet({
         >
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div
+            ref={panelRef}
             className="reveal relative z-10 max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border-t border-white/10 bg-navy-950 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-12px_40px_rgba(0,0,0,0.6)]"
+            style={{ transform: dragY ? `translateY(${dragY}px)` : undefined, transition: dragging ? "none" : "transform 200ms ease" }}
             onClick={(e) => e.stopPropagation()}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
           >
+            {/* Grab handle — swipe down to dismiss. */}
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
             <div className="mb-4 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-base font-bold text-gold-400">
@@ -146,8 +179,9 @@ function TeamFormBlock({ form, teamName, flag }: { form: TeamForm | null; teamNa
 
       {total > 0 && (
         <div className="mb-2">
-          {/* Proportional W/D/L bar */}
-          <div className="flex h-2 overflow-hidden rounded-full bg-white/5" dir="ltr">
+          {/* Proportional W/D/L bar — follows the locale direction so the green
+              "won" end lines up with the "won" label (right in RTL, left in LTR). */}
+          <div className="flex h-2 overflow-hidden rounded-full bg-white/5">
             {w > 0 && <span className="bg-lime-500" style={{ width: `${pct(w)}%` }} />}
             {d > 0 && <span className="bg-slate-500" style={{ width: `${pct(d)}%` }} />}
             {l > 0 && <span className="bg-red-500" style={{ width: `${pct(l)}%` }} />}
