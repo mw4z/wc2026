@@ -22,7 +22,8 @@ export interface StandingTeam {
   ga: number;
   gd: number;
   points: number;
-  advanced: boolean;
+  advanced: boolean; // top-2 of the group — qualifies directly
+  thirdQualified: boolean; // 3rd-placed but currently inside the 8 best-thirds cut → also qualifying
   movement: number | null; // position change since the last completed matchday (+up / -down)
   live: { gf: number; ga: number } | null; // this team's running score if its match is in play now
 }
@@ -185,6 +186,7 @@ export async function getTournamentData(): Promise<TournamentData> {
         gd: t.gd,
         points: t.points,
         advanced: t.advanced,
+        thirdQualified: false,
         movement: null as number | null,
         live: liveOf(t.nameEn),
       };
@@ -228,6 +230,11 @@ export async function getTournamentData(): Promise<TournamentData> {
         b.team.gf - a.team.gf ||
         b.team.win - a.team.win,
     );
+  // The 8 best third-placed teams also qualify — mark them (same object refs as in
+  // `groups`, so the group tables light up green too).
+  thirdPlace.forEach((r, i) => {
+    r.team.thirdQualified = i < 8;
+  });
 
   // Position-movement arrows (▲/▼), like the leaderboard. Snapshot ranks per group
   // (and the 3rd-place ranking) and compare across completed matchdays.

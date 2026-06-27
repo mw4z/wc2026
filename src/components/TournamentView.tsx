@@ -132,14 +132,21 @@ function GroupTable({ group }: { group: StandingGroup }) {
           </tr>
         </thead>
         <tbody>
-          {group.teams.map((t, i) => (
+          {group.teams.map((t, i) => {
+            const qualifies = t.advanced || t.thirdQualified;
+            return (
             <tr
               key={t.nameEn}
-              className={`border-t border-white/[0.05] ${t.live ? "bg-white/[0.04]" : t.advanced ? "bg-lime-500/[0.07]" : ""}`}
+              className={`border-t border-white/[0.05] ${t.live ? "bg-white/[0.04]" : qualifies ? "bg-lime-500/[0.07]" : ""}`}
             >
               <td className="py-2 ps-3">
                 <div className="relative flex items-center gap-1.5">
-                  {t.advanced && <span className="absolute -start-2 h-3.5 w-1 rounded-full bg-lime-400" aria-hidden />}
+                  {qualifies && (
+                    <span
+                      className={`absolute -start-2 h-3.5 w-1 rounded-full ${t.advanced ? "bg-lime-400" : "bg-lime-400/50"}`}
+                      aria-hidden
+                    />
+                  )}
                   <span className="font-display font-bold tnum text-slate-300">{i + 1}</span>
                   <MovementIndicator movement={t.movement} />
                 </div>
@@ -160,7 +167,8 @@ function GroupTable({ group }: { group: StandingGroup }) {
               </td>
               <td className="py-2 pe-3 text-center font-display font-extrabold tnum text-gold-400">{t.points}</td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
