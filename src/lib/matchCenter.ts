@@ -68,6 +68,15 @@ interface RawAthlete {
   shortName?: string;
   headshot?: { href?: string };
 }
+
+// ESPN hosts player photos at a predictable URL keyed by athlete id. The summary
+// often omits the `headshot` field even when the photo exists, so we construct it
+// from the id and let the client fall back (to the flag) if it 404s.
+function headshotUrl(a: RawAthlete | undefined): string | null {
+  if (a?.headshot?.href) return a.headshot.href;
+  if (a?.id) return `https://a.espncdn.com/i/headshots/soccer/players/full/${a.id}.png`;
+  return null;
+}
 interface RawStat {
   name?: string;
   abbreviation?: string;
@@ -200,7 +209,7 @@ function parseRoster(raw: RawRoster, side: Side): TeamLineup {
     starter: p.starter === true,
     subbedIn: p.subbedIn === true,
     subbedOut: p.subbedOut === true,
-    headshot: p.athlete?.headshot?.href ?? null,
+    headshot: headshotUrl(p.athlete),
     rating: computeRating(p),
     goals: statNum(p.stats, "totalGoals") || statNum(p.stats, "goals"),
     yellow: statNum(p.stats, "yellowCards") > 0,

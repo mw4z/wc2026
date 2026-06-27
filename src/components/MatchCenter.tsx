@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useUI } from "./I18nProvider";
 import { Flag } from "./Flag";
-import type { MatchCenter as MatchCenterData, TeamLineup, LineupPlayer, MatchEvent, Side } from "@/lib/matchCenter";
+import type { MatchCenter as MatchCenterData, TeamLineup, LineupPlayer, MatchEvent } from "@/lib/matchCenter";
 
 const POLL_MS = 20_000;
 
@@ -132,10 +132,10 @@ function Pitch({
       >
         <PitchLines />
         {away?.starters.map((p) => (
-          <PlayerToken key={`a-${p.id}-${p.jersey}`} p={p} side="away" />
+          <PlayerToken key={`a-${p.id}-${p.jersey}`} p={p} flag={awayFlag} />
         ))}
         {home?.starters.map((p) => (
-          <PlayerToken key={`h-${p.id}-${p.jersey}`} p={p} side="home" />
+          <PlayerToken key={`h-${p.id}-${p.jersey}`} p={p} flag={homeFlag} />
         ))}
       </div>
     </div>
@@ -162,17 +162,35 @@ function ratingTone(r: number): string {
   return "bg-red-500 text-white";
 }
 
-function PlayerToken({ p, side }: { p: LineupPlayer; side: Side }) {
+function PlayerToken({ p, flag }: { p: LineupPlayer; flag: string | null }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const showPhoto = p.headshot && !imgFailed;
   return (
     <div
       className="absolute flex w-16 -translate-x-1/2 -translate-y-1/2 flex-col items-center"
       style={{ left: `${p.x}%`, top: `${p.y}%` }}
     >
       <div className="relative">
-        <div className="h-9 w-9 overflow-hidden rounded-full bg-navy-800 ring-2 ring-white/70">
-          {p.headshot ? (
+        <div className="relative h-9 w-9 overflow-hidden rounded-full bg-navy-800 ring-2 ring-white/70">
+          {showPhoto ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={p.headshot} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+            <img
+              src={p.headshot!}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover"
+              onError={() => setImgFailed(true)}
+            />
+          ) : flag ? (
+            // Fallback to the team flag (washed out) with the shirt number on top.
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={flag} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover opacity-60" />
+              <span className="absolute inset-0 grid place-items-center text-[12px] font-extrabold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                {p.jersey}
+              </span>
+            </>
           ) : (
             <div className="grid h-full w-full place-items-center text-[11px] font-extrabold text-slate-200">
               {p.jersey}
