@@ -11,6 +11,8 @@ import { TournamentHero } from "@/components/TournamentHero";
 import { BallIcon, ArrowIcon } from "@/components/icons";
 import { serializeMatch, serializePrediction } from "../page";
 import { getSerializedGoals } from "@/lib/matchGoals";
+import { getMatchCenter } from "@/lib/matchCenter";
+import { MatchCenter } from "@/components/MatchCenter";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +54,13 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
   // kickoff is reached. Stats are only exposed (and computed) after lock.
   const locked = match.status !== "SCHEDULED" || isKickoffReached(match.kickoffAt);
   const stats = locked ? await getPredictionStatsAfterLock(match.id) : null;
+
+  // Match Center (lineups + events) is relevant from ~90 min before kickoff onward
+  // (ESPN publishes lineups about an hour out). Only fetch then, so far-future
+  // match pages don't hit ESPN.
+  const msToKick = match.kickoffAt.getTime() - Date.now();
+  const showCenter = !!(match.homeTeamId && match.awayTeamId) && msToKick <= 90 * 60_000;
+  const center = showCenter ? await getMatchCenter(match.id) : null;
 
   // After lock, reveal everyone's individual predictions + points (anti-cheat:
   // only once the match has started / finished).
@@ -104,6 +113,23 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
         {UI.kickoff}: <span className="text-slate-200">{formatDateTimeAr(match.kickoffAt)}</span>
       </p>
       <p className="mt-1 text-center text-xs text-slate-500">{UI.timezoneNote}</p>
+
+      {showCenter && center && (
+        <div className="mt-6">
+          <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-gold-400">
+            <BallIcon /> {UI.mcTitle}
+          </h2>
+          <MatchCenter
+            matchId={match.id}
+            initial={center}
+            homeName={homeName}
+            awayName={awayName}
+            homeFlag={match.homeTeam?.flagUrl ?? null}
+            awayFlag={match.awayTeam?.flagUrl ?? null}
+          />
+          <p className="mt-2 text-center text-[11px] text-slate-600">{UI.mcRatingNote}</p>
+        </div>
+      )}
 
       <div className="mt-6">
         {locked && stats ? (
