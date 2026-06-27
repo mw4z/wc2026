@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { teamsEqual } from "./fixtureMapping";
+import { resolvePhotos } from "./playerPhotoResolver";
 
 // Match Center: lineups + formations + live events for a single match, from ESPN's
 // free `summary` endpoint. We resolve our match → ESPN event by team names + date,
@@ -200,7 +201,7 @@ function layoutStarters(players: LineupPlayer[], formation: string | null, side:
   });
 }
 
-function parseRoster(raw: RawRoster, side: Side): TeamLineup {
+function parseRoster(raw: RawRoster, side: Side, photos: Map<string, string | null>): TeamLineup {
   const all: LineupPlayer[] = (raw.roster ?? []).map((p) => ({
     id: p.athlete?.id ?? "",
     name: p.athlete?.shortName || p.athlete?.displayName || "",
@@ -209,7 +210,8 @@ function parseRoster(raw: RawRoster, side: Side): TeamLineup {
     starter: p.starter === true,
     subbedIn: p.subbedIn === true,
     subbedOut: p.subbedOut === true,
-    headshot: headshotUrl(p.athlete),
+    // Wikipedia photo (resolved by full name) → ESPN field → ESPN-by-id (best effort).
+    headshot: photos.get(p.athlete?.displayName ?? "") || headshotUrl(p.athlete),
     rating: computeRating(p),
     goals: statNum(p.stats, "totalGoals") || statNum(p.stats, "goals"),
     yellow: statNum(p.stats, "yellowCards") > 0,
@@ -332,6 +334,18 @@ export async function getMatchCenter(matchId: string): Promise<MatchCenter> {
 
   // Map ESPN rosters to OUR home/away by team name.
   const rosters = sum.rosters ?? [];
+
+  // Resolve a photo for EVERY player (Wikipedia, cached). Skip names ESPN already
+  // gives a photo for to save lookups.
+  const names: string[] = [];
+  for (const r of rosters) {
+    for (const p of r.roster ?? []) {
+      const dn = p.athlete?.displayName;
+      if (dn && !p.athlete?.headshot?.href) names.push(dn);
+    }
+  }
+  const photos = names.length ? await resolvePhotos(names) : new Map<string, string | null>();
+
   let home: TeamLineup | null = null;
   let away: TeamLineup | null = null;
   for (const r of rosters) {
@@ -339,7 +353,7 @@ export async function getMatchCenter(matchId: string): Promise<MatchCenter> {
     const isHome = teamsEqual(dn, match.homeTeam.nameEn);
     const isAway = teamsEqual(dn, match.awayTeam.nameEn);
     const side: Side = isHome ? "home" : isAway ? "away" : (r.homeAway === "home" ? "home" : "away");
-    const lineup = parseRoster(r, side);
+    const lineup = parseRoster(r, side, photos);
     if (side === "home") home = lineup;
     else away = lineup;
   }
