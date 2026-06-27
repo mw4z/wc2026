@@ -245,7 +245,17 @@ export async function getTournamentData(): Promise<TournamentData> {
   // and re-sort, so points and positions update in real time — not only at
   // full-time. (Recomputed each request from fresh ESPN data; never persisted.)
   if (groups.some((g) => g.teams.some((t) => t.live))) {
+    // Official 3rd-place ranking (before the live fold) — to show how the live
+    // results shuffle the best-third table.
+    const officialThirdRank = new Map<string, number>();
+    thirdPlace.forEach((r, i) => officialThirdRank.set(codeOf(r.team), i + 1));
+
     for (const g of groups) {
+      // Remember each team's full-time position in this group, then fold in the
+      // live result and re-sort. The arrow shows full-time → live movement.
+      const officialRank = new Map<string, number>();
+      g.teams.forEach((t, i) => officialRank.set(codeOf(t), i + 1));
+
       for (const t of g.teams) {
         if (!t.live) continue;
         const { gf, ga } = t.live;
@@ -264,16 +274,22 @@ export async function getTournamentData(): Promise<TournamentData> {
         }
       }
       g.teams.sort(cmp);
+      g.teams.forEach((t, i) => {
+        const before = officialRank.get(codeOf(t));
+        t.movement = before == null ? null : before - (i + 1);
+      });
     }
-    // Re-derive the best-third cut from the provisional order (carry movement by team).
-    const moves = new Map(thirdPlace.map((r) => [codeOf(r.team), r.movement] as const));
+
+    // Re-derive the best-third cut from the provisional order, with live movement.
     for (const g of groups) for (const t of g.teams) t.thirdQualified = false;
     thirdPlace = groups
       .filter((g) => g.teams.length >= 3)
-      .map((g) => ({ group: g.name, team: g.teams[2]!, movement: moves.get(codeOf(g.teams[2]!)) ?? null }))
+      .map((g) => ({ group: g.name, team: g.teams[2]!, movement: null as number | null }))
       .sort((a, b) => cmp(a.team, b.team));
     thirdPlace.forEach((r, i) => {
       r.team.thirdQualified = i < 8;
+      const before = officialThirdRank.get(codeOf(r.team));
+      r.movement = before == null ? null : before - (i + 1);
     });
   }
 
