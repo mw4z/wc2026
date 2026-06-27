@@ -21,7 +21,9 @@ function norm(name: string): string {
     .toLowerCase()
     .replace(/[^a-z]+/g, "");
 }
-const cacheKey = (n: string) => `pp:${n}`;
+// v2: bumped after fixing transient failures being cached as permanent negatives,
+// so any "no photo" rows written during a rate-limited burst are ignored & retried.
+const cacheKey = (n: string) => `pp2:${n}`;
 const WIKI_UA = "wc2026-gamepredict/1.0 (player photos)";
 
 function isFootballerDesc(desc: string | undefined): boolean {
@@ -41,16 +43,19 @@ interface WpImages {
   };
 }
 
+// Returns the photo URL, or null when the query SUCCEEDED but the player has no
+// image. THROWS on a transient failure (timeout / non-OK / network) so the caller
+// knows not to cache it as a permanent "no photo".
 async function fromWikipedia(latin: string): Promise<string | null> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 3500);
+  const timer = setTimeout(() => ctrl.abort(), 4500);
   try {
     const url =
       "https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages%7Cdescription" +
       "&piprop=thumbnail&pithumbsize=200&generator=search&gsrlimit=3" +
       `&gsrsearch=${encodeURIComponent(latin + " footballer")}`;
     const res = await fetch(url, { signal: ctrl.signal, headers: { "User-Agent": WIKI_UA }, cache: "no-store" });
-    if (!res.ok) return null;
+    if (!res.ok) throw new Error(`wiki ${res.status}`); // transient (e.g. 429) — don't cache
     const json = (await res.json()) as WpImages;
     const pages = Object.values(json.query?.pages ?? {}).sort((a, b) => (a.index ?? 99) - (b.index ?? 99));
     for (const p of pages) {
@@ -58,9 +63,7 @@ async function fromWikipedia(latin: string): Promise<string | null> {
     }
     // Fallback: first hit with any thumbnail (search already biased by "footballer").
     for (const p of pages) if (p.thumbnail?.source) return p.thumbnail.source;
-    return null;
-  } catch {
-    return null;
+    return null; // genuine: no image for this player
   } finally {
     clearTimeout(timer);
   }
@@ -83,9 +86,16 @@ export async function lookupPhoto(latin: string): Promise<string | null | undefi
   return undefined;
 }
 
-// Hit Wikipedia, then persist (mem + Setting). Used after the caches miss.
+// Hit Wikipedia, then persist (mem + Setting). On a TRANSIENT failure we return
+// null WITHOUT caching, so the player is retried on the next poll (and not stuck
+// on the flag forever).
 async function networkResolve(latin: string): Promise<string | null> {
-  const url = await fromWikipedia(latin).catch(() => null);
+  let url: string | null;
+  try {
+    url = await fromWikipedia(latin);
+  } catch {
+    return null; // transient — do not cache, retry later
+  }
   const n = norm(latin);
   mem.set(n, url);
   try {
@@ -149,8 +159,9 @@ export async function resolvePhotos(names: string[]): Promise<Map<string, string
     }
   }
 
-  // 3) network-resolve the true misses, capped concurrency (polite to Wikipedia)
-  const CONC = 6;
+  // 3) network-resolve the true misses, capped concurrency (polite to Wikipedia;
+  // transient failures aren't cached, so any stragglers fill in on the next poll)
+  const CONC = 4;
   for (let i = 0; i < todo.length; i += CONC) {
     const batch = todo.slice(i, i + CONC);
     const results = await Promise.all(batch.map((name) => networkResolve(name).then((u) => [name, u] as const)));
