@@ -120,14 +120,23 @@ export function MatchFormSheet({
           >
             {/* Grab handle — swipe down to dismiss. */}
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-base font-bold text-gold-400">
-                <StandingsIcon /> {UI.formTitle}
-              </h2>
+            <div className="mb-4 flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h2 className="flex items-center gap-2 text-base font-bold text-gold-400">
+                  <StandingsIcon /> {UI.formTitle}
+                </h2>
+                <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs font-semibold text-slate-300">
+                  <Flag src={homeFlag} className="h-3.5 w-3.5 shrink-0" />
+                  {homeName}
+                  <span className="text-slate-500">{UI.vs}</span>
+                  {awayName}
+                  <Flag src={awayFlag} className="h-3.5 w-3.5 shrink-0" />
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-full px-2 py-1 text-sm text-slate-400 hover:text-white"
+                className="shrink-0 rounded-full px-2 py-1 text-sm text-slate-400 hover:text-white"
                 aria-label="close"
               >
                 ✕
