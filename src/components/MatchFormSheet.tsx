@@ -107,6 +107,14 @@ export function MatchFormSheet({
 function TeamFormBlock({ form, teamName, flag }: { form: TeamForm | null; teamName: string; flag: string | null }) {
   const UI = useUI();
   if (!form || form.games.length === 0) return null;
+
+  // W/D/L tally + percentages over the games that have a result.
+  const w = form.games.filter((g) => g.result === "W").length;
+  const d = form.games.filter((g) => g.result === "D").length;
+  const l = form.games.filter((g) => g.result === "L").length;
+  const total = w + d + l;
+  const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
+
   return (
     <div>
       <div className="mb-2 flex items-center gap-2">
@@ -118,6 +126,26 @@ function TeamFormBlock({ form, teamName, flag }: { form: TeamForm | null; teamNa
           ))}
         </span>
       </div>
+
+      {total > 0 && (
+        <div className="mb-2">
+          {/* Proportional W/D/L bar */}
+          <div className="flex h-2 overflow-hidden rounded-full bg-white/5" dir="ltr">
+            {w > 0 && <span className="bg-lime-500" style={{ width: `${pct(w)}%` }} />}
+            {d > 0 && <span className="bg-slate-500" style={{ width: `${pct(d)}%` }} />}
+            {l > 0 && <span className="bg-red-500" style={{ width: `${pct(l)}%` }} />}
+          </div>
+          <div className="mt-1.5 flex items-center justify-between text-[11px] font-semibold">
+            <span className="text-lime-400">{UI.formWon} {pct(w)}% <span className="text-slate-500">({w})</span></span>
+            <span className="text-slate-300">{UI.formDrawn} {pct(d)}% <span className="text-slate-500">({d})</span></span>
+            <span className="text-red-400">{UI.formLost} {pct(l)}% <span className="text-slate-500">({l})</span></span>
+          </div>
+          <div className="mt-0.5 text-center text-[10px] text-slate-600">
+            {UI.formFromGames.replace("{n}", String(total))}
+          </div>
+        </div>
+      )}
+
       <div className="card divide-y divide-white/[0.06] overflow-hidden">
         {form.games.map((g, i) => (
           <FormRow key={i} g={g} />
