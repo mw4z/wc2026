@@ -112,16 +112,12 @@ function fmtCountdown(ms: number) {
 export function MatchCard({
   match,
   prediction,
-  groups = [],
   live = false,
   clickable = false,
   goals = [],
 }: {
   match: SerializedMatch;
   prediction: SerializedPrediction;
-  // The viewer's groups — once the match starts, the card links to each group's
-  // revealed member predictions (a picker when there's more than one).
-  groups?: { id: string; name: string }[];
   // In-play: the match has kicked off but has no result yet. Shows the animated
   // LIVE pill + a breathing halo so it stands out at the top of the list.
   live?: boolean;
@@ -413,8 +409,8 @@ export function MatchCard({
         ) : locked ? (
           <>
             <LockedView prediction={prediction} isKnockout={isKnockout} match={match} />
-            {/* Two distinct actions: the live lineup/Match Center, and members'
-                predictions. Stop clicks bubbling to a clickable card (→ detail). */}
+            {/* Two distinct actions: the live lineup/Match Center, and the match's
+                prediction details. Stop clicks bubbling to a clickable card. */}
             <div onClick={(e) => e.stopPropagation()}>
               <Link
                 href={`/matches/${match.id}#match-center`}
@@ -423,7 +419,13 @@ export function MatchCard({
                 <BallIcon className="text-base" />
                 {UI.viewLineups}
               </Link>
-              <GroupPicksButton groups={groups} />
+              <Link
+                href={`/matches/${match.id}/predictions`}
+                className="btn-ghost mt-2 inline-flex w-full items-center justify-center gap-1.5 text-sm"
+              >
+                <UsersIcon className="text-base" />
+                {UI.viewMatchPredictions}
+              </Link>
             </div>
           </>
         ) : notOpenYet ? (
@@ -522,7 +524,7 @@ export function MatchCard({
 
 // "See members' predictions" once a match starts. One group → direct link;
 // multiple groups → tap to expand and pick which group's board to open.
-function GroupPicksButton({ groups }: { groups: { id: string; name: string }[] }) {
+export function GroupPicksButton({ groups }: { groups: { id: string; name: string }[] }) {
   const UI = useUI();
   const [open, setOpen] = useState(false);
   if (groups.length === 0) return null;

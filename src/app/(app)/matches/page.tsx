@@ -34,17 +34,12 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
     : "all";
   await lockDueMatches(); // keep status badges accurate on load
 
-  const [matches, myPredictions, myGroups] = await Promise.all([
+  const [matches, myPredictions] = await Promise.all([
     prisma.match.findMany({
       include: { homeTeam: true, awayTeam: true },
       orderBy: { kickoffAt: "asc" },
     }),
     prisma.prediction.findMany({ where: { userId: user.id } }),
-    prisma.groupMember.findMany({
-      where: { userId: user.id, group: { isActive: true } },
-      select: { group: { select: { id: true, name: true } } },
-      orderBy: { joinedAt: "asc" },
-    }),
   ]);
   const lead = await getPredictionLead();
   // Goal scorers for finished/live matches (Arabic resolved from cache).
@@ -65,10 +60,6 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
   // promo from the matches page even when the feature is enabled. Flip back to
   // `true` after the World Cup final to surface the awarded prizes again.
   const SHOW_AWARDS_PROMO = false;
-
-  // The user's groups — the card links to each group's revealed member picks once
-  // a match starts (a picker when there's more than one).
-  const myGroupList = myGroups.map((m) => ({ id: m.group.id, name: m.group.name }));
 
   const predByMatch = new Map(myPredictions.map((p) => [p.matchId, p]));
   const now = new Date();
@@ -165,7 +156,6 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
               key={m.id}
               match={serializeMatch(m, locale, lead)}
               prediction={serializePrediction(predByMatch.get(m.id))}
-              groups={myGroupList}
               live={opts?.live}
               clickable
               goals={goalsByMatch.get(m.id) ?? []}

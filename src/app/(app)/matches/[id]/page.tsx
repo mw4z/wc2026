@@ -2,11 +2,9 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { lockDueMatches } from "@/lib/matches";
-import { getPredictionStatsAfterLock } from "@/lib/predictions";
-import { isKickoffReached, formatDateTimeAr } from "@/lib/time";
+import { formatDateTimeAr } from "@/lib/time";
 import { getUI, getLocale } from "@/lib/locale";
 import { MatchCard } from "@/components/MatchCard";
-import { PredictionDistribution } from "@/components/PredictionDistribution";
 import { TournamentHero } from "@/components/TournamentHero";
 import { BallIcon, ArrowIcon } from "@/components/icons";
 import { serializeMatch, serializePrediction } from "../page";
@@ -43,43 +41,12 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
     where: { userId_matchId: { userId: user.id, matchId: match.id } },
   });
 
-  const myGroups = await prisma.groupMember.findMany({
-    where: { userId: user.id, group: { isActive: true } },
-    select: { group: { select: { id: true, name: true } } },
-    orderBy: { joinedAt: "asc" },
-  });
-  const myGroupList = myGroups.map((m) => ({ id: m.group.id, name: m.group.name }));
-
-  // Mirror the server lock guard: a match is locked once it leaves SCHEDULED or
-  // kickoff is reached. Stats are only exposed (and computed) after lock.
-  const locked = match.status !== "SCHEDULED" || isKickoffReached(match.kickoffAt);
-  const stats = locked ? await getPredictionStatsAfterLock(match.id) : null;
-
   // Match Center (lineups + events) is relevant from ~90 min before kickoff onward
   // (ESPN publishes lineups about an hour out). Only fetch then, so far-future
   // match pages don't hit ESPN.
   const msToKick = match.kickoffAt.getTime() - Date.now();
   const showCenter = !!(match.homeTeamId && match.awayTeamId) && msToKick <= 90 * 60_000;
   const center = showCenter ? await getMatchCenter(match.id) : null;
-
-  // After lock, reveal everyone's individual predictions + points (anti-cheat:
-  // only once the match has started / finished).
-  const allPredictions = locked
-    ? await prisma.prediction.findMany({
-        where: { matchId: match.id },
-        include: { user: { select: { name: true } }, predictedWinner: { select: { nameAr: true, nameEn: true } } },
-      })
-    : [];
-  allPredictions.sort(
-    (a, b) => (b.pointsAwarded ?? -1) - (a.pointsAwarded ?? -1) || a.user.name.localeCompare(b.user.name),
-  );
-
-  // Actual outcome (pre-penalty), once a result is recorded — matches how the
-  // distribution buckets predictions, so the highlight lines up.
-  let actual: "HOME" | "DRAW" | "AWAY" | null = null;
-  if (match.homeScore != null && match.awayScore != null) {
-    actual = match.homeScore > match.awayScore ? "HOME" : match.homeScore < match.awayScore ? "AWAY" : "DRAW";
-  }
 
   const teamName = (t: { nameAr: string; nameEn: string } | null) =>
     t ? (locale === "en" ? t.nameEn : t.nameAr) : UI.tbd;
@@ -105,7 +72,6 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
       <MatchCard
         match={serializeMatch(match, locale)}
         prediction={serializePrediction(myPrediction ?? undefined)}
-        groups={myGroupList}
         goals={(await getSerializedGoals([match.id])).get(match.id) ?? []}
       />
 
@@ -128,57 +94,6 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
             awayFlag={match.awayTeam?.flagUrl ?? null}
           />
           <p className="mt-2 text-center text-[11px] text-slate-600">{UI.mcRatingNote}</p>
-        </div>
-      )}
-
-      <div className="mt-6">
-        {locked && stats ? (
-          <PredictionDistribution
-            stats={stats}
-            homeName={homeName}
-            awayName={awayName}
-            actual={actual}
-          />
-        ) : (
-          <p className="card p-5 text-center text-sm text-slate-500">{UI.distributionAfterLock}</p>
-        )}
-      </div>
-
-      {locked && allPredictions.length > 0 && (
-        <div className="mt-6">
-          <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-gold-400">
-            <BallIcon /> {UI.allPredictionsTitle}
-          </h2>
-          <div className="card overflow-hidden divide-y divide-white/[0.06]">
-            {allPredictions.map((p) => (
-              <div
-                key={p.id}
-                className={`flex items-center gap-3 px-3 py-2 text-sm ${p.userId === user.id ? "bg-accent-500/10" : ""}`}
-              >
-                <span className="min-w-0 flex-1 truncate font-semibold text-slate-100">
-                  {p.user.name}
-                  {p.userId === user.id && <span className="ms-1 text-[10px] text-accent-300">({UI.yourPick})</span>}
-                </span>
-                {/* Flex spans (not a string) so home/away don't bidi-flip in RTL —
-                    home on the right, away on the left, matching the match card. */}
-                <span className="inline-flex shrink-0 items-center gap-1 font-display tnum text-slate-200">
-                  <span>{p.predictedHomeScore}</span>
-                  <span className="text-slate-600">-</span>
-                  <span>{p.predictedAwayScore}</span>
-                </span>
-                {p.predictedWinner && (
-                  <span className="hidden shrink-0 text-xs text-slate-500 sm:inline">
-                    {teamName(p.predictedWinner)}
-                  </span>
-                )}
-                {p.pointsAwarded != null && (
-                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-bold ${p.pointsAwarded > 0 ? "bg-gold-500/15 text-gold-400" : "bg-white/[0.06] text-slate-500"}`}>
-                    +{p.pointsAwarded}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
         </div>
       )}
     </div>

@@ -47,6 +47,8 @@ const ar = {
   // match center
   mcTitle: "مركز المباراة",
   viewLineups: "التشكيلة والأحداث",
+  viewMatchPredictions: "توقعات المباراة",
+  matchPredictionsTitle: "توقعات المباراة",
   mcLineups: "التشكيلة",
   mcEvents: "الأحداث",
   mcBench: "البدلاء",
@@ -710,6 +712,8 @@ const en: Dict = {
   // match center
   mcTitle: "Match Center",
   viewLineups: "Lineups & events",
+  viewMatchPredictions: "Match predictions",
+  matchPredictionsTitle: "Match predictions",
   mcLineups: "Lineups",
   mcEvents: "Events",
   mcBench: "Substitutes",
