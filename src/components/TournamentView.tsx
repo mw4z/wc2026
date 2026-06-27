@@ -133,7 +133,10 @@ function GroupTable({ group }: { group: StandingGroup }) {
         </thead>
         <tbody>
           {group.teams.map((t, i) => {
-            const qualifies = t.advanced || t.thirdQualified;
+            // Top 2 of the group always qualify; the 3rd qualifies only while inside
+            // the 8 best-thirds cut. Position-based so it updates live with standings.
+            const top2 = i < 2;
+            const qualifies = top2 || (i === 2 && t.thirdQualified);
             return (
             <tr
               key={t.nameEn}
@@ -143,7 +146,7 @@ function GroupTable({ group }: { group: StandingGroup }) {
                 <div className="relative flex items-center gap-1.5">
                   {qualifies && (
                     <span
-                      className={`absolute -start-2 h-3.5 w-1 rounded-full ${t.advanced ? "bg-lime-400" : "bg-lime-400/50"}`}
+                      className={`absolute -start-2 h-3.5 w-1 rounded-full ${top2 ? "bg-lime-400" : "bg-lime-400/50"}`}
                       aria-hidden
                     />
                   )}
