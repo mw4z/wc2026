@@ -11,6 +11,7 @@ import { playerDisplayName } from "@/lib/playerNames";
 import { playGoal, playWhistle, playWin, playLose } from "@/lib/sounds";
 import { ClockIcon, CheckIcon, LockIcon, UsersIcon, ArrowIcon, BallIcon } from "./icons";
 import { Flag } from "./Flag";
+import { MatchFormSheet } from "./MatchFormSheet";
 
 const KNOCKOUT = new Set([
   "ROUND_OF_32",
@@ -510,6 +511,19 @@ export function MatchCard({
           </div>
         )}
       </div>
+
+      {/* Recent results sheet — each team's last few games, to help users predict. */}
+      {teamsKnown && (
+        <div className="border-t border-white/[0.06] px-4 pb-3" onClick={(e) => e.stopPropagation()}>
+          <MatchFormSheet
+            matchId={match.id}
+            homeName={match.homeTeam!.name}
+            awayName={match.awayTeam!.name}
+            homeFlag={match.homeTeam!.flagUrl}
+            awayFlag={match.awayTeam!.flagUrl}
+          />
+        </div>
+      )}
 
       {/* Tap affordance — makes it obvious a finished card opens its detail page. */}
       {cardClickable && (

@@ -108,12 +108,49 @@ interface RawKeyEvent {
   participants?: { athlete?: RawAthlete }[];
   athletesInvolved?: RawAthlete[];
 }
+interface RawFormEvent {
+  gameDate?: string;
+  score?: string;
+  gameResult?: string; // "W" | "D" | "L"
+  atVs?: string; // "@" = away
+  competitionName?: string;
+  homeTeamId?: string;
+  awayTeamId?: string;
+  homeTeamScore?: string;
+  awayTeamScore?: string;
+  opponent?: { id?: string; displayName?: string; abbreviation?: string; logo?: string };
+}
+interface RawLastFive {
+  team?: { id?: string; displayName?: string };
+  events?: RawFormEvent[];
+}
 interface RawSummary {
   rosters?: RawRoster[];
   keyEvents?: RawKeyEvent[];
+  lastFiveGames?: RawLastFive[];
   header?: {
     competitions?: { status?: { type?: { state?: string; shortDetail?: string } } }[];
   };
+}
+
+export interface FormGame {
+  dateISO: string;
+  result: "W" | "D" | "L" | "";
+  gf: number | null; // this team's goals
+  ga: number | null; // opponent's goals
+  opponent: string;
+  opponentLogo: string | null;
+  home: boolean; // this team played at home
+  competition: string;
+}
+export interface TeamForm {
+  side: Side;
+  games: FormGame[];
+}
+export interface MatchForm {
+  available: boolean;
+  home: TeamForm | null;
+  away: TeamForm | null;
 }
 
 // ---- caches (keep ESPN polite; many clients → ~1 request per window) ----
@@ -380,4 +417,66 @@ export async function getMatchCenter(matchId: string): Promise<MatchCenter> {
     .filter((e) => e.type !== "other" || /goal|card|substitut|penalt|var/i.test(e.text));
 
   return { available: hasLineups, state, statusDetail, home, away, events };
+}
+
+function parseForm(raw: RawLastFive, side: Side): TeamForm {
+  const teamId = raw.team?.id ?? "";
+  const num = (s?: string) => (s != null && s !== "" ? Number(s) : null);
+  const games: FormGame[] = (raw.events ?? []).map((e) => {
+    const wasHome = e.atVs !== "@";
+    // Orient the score to THIS team (gf) vs the opponent (ga).
+    const isHomeById = teamId !== "" && String(e.homeTeamId) === teamId;
+    const home = isHomeById || (e.homeTeamId == null && wasHome);
+    const gf = home ? num(e.homeTeamScore) : num(e.awayTeamScore);
+    const ga = home ? num(e.awayTeamScore) : num(e.homeTeamScore);
+    const r = (e.gameResult ?? "").toUpperCase();
+    return {
+      dateISO: e.gameDate ?? "",
+      result: r === "W" || r === "D" || r === "L" ? (r as "W" | "D" | "L") : "",
+      gf,
+      ga,
+      opponent: e.opponent?.displayName ?? e.opponent?.abbreviation ?? "",
+      opponentLogo: e.opponent?.logo ?? null,
+      home,
+      competition: e.competitionName ?? "",
+    };
+  });
+  return { side, games };
+}
+
+// Each team's recent results (ESPN "last five"), to help users predict. Reuses the
+// same cached event-id + summary lookups as the Match Center.
+export async function getMatchForm(matchId: string): Promise<MatchForm> {
+  const empty: MatchForm = { available: false, home: null, away: null };
+  const match = await prisma.match.findUnique({
+    where: { id: matchId },
+    include: { homeTeam: true, awayTeam: true },
+  });
+  if (!match?.homeTeam || !match.awayTeam) return empty;
+
+  const eventId = await findEventId({
+    kickoffAt: match.kickoffAt,
+    homeEn: match.homeTeam.nameEn,
+    awayEn: match.awayTeam.nameEn,
+  });
+  if (!eventId) return empty;
+  const sum = await fetchSummary(eventId);
+  if (!sum) return empty;
+
+  let home: TeamForm | null = null;
+  let away: TeamForm | null = null;
+  for (const lf of sum.lastFiveGames ?? []) {
+    const dn = lf.team?.displayName ?? "";
+    const side: Side | null = teamsEqual(dn, match.homeTeam.nameEn)
+      ? "home"
+      : teamsEqual(dn, match.awayTeam.nameEn)
+        ? "away"
+        : null;
+    if (!side) continue;
+    const form = parseForm(lf, side);
+    if (side === "home") home = form;
+    else away = form;
+  }
+  const available = (home?.games.length ?? 0) > 0 || (away?.games.length ?? 0) > 0;
+  return { available, home, away };
 }
