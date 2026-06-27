@@ -24,6 +24,7 @@ export interface StandingTeam {
   points: number;
   advanced: boolean;
   movement: number | null; // position change since the last completed matchday (+up / -down)
+  live: { gf: number; ga: number } | null; // this team's running score if its match is in play now
 }
 export interface StandingGroup {
   name: string;
@@ -132,7 +133,7 @@ const STAGE_ORDER: Stage[] = ["ROUND_OF_32", "ROUND_OF_16", "QUARTER_FINAL", "SE
 const LIVE_WINDOW_MS = 4 * 3600_000;
 
 export async function getTournamentData(): Promise<TournamentData> {
-  const [raw, dbTeams, knockout] = await Promise.all([
+  const [raw, dbTeams, knockout, groupMatches] = await Promise.all([
     fetchRawStandings(),
     prisma.team.findMany({ select: { nameEn: true, nameAr: true, code: true, flagUrl: true } }),
     prisma.match.findMany({
@@ -140,10 +141,31 @@ export async function getTournamentData(): Promise<TournamentData> {
       include: { homeTeam: true, awayTeam: true },
       orderBy: { matchNumber: "asc" },
     }),
+    prisma.match.findMany({
+      where: { stage: "GROUP", homeScore: null, awayScore: null },
+      include: { homeTeam: true, awayTeam: true },
+    }),
   ]);
+
+  // Map each team currently playing a group match → its running (in-play) score.
+  // Keyed by the team's English name so we can match it to the ESPN standings row.
+  const now0 = Date.now();
+  const liveByTeam = new Map<string, { gf: number; ga: number }>();
+  for (const m of groupMatches) {
+    const playing = m.kickoffAt.getTime() <= now0 && now0 - m.kickoffAt.getTime() <= LIVE_WINDOW_MS;
+    if (!playing || !m.homeTeam || !m.awayTeam) continue;
+    const h = m.liveHomeScore ?? 0;
+    const a = m.liveAwayScore ?? 0;
+    liveByTeam.set(m.homeTeam.nameEn, { gf: h, ga: a });
+    liveByTeam.set(m.awayTeam.nameEn, { gf: a, ga: h });
+  }
 
   // Enrich ESPN standings with our Arabic names + flags.
   const arOf = (nameEn: string) => dbTeams.find((t) => teamsEqual(t.nameEn, nameEn)) ?? null;
+  const liveOf = (nameEn: string) => {
+    for (const [en, sc] of liveByTeam) if (teamsEqual(en, nameEn)) return sc;
+    return null;
+  };
   const groups: StandingGroup[] = raw.map((g) => ({
     name: g.name,
     teams: g.teams.map((t) => {
@@ -164,6 +186,7 @@ export async function getTournamentData(): Promise<TournamentData> {
         points: t.points,
         advanced: t.advanced,
         movement: null as number | null,
+        live: liveOf(t.nameEn),
       };
     }),
   }));

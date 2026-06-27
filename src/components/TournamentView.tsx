@@ -89,6 +89,28 @@ export function TournamentView({ initial }: { initial: TournamentData }) {
   );
 }
 
+// Pulsing in-play score for a team whose match is live right now. Coloured by the
+// running result: green if this team is ahead, red if behind, neutral if level.
+function LiveBadge({ score }: { score: { gf: number; ga: number } }) {
+  const state = score.gf > score.ga ? "win" : score.gf < score.ga ? "lose" : "draw";
+  const tone =
+    state === "win"
+      ? "bg-lime-500/15 text-lime-400 ring-lime-500/30"
+      : state === "lose"
+        ? "bg-red-500/15 text-red-400 ring-red-500/30"
+        : "bg-slate-500/15 text-slate-300 ring-slate-400/30";
+  const dot = state === "win" ? "bg-lime-400" : state === "lose" ? "bg-red-400" : "bg-slate-300";
+  return (
+    <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-extrabold ring-1 ring-inset ${tone}`}>
+      <span className="relative flex h-1.5 w-1.5">
+        <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${dot}`} />
+        <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${dot}`} />
+      </span>
+      <span dir="ltr" className="tnum">{score.gf}-{score.ga}</span>
+    </span>
+  );
+}
+
 function GroupTable({ group }: { group: StandingGroup }) {
   const UI = useUI();
   return (
@@ -113,7 +135,7 @@ function GroupTable({ group }: { group: StandingGroup }) {
           {group.teams.map((t, i) => (
             <tr
               key={t.nameEn}
-              className={`border-t border-white/[0.05] ${t.advanced ? "bg-lime-500/[0.07]" : ""}`}
+              className={`border-t border-white/[0.05] ${t.live ? "bg-white/[0.04]" : t.advanced ? "bg-lime-500/[0.07]" : ""}`}
             >
               <td className="py-2 ps-3">
                 <div className="relative flex items-center gap-1.5">
@@ -126,6 +148,7 @@ function GroupTable({ group }: { group: StandingGroup }) {
                 <span className="flex items-center gap-2">
                   <Flag src={t.flagUrl} className="h-4 w-4 shrink-0" />
                   <span className="truncate font-semibold text-slate-100">{t.nameAr}</span>
+                  {t.live && <LiveBadge score={t.live} />}
                 </span>
               </td>
               <td className="py-2 px-1 text-center tnum text-slate-300">{t.played}</td>
@@ -186,6 +209,7 @@ function ThirdPlaceTable({ rows }: { rows: ThirdPlaceRow[] }) {
                     <span className="flex items-center gap-2">
                       <Flag src={r.team.flagUrl} className="h-4 w-4 shrink-0" />
                       <span className="truncate font-semibold text-slate-100">{r.team.nameAr}</span>
+                      {r.team.live && <LiveBadge score={r.team.live} />}
                     </span>
                   </td>
                   <td className="py-2 px-1 text-center text-slate-400">{r.group.replace(/^Group\s*/i, "")}</td>
