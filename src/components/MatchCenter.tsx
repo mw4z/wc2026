@@ -125,7 +125,7 @@ function Pitch({
       <div
         className="relative w-full"
         style={{
-          aspectRatio: "3 / 4",
+          aspectRatio: "10 / 15",
           background:
             "repeating-linear-gradient(0deg, #0c5a32 0px, #0c5a32 40px, #0a532e 40px, #0a532e 80px)",
         }}
@@ -200,7 +200,10 @@ function PlayerToken({ p, side }: { p: LineupPlayer; side: Side }) {
           {p.subbedOut && <span className="text-[9px] leading-none text-red-400">▾</span>}
         </span>
       </div>
-      <span className="mt-1 max-w-full truncate rounded bg-navy-950/70 px-1 text-[9px] font-semibold text-white">
+      <span
+        dir="ltr"
+        className="mt-1 max-w-full truncate rounded bg-navy-950/70 px-1 text-center text-[9px] font-semibold text-white"
+      >
         {p.name}
       </span>
     </div>

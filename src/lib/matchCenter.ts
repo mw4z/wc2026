@@ -161,29 +161,32 @@ function layoutStarters(players: LineupPlayer[], formation: string | null, side:
   const outfield = digits.reduce((a, b) => a + b, 0);
   const usable = sorted.length === 11 && outfield === 10;
 
+  // Each team is confined to its OWN HALF: away occupies the top (y 6..46), home
+  // the bottom (y 54..94). `frac` runs 0 (own goal line) → 1 (just before halfway).
+  const yFor = (frac: number) => (side === "home" ? 94 - frac * 40 : 6 + frac * 40);
+
   if (!usable) {
-    // Fallback: even grid, GK first.
-    const rows = Math.max(1, Math.ceil(sorted.length / 4));
+    // Fallback: even grid within the team's half, GK row first.
+    const per = 4;
+    const rows = Math.max(1, Math.ceil(sorted.length / per));
     sorted.forEach((p, i) => {
-      const row = Math.floor(i / 4);
-      const inRow = sorted.filter((_, j) => Math.floor(j / 4) === row).length;
-      const col = i % 4;
+      const row = Math.floor(i / per);
+      const inRow = sorted.filter((_, j) => Math.floor(j / per) === row).length;
+      const col = i % per;
       p.x = ((col + 1) / (inRow + 1)) * 100;
-      p.y = ((row + 1) / (rows + 1)) * 100;
+      p.y = yFor(rows === 1 ? 0.5 : row / (rows - 1));
     });
-    if (side === "away") sorted.forEach((p) => (p.y = 100 - p.y));
     return;
   }
 
-  // y goes from ~10 (own goal line) to ~92 (just before halfway) across the lines.
   const R = lines.length;
   let idx = 0;
   lines.forEach((count, li) => {
-    const yOwnHalf = R === 1 ? 50 : 10 + (li / (R - 1)) * 82; // 10..92
+    const y = yFor(R === 1 ? 0.5 : li / (R - 1));
     for (let k = 0; k < count; k++) {
       const p = sorted[idx++]!;
       p.x = ((k + 1) / (count + 1)) * 100;
-      p.y = side === "home" ? 100 - yOwnHalf : yOwnHalf; // home defends bottom
+      p.y = y;
     }
   });
 }
