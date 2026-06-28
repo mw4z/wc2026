@@ -44,7 +44,7 @@ function useFlipRows(orderKey: string) {
 export function TournamentView({ initial }: { initial: TournamentData }) {
   const UI = useUI();
   const [data, setData] = useState(initial);
-  const [tab, setTab] = useState<"groups" | "knockout">("groups");
+  const [tab, setTab] = useState<"groups" | "knockout">("knockout");
   const active = useRef(true);
 
   useEffect(() => {
@@ -69,7 +69,7 @@ export function TournamentView({ initial }: { initial: TournamentData }) {
   return (
     <div>
       <div className="mb-5 grid grid-cols-2 gap-2">
-        {(["groups", "knockout"] as const).map((t) => (
+        {(["knockout", "groups"] as const).map((t) => (
           <button
             key={t}
             type="button"
