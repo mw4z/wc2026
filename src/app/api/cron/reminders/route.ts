@@ -35,14 +35,25 @@ const tn = (t: { nameAr: string } | null) => t?.nameAr ?? "—";
 
 export async function GET(req: NextRequest) {
   if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!pushConfigured) return NextResponse.json({ skipped: "push not configured" });
+
+  // Fill knockout (TBD) matches with teams as ESPN determines them. Done FIRST and
+  // independent of push, so it runs even when push isn't configured or no one has
+  // notifications enabled (otherwise the early returns below would skip it).
+  let knockoutAssigned = 0;
+  try {
+    ({ assigned: knockoutAssigned } = await assignKnockoutTeamsFromEspn({ apply: true }));
+  } catch (e) {
+    console.error("[reminders] knockout team assign failed:", (e as Error).message);
+  }
+
+  if (!pushConfigured) return NextResponse.json({ skipped: "push not configured", knockoutAssigned });
 
   const now = new Date();
   const nowMs = now.getTime();
   const lead = await getPredictionLead();
 
   const subs = await prisma.pushSubscription.findMany();
-  if (subs.length === 0) return NextResponse.json({ reason: "no subscriptions", open: 0, closing: 0, scored: 0 });
+  if (subs.length === 0) return NextResponse.json({ reason: "no subscriptions", knockoutAssigned, open: 0, closing: 0, scored: 0 });
   const userIds = [...new Set(subs.map((s) => s.userId))];
   const subsByUser = new Map<string, StoredSubscription[]>();
   for (const s of subs) {
@@ -229,14 +240,6 @@ export async function GET(req: NextRequest) {
   // Nudge notification-enabled-but-not-installed users to add the app to their
   // home screen (throttled to every few days per user; stops once installed).
   const installReminded = await notifyInstallReminders();
-
-  // Fill knockout (TBD) matches with teams as ESPN determines them (best-effort).
-  let knockoutAssigned = 0;
-  try {
-    ({ assigned: knockoutAssigned } = await assignKnockoutTeamsFromEspn({ apply: true }));
-  } catch (e) {
-    console.error("[reminders] knockout team assign failed:", (e as Error).message);
-  }
 
   return NextResponse.json({
     pushed,
