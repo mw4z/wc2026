@@ -34,8 +34,10 @@ export interface StandingGroup {
 export interface BracketTeam {
   nameAr: string;
   flagUrl: string | null;
+  code: string | null; // stable identity for linking a winner into the next round
 }
 export interface BracketMatch {
+  id: string;
   matchNumber: number;
   home: BracketTeam | null;
   away: BracketTeam | null;
@@ -44,6 +46,7 @@ export interface BracketMatch {
   status: string; // "SCHEDULED" | "LIVE" | "FINISHED" | "SCORED" | ...
   live: boolean;
   kickoffISO: string;
+  winnerCode: string | null; // the advancing team's code (covers penalties), when known
 }
 export interface BracketRound {
   stage: Stage;
@@ -139,7 +142,7 @@ export async function getTournamentData(): Promise<TournamentData> {
     prisma.team.findMany({ select: { nameEn: true, nameAr: true, code: true, flagUrl: true } }),
     prisma.match.findMany({
       where: { stage: { in: STAGE_ORDER } },
-      include: { homeTeam: true, awayTeam: true },
+      include: { homeTeam: true, awayTeam: true, winnerTeam: true },
       orderBy: { matchNumber: "asc" },
     }),
     prisma.match.findMany({
@@ -199,9 +202,11 @@ export async function getTournamentData(): Promise<TournamentData> {
   for (const m of knockout) {
     const isDone = m.homeScore != null && m.awayScore != null;
     const isLive = !isDone && m.kickoffAt.getTime() <= now && now - m.kickoffAt.getTime() <= LIVE_WINDOW_MS;
-    const team = (t: (typeof m)["homeTeam"]): BracketTeam | null => (t ? { nameAr: t.nameAr, flagUrl: t.flagUrl } : null);
+    const team = (t: (typeof m)["homeTeam"]): BracketTeam | null =>
+      t ? { nameAr: t.nameAr, flagUrl: t.flagUrl, code: t.code } : null;
     const list = byStage.get(m.stage) ?? [];
     list.push({
+      id: m.id,
       matchNumber: m.matchNumber,
       home: team(m.homeTeam),
       away: team(m.awayTeam),
@@ -210,6 +215,7 @@ export async function getTournamentData(): Promise<TournamentData> {
       status: m.status,
       live: isLive,
       kickoffISO: m.kickoffAt.toISOString(),
+      winnerCode: m.winnerTeam?.code ?? null,
     });
     byStage.set(m.stage, list);
   }

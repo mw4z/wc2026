@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useUI, useLocale } from "./I18nProvider";
+import { useUI } from "./I18nProvider";
 import { Flag } from "./Flag";
 import { MovementIndicator } from "./LeaderboardTable";
-import type { TournamentData, StandingGroup, ThirdPlaceRow, BracketRound, BracketMatch } from "@/lib/standings";
+import { InteractiveBracket } from "./InteractiveBracket";
+import type { TournamentData, StandingGroup, ThirdPlaceRow } from "@/lib/standings";
 
 const POLL_MS = 25_000;
-const DISPLAY_TZ = process.env.NEXT_PUBLIC_DISPLAY_TZ || "Asia/Riyadh";
 
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
@@ -37,14 +37,6 @@ function useFlipRows(orderKey: string) {
     prev.current = cur;
   }, [orderKey]);
   return rows;
-}
-
-// Short "day month · time" label for a bracket match, in the user's locale/timezone.
-function kickoffLabel(iso: string, locale: string): string {
-  const d = new Date(iso);
-  const day = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: DISPLAY_TZ }).format(d);
-  const time = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", timeZone: DISPLAY_TZ }).format(d);
-  return `${day} · ${time}`;
 }
 
 // Live tournament page: group standings + knockout bracket. Polls /api/tournament
@@ -109,11 +101,7 @@ export function TournamentView({ initial }: { initial: TournamentData }) {
       ) : data.bracket.length === 0 ? (
         <p className="card p-6 text-center text-sm text-slate-500">{UI.standingsKnockoutSoon}</p>
       ) : (
-        <div className="space-y-6">
-          {data.bracket.map((r) => (
-            <BracketSection key={r.stage} round={r} />
-          ))}
-        </div>
+        <InteractiveBracket bracket={data.bracket} />
       )}
     </div>
   );
@@ -282,54 +270,3 @@ function ThirdPlaceTable({ rows }: { rows: ThirdPlaceRow[] }) {
   );
 }
 
-function BracketSection({ round }: { round: BracketRound }) {
-  const UI = useUI();
-  return (
-    <section>
-      <h2 className="eyebrow mb-2">{UI.stages[round.stage]}</h2>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {round.matches.map((m) => (
-          <BracketCard key={m.matchNumber} m={m} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function BracketCard({ m }: { m: BracketMatch }) {
-  const UI = useUI();
-  const locale = useLocale();
-  const hasScore = m.homeScore != null && m.awayScore != null;
-  return (
-    <div className={`card px-3 py-2.5 ${m.live ? "card-live" : ""}`}>
-      <div className="flex items-center justify-between gap-2">
-        <BracketSide team={m.home} tbd={UI.tbd} />
-        <div className="flex shrink-0 flex-col items-center px-1">
-          {hasScore ? (
-            <span className="font-display text-lg font-extrabold tnum" dir="ltr">
-              {m.homeScore} : {m.awayScore}
-            </span>
-          ) : (
-            <span className="text-xs text-slate-500">{UI.vs}</span>
-          )}
-          {m.live && <span className="text-[9px] font-bold uppercase text-lime-400">{UI.statuses.LIVE}</span>}
-        </div>
-        <BracketSide team={m.away} tbd={UI.tbd} align="end" />
-      </div>
-      {!m.live && (
-        <div className="mt-2 border-t border-white/[0.06] pt-1.5 text-center text-[11px] font-semibold tnum text-slate-300">
-          {kickoffLabel(m.kickoffISO, locale)}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function BracketSide({ team, tbd, align = "start" }: { team: BracketMatch["home"]; tbd: string; align?: "start" | "end" }) {
-  return (
-    <div className={`flex min-w-0 flex-1 items-center gap-1.5 ${align === "end" ? "flex-row-reverse text-end" : "text-start"}`}>
-      <Flag src={team?.flagUrl} className="h-5 w-5 shrink-0" />
-      <span className="truncate text-xs font-semibold text-slate-100">{team?.nameAr ?? tbd}</span>
-    </div>
-  );
-}
