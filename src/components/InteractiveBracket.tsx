@@ -2,11 +2,21 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useUI } from "./I18nProvider";
+import { useUI, useLocale } from "./I18nProvider";
 import { Flag } from "./Flag";
 import type { BracketRound, BracketMatch, BracketTeam } from "@/lib/standings";
 
-const UNIT = 76; // vertical band per first-round match (sets column height + alignment)
+const UNIT = 92; // vertical band per first-round match (sets column height + alignment)
+const DISPLAY_TZ = process.env.NEXT_PUBLIC_DISPLAY_TZ || "Asia/Riyadh";
+
+// Short "day month · HH:MM" for a bracket match, in the user's locale/timezone.
+function kickoffLabel(iso: string, locale: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const day = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: DISPLAY_TZ }).format(d);
+  const time = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", timeZone: DISPLAY_TZ }).format(d);
+  return `${day} · ${time}`;
+}
 
 // Live knockout bracket "map": one column per round, winners flow toward the title.
 // Connector lines are drawn from real data — a line appears the moment a match
@@ -144,7 +154,15 @@ export function InteractiveBracket({ bracket }: { bracket: BracketRound[] }) {
             fill="none"
           >
             {paths.map((p, i) => (
-              <path key={i} d={p.d} stroke="rgba(132,204,22,0.45)" strokeWidth={2} />
+              <path
+                key={i}
+                className="bracket-link"
+                d={p.d}
+                stroke="rgba(132,204,22,0.55)"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             ))}
           </svg>
 
@@ -196,6 +214,7 @@ export function InteractiveBracket({ bracket }: { bracket: BracketRound[] }) {
 
 function BracketMatchCard({ m, advancerCode }: { m: BracketMatch; advancerCode: string | null }) {
   const UI = useUI();
+  const locale = useLocale();
   const router = useRouter();
   const clickable = !!(m.home || m.away);
   const hasScore = m.homeScore != null && m.awayScore != null;
@@ -217,13 +236,17 @@ function BracketMatchCard({ m, advancerCode }: { m: BracketMatch; advancerCode: 
       <BracketTeamRow team={m.home} score={m.homeScore} win={!!advancerCode && m.home?.code === advancerCode} tbd={UI.tbd} hasScore={hasScore} />
       <div className="h-px bg-white/10" />
       <BracketTeamRow team={m.away} score={m.awayScore} win={!!advancerCode && m.away?.code === advancerCode} tbd={UI.tbd} hasScore={hasScore} />
-      {m.live && (
+      {m.live ? (
         <div className="flex items-center justify-center gap-1 bg-lime-500/10 py-0.5 text-[8px] font-bold uppercase tracking-wider text-lime-400">
           <span className="relative flex h-1.5 w-1.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime-400 opacity-75" />
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-lime-400" />
           </span>
           {UI.statuses.LIVE}
+        </div>
+      ) : (
+        <div className="border-t border-white/[0.06] bg-white/[0.02] py-0.5 text-center text-[8.5px] font-semibold tnum text-slate-500">
+          {kickoffLabel(m.kickoffISO, locale)}
         </div>
       )}
     </div>

@@ -342,10 +342,23 @@
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
+/* Knockout bracket connectors: a dash flowing toward the final. */
+@keyframes bracket-flow { to { stroke-dashoffset: -24; } }
+.bracket-link {
+  stroke-dasharray: 5 7;
+  animation: bracket-flow 0.9s linear infinite;
+}
+/* Draw-in when a connector first appears (a match just decided). */
+@keyframes bracket-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.bracket-link-draw {
+  stroke-dasharray: 1;
+  animation: bracket-draw 0.5s ease-out forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal, .reveal-stack > *, .animate-live .pill-dot, .card-live,
   .loader-bob, .loader-ball, .loader-ring, .loader-ring-spin, .loader-dot,
-  .loader-bar, .skeleton { animation: none; }
+  .loader-bar, .skeleton, .bracket-link, .bracket-link-draw { animation: none; }
   .hero-sheen::before { animation: none; opacity: 0; }
   html { scroll-behavior: auto; }
 }
