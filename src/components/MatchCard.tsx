@@ -169,6 +169,13 @@ export function MatchCard({
   // button reads "update" instead of "submit" and users aren't confused.
   const [submitted, setSubmitted] = useState(prediction != null);
 
+  // Knockout: the qualifier only needs choosing when the predicted score is a DRAW
+  // (penalties). For a decisive score the winner is implied by the higher score, so
+  // the picker is hidden and the winner derived on submit.
+  const bothFilled = home !== "" && away !== "";
+  const isDrawPrediction = bothFilled && Number(home) === Number(away);
+  const needsWinnerPick = isKnockout && isDrawPrediction && !winner;
+
   // Live (in-play) score: seeded from the server, then polled every ~40s while the
   // match is running. The endpoint is DB-backed + provider-throttled, so many cards
   // polling at once cost almost nothing. On "final" we refresh to get the scored card.
@@ -257,7 +264,16 @@ export function MatchCard({
     // so these users still keep their exact score for the general leaderboard.
     const hScore = Number(home);
     const aScore = Number(away);
-    const winnerId: string | null = isKnockout ? winner || null : null;
+    // Knockout winner: decisive score → the higher scorer; draw → the user's pick.
+    let winnerId: string | null = null;
+    if (isKnockout) {
+      winnerId =
+        hScore > aScore
+          ? match.homeTeam!.id
+          : aScore > hScore
+            ? match.awayTeam!.id
+            : winner || null;
+    }
 
     setSaving(true);
     try {
@@ -470,9 +486,9 @@ export function MatchCard({
                   </div>
                 </div>
 
-                {isKnockout && (
+                {isKnockout && isDrawPrediction && (
                   <div>
-                    <label className="label text-center">{UI.predictedWinner}</label>
+                    <label className="label text-center text-amber-300">{UI.predictedWinnerDraw}</label>
                     <div className="flex gap-2">
                       {[match.homeTeam!, match.awayTeam!].map((t) => (
                         <PickButton key={t.id} active={winner === t.id} onClick={() => setWinner(t.id)} label={t.name} />
@@ -503,7 +519,7 @@ export function MatchCard({
 
             <button
               onClick={save}
-              disabled={saving || home === "" || away === ""}
+              disabled={saving || home === "" || away === "" || needsWinnerPick}
               className="btn-primary w-full"
             >
               {saving ? <Spinner /> : submitted ? UI.updatePrediction : UI.submitPrediction}
