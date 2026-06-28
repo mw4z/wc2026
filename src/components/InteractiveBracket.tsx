@@ -212,12 +212,31 @@ export function InteractiveBracket({ bracket }: { bracket: BracketRound[] }) {
   );
 }
 
+type RowTone = "win" | "lose" | "neutral";
+
 function BracketMatchCard({ m, advancerCode }: { m: BracketMatch; advancerCode: string | null }) {
   const UI = useUI();
   const locale = useLocale();
   const router = useRouter();
   const clickable = !!(m.home || m.away);
-  const hasScore = m.homeScore != null && m.awayScore != null;
+  // While live, treat a missing live score as 0 so the running score always shows.
+  const hs = m.live ? (m.homeScore ?? 0) : m.homeScore;
+  const as = m.live ? (m.awayScore ?? 0) : m.awayScore;
+  const hasScore = hs != null && as != null;
+
+  // Row emphasis: decided → the advancer is the winner; live → colour by who leads
+  // (lime = winning, red = losing), like the live group standings.
+  const toneFor = (side: "home" | "away"): RowTone => {
+    if (advancerCode) {
+      const code = side === "home" ? m.home?.code : m.away?.code;
+      return code && code === advancerCode ? "win" : "neutral";
+    }
+    if (m.live && hs != null && as != null && hs !== as) {
+      const homeLeads = hs > as;
+      return side === "home" ? (homeLeads ? "win" : "lose") : homeLeads ? "lose" : "win";
+    }
+    return "neutral";
+  };
   return (
     <div
       role={clickable ? "link" : undefined}
@@ -233,9 +252,9 @@ function BracketMatchCard({ m, advancerCode }: { m: BracketMatch; advancerCode: 
         m.live ? "border-lime-500/50 shadow-[0_0_14px_rgba(132,204,22,0.18)]" : "border-white/10"
       } ${clickable ? "cursor-pointer active:scale-[0.98] hover:border-white/25" : ""}`}
     >
-      <BracketTeamRow team={m.home} score={m.homeScore} win={!!advancerCode && m.home?.code === advancerCode} tbd={UI.tbd} hasScore={hasScore} />
+      <BracketTeamRow team={m.home} score={hs} tone={toneFor("home")} tbd={UI.tbd} hasScore={hasScore} live={m.live} />
       <div className="h-px bg-white/10" />
-      <BracketTeamRow team={m.away} score={m.awayScore} win={!!advancerCode && m.away?.code === advancerCode} tbd={UI.tbd} hasScore={hasScore} />
+      <BracketTeamRow team={m.away} score={as} tone={toneFor("away")} tbd={UI.tbd} hasScore={hasScore} live={m.live} />
       {m.live ? (
         <div className="flex items-center justify-center gap-1 bg-lime-500/10 py-0.5 text-[8px] font-bold uppercase tracking-wider text-lime-400">
           <span className="relative flex h-1.5 w-1.5">
@@ -256,24 +275,37 @@ function BracketMatchCard({ m, advancerCode }: { m: BracketMatch; advancerCode: 
 function BracketTeamRow({
   team,
   score,
-  win,
+  tone,
   tbd,
   hasScore,
+  live,
 }: {
   team: BracketTeam | null;
   score: number | null;
-  win: boolean;
+  tone: RowTone;
   tbd: string;
   hasScore: boolean;
+  live: boolean;
 }) {
+  const nameCls =
+    tone === "win"
+      ? "font-extrabold text-lime-300"
+      : tone === "lose"
+        ? "font-semibold text-red-300/90"
+        : "font-semibold text-slate-200";
+  const scoreCls = tone === "win" ? "text-lime-300" : tone === "lose" ? "text-red-300" : "text-slate-400";
   return (
-    <div className={`flex items-center gap-1.5 px-2 py-1.5 ${win ? "bg-lime-500/[0.08]" : ""}`}>
+    <div className={`flex items-center gap-1.5 px-2 py-1.5 ${tone === "win" ? "bg-lime-500/[0.08]" : ""}`}>
       <Flag src={team?.flagUrl} className="h-4 w-4 shrink-0" />
-      <span className={`min-w-0 flex-1 truncate text-[11px] ${win ? "font-extrabold text-lime-300" : "font-semibold text-slate-200"}`}>
-        {team?.nameAr ?? tbd}
-      </span>
+      <span className={`min-w-0 flex-1 truncate text-[11px] ${nameCls}`}>{team?.nameAr ?? tbd}</span>
       {hasScore && (
-        <span className={`shrink-0 font-display text-xs font-bold tnum ${win ? "text-lime-300" : "text-slate-400"}`}>
+        <span className={`flex shrink-0 items-center gap-1 font-display text-xs font-bold tnum ${scoreCls}`}>
+          {live && tone === "win" && (
+            <span className="relative flex h-1.5 w-1.5" aria-hidden>
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime-400 opacity-75" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-lime-400" />
+            </span>
+          )}
           {score}
         </span>
       )}
