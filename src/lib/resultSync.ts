@@ -512,6 +512,7 @@ export async function refreshLiveScores(): Promise<LiveScore[]> {
 
     const TOL = 3 * 3600_000; // match ESPN event to our kickoff within ±3h
     const out: LiveScore[] = [];
+    let finalizedAny = false;
     for (const m of inPlay) {
       const home = m.homeTeam!.nameEn;
       const away = m.awayTeam!.nameEn;
@@ -550,6 +551,7 @@ export async function refreshLiveScores(): Promise<LiveScore[]> {
         // cron) so the match leaves the live list the instant the client refreshes.
         try {
           await finalizeMatchFromEspn(m, ev, now);
+          finalizedAny = true;
         } catch (e) {
           console.error(`[live-scores] finalize failed for ${m.id}:`, (e as Error).message);
         }
@@ -578,6 +580,15 @@ export async function refreshLiveScores(): Promise<LiveScore[]> {
         },
       });
       out.push({ matchId: m.id, home: gh, away: ga, status: ev.detail || "IN_PLAY", final: false });
+    }
+    // A knockout match just finished → ESPN now names the next-round fixture, so
+    // fill those teams immediately (don't wait for the hourly cron). Best-effort.
+    if (finalizedAny) {
+      try {
+        await assignKnockoutTeamsFromEspn({ apply: true });
+      } catch (e) {
+        console.error("[live-scores] knockout assign failed:", (e as Error).message);
+      }
     }
     return out;
   })().finally(() => {
