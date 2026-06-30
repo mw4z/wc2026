@@ -264,8 +264,11 @@ function BracketMatchCard({ m, advancerCode }: { m: BracketMatch; advancerCode: 
           {UI.statuses.LIVE}
         </div>
       ) : m.penaltyHome != null && m.penaltyAway != null ? (
-        <div className="border-t border-white/[0.06] bg-gold-500/10 py-0.5 text-center text-[8.5px] font-bold tnum text-gold-400" dir="ltr">
-          {UI.penShootout} {m.penaltyHome}-{m.penaltyAway}
+        <div className="border-t border-white/[0.06] bg-gold-500/10 py-0.5 text-center text-[8.5px] font-bold text-gold-400">
+          {UI.penShootout}{" "}
+          <span dir="ltr" className="tnum">
+            {m.penaltyHome}-{m.penaltyAway}
+          </span>
         </div>
       ) : (
         <div className="border-t border-white/[0.06] bg-white/[0.02] py-0.5 text-center text-[8.5px] font-semibold tnum text-slate-500">

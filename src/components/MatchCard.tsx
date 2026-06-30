@@ -365,8 +365,11 @@ export function MatchCard({
               </div>
               {pens && (
                 <div className="flex flex-col items-center leading-tight">
-                  <span className="font-display text-sm font-bold tnum text-gold-400" dir="ltr">
-                    {match.penaltyHomeScore} - {match.penaltyAwayScore}
+                  {/* Same RTL layout as the score above: home on the right. */}
+                  <span className="flex items-center gap-1.5 font-display text-sm font-bold tnum text-gold-400">
+                    <span>{match.penaltyHomeScore}</span>
+                    <span className="text-slate-600">-</span>
+                    <span>{match.penaltyAwayScore}</span>
                   </span>
                   <span className="text-[9px] text-slate-400">
                     {UI.penShootout}
