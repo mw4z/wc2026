@@ -257,6 +257,11 @@ export function serializeMatch(m: MatchWithTeams, locale: Locale = "ar", lead: P
     stadium: m.stadium,
     homeScore: m.homeScore,
     awayScore: m.awayScore,
+    // Knockout decided on penalties: shootout score + the advancing team.
+    wentToPenalties: m.wentToPenalties,
+    penaltyHomeScore: m.penaltyHomeScore,
+    penaltyAwayScore: m.penaltyAwayScore,
+    winnerTeamId: m.winnerTeamId,
     // Live (in-play) running score + raw provider status, for the live card.
     liveHomeScore: m.liveHomeScore,
     liveAwayScore: m.liveAwayScore,

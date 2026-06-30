@@ -25,6 +25,8 @@ export interface EspnEvent {
   homeWinner: boolean; // ESPN's advancing-team flag (covers penalties)
   awayWinner: boolean;
   penalties: boolean; // a shootout was involved
+  homeShootout: number | null; // penalty shootout score (ESPN home), when penalties
+  awayShootout: number | null; // penalty shootout score (ESPN away), when penalties
   goals: EspnGoal[]; // chronological scoring plays
 }
 
@@ -118,6 +120,8 @@ export async function fetchEspnDates(dates: string[]): Promise<EspnEvent[]> {
         homeWinner: home?.winner === true,
         awayWinner: away?.winner === true,
         penalties: home?.shootoutScore != null || away?.shootoutScore != null,
+        homeShootout: num(home?.shootoutScore != null ? String(home.shootoutScore) : undefined),
+        awayShootout: num(away?.shootoutScore != null ? String(away.shootoutScore) : undefined),
         goals,
       });
     }

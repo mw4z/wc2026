@@ -47,6 +47,8 @@ export interface BracketMatch {
   live: boolean;
   kickoffISO: string;
   winnerCode: string | null; // the advancing team's code (covers penalties), when known
+  penaltyHome: number | null; // shootout score when decided on penalties
+  penaltyAway: number | null;
 }
 export interface BracketRound {
   stage: Stage;
@@ -216,6 +218,8 @@ export async function getTournamentData(): Promise<TournamentData> {
       live: isLive,
       kickoffISO: m.kickoffAt.toISOString(),
       winnerCode: m.winnerTeam?.code ?? null,
+      penaltyHome: m.wentToPenalties ? m.penaltyHomeScore : null,
+      penaltyAway: m.wentToPenalties ? m.penaltyAwayScore : null,
     });
     byStage.set(m.stage, list);
   }

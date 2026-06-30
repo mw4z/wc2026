@@ -140,6 +140,9 @@ model Match {
   homeScore         Int?
   awayScore         Int?
   wentToPenalties   Boolean   @default(false)
+  // Penalty shootout score (knockouts only), e.g. 4-3. Null unless wentToPenalties.
+  penaltyHomeScore  Int?
+  penaltyAwayScore  Int?
   // Live (in-play) running score, mirrored from the provider while the match is
   // being played — shown on the card for an at-a-glance live feel. Distinct from
   // homeScore/awayScore (the FINAL, scored result); cleared when the match ends.

@@ -154,8 +154,17 @@ export function MatchCard({
   const notOpenYet = !locked && match.opensAt != null && Date.now() < Date.parse(match.opensAt);
 
   const finished = match.homeScore != null && match.awayScore != null;
-  const homeWin = finished && match.homeScore! > match.awayScore!;
-  const awayWin = finished && match.awayScore! > match.homeScore!;
+  // Decided on penalties: regulation was level, the advancer comes from the shootout.
+  const pens = finished && match.wentToPenalties && match.penaltyHomeScore != null && match.penaltyAwayScore != null;
+  const homeWin = (finished && match.homeScore! > match.awayScore!) || (pens && match.winnerTeamId === match.homeTeam?.id);
+  const awayWin = (finished && match.awayScore! > match.homeScore!) || (pens && match.winnerTeamId === match.awayTeam?.id);
+  const pkWinnerName = pens
+    ? match.winnerTeamId === match.homeTeam?.id
+      ? match.homeTeam?.name
+      : match.winnerTeamId === match.awayTeam?.id
+        ? match.awayTeam?.name
+        : null
+    : null;
   // A finished card in a list doubles as a button to its detail page.
   const cardClickable = clickable && finished && teamsKnown;
   const openDetail = () => router.push(`/matches/${match.id}`);
@@ -348,10 +357,23 @@ export function MatchCard({
         <TeamSide name={match.homeTeam?.name ?? UI.tbd} flag={match.homeTeam?.flagUrl} win={homeWin} />
         <div className="flex min-w-[72px] flex-col items-center">
           {finished ? (
-            <div className="flex items-center gap-2 font-display text-4xl font-extrabold tnum leading-none">
-              <span className={homeWin ? "text-gold-400" : "text-white"}>{match.homeScore}</span>
-              <span className="text-slate-600">:</span>
-              <span className={awayWin ? "text-gold-400" : "text-white"}>{match.awayScore}</span>
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex items-center gap-2 font-display text-4xl font-extrabold tnum leading-none">
+                <span className={homeWin ? "text-gold-400" : "text-white"}>{match.homeScore}</span>
+                <span className="text-slate-600">:</span>
+                <span className={awayWin ? "text-gold-400" : "text-white"}>{match.awayScore}</span>
+              </div>
+              {pens && (
+                <div className="flex flex-col items-center leading-tight">
+                  <span className="font-display text-sm font-bold tnum text-gold-400" dir="ltr">
+                    {match.penaltyHomeScore} - {match.penaltyAwayScore}
+                  </span>
+                  <span className="text-[9px] text-slate-400">
+                    {UI.penShootout}
+                    {pkWinnerName ? ` · ${pkWinnerName}` : ""}
+                  </span>
+                </div>
+              )}
             </div>
           ) : showLiveScore ? (
             <div className="flex flex-col items-center gap-1">
