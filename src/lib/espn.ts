@@ -43,6 +43,7 @@ interface RawCompetitor {
 }
 interface RawDetail {
   scoringPlay?: boolean;
+  shootout?: boolean; // a penalty-shootout kick (separate phase, not an in-match goal)
   type?: { text?: string };
   clock?: { displayValue?: string };
   team?: { id?: string };
@@ -98,6 +99,9 @@ export async function fetchEspnDates(dates: string[]): Promise<EspnEvent[]> {
       const homeId = home?.team?.id != null ? String(home.team.id) : null;
       const goals: EspnGoal[] = [];
       for (const d of comp?.details ?? []) {
+        // Skip penalty-shootout kicks — they're a separate phase, not in-match goals
+        // (the shootout result is captured in the final score, not the goal feed).
+        if (d.shootout === true) continue;
         const txt = d.type?.text ?? "";
         const isGoal = d.scoringPlay === true || /goal/i.test(txt);
         if (!isGoal) continue;
