@@ -27,7 +27,8 @@ export interface EspnEvent {
   penalties: boolean; // a shootout was involved
   homeShootout: number | null; // penalty shootout score (ESPN home), when penalties
   awayShootout: number | null; // penalty shootout score (ESPN away), when penalties
-  goals: EspnGoal[]; // chronological scoring plays
+  goals: EspnGoal[]; // chronological scoring plays (regulation/ET — excludes shootout)
+  shootoutGoals: EspnGoal[]; // scored penalty-shootout kicks, in order (separate phase)
 }
 
 export function yyyymmdd(d: Date): string {
@@ -98,17 +99,23 @@ export async function fetchEspnDates(dates: string[]): Promise<EspnEvent[]> {
       // the kind ("Goal", "Goal - Penalty", "Own Goal"). Map team id → home/away.
       const homeId = home?.team?.id != null ? String(home.team.id) : null;
       const goals: EspnGoal[] = [];
+      const shootoutGoals: EspnGoal[] = [];
       for (const d of comp?.details ?? []) {
-        // Skip penalty-shootout kicks — they're a separate phase, not in-match goals
-        // (the shootout result is captured in the final score, not the goal feed).
-        if (d.shootout === true) continue;
         const txt = d.type?.text ?? "";
-        const isGoal = d.scoringPlay === true || /goal/i.test(txt);
-        if (!isGoal) continue;
         const player = d.athletesInvolved?.[0]?.displayName?.trim();
         if (!player) continue;
         const side: "home" | "away" = homeId != null && String(d.team?.id) === homeId ? "home" : "away";
         const note = /penalt/i.test(txt) ? "Penalty" : /own/i.test(txt) ? "Own Goal" : null;
+        // Penalty-shootout kicks are a SEPARATE phase: kept out of the in-match goal
+        // feed (score/scorers) but collected so we can still notify each scored kick.
+        if (d.shootout === true) {
+          if (d.scoringPlay === true || /scored/i.test(txt)) {
+            shootoutGoals.push({ side, player, minute: d.clock?.displayValue ?? "", note });
+          }
+          continue;
+        }
+        const isGoal = d.scoringPlay === true || /goal/i.test(txt);
+        if (!isGoal) continue;
         goals.push({ side, player, minute: d.clock?.displayValue ?? "", note });
       }
 
@@ -127,6 +134,7 @@ export async function fetchEspnDates(dates: string[]): Promise<EspnEvent[]> {
         homeShootout: num(home?.shootoutScore != null ? String(home.shootoutScore) : undefined),
         awayShootout: num(away?.shootoutScore != null ? String(away.shootoutScore) : undefined),
         goals,
+        shootoutGoals,
       });
     }
   }

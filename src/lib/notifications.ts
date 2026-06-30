@@ -147,6 +147,48 @@ export function goalCancelledPayload(opts: {
   };
 }
 
+// A penalty-shootout kick (separate phase): notify per scored kick with the running
+// shootout tally, no match minute. Tag is unique per kick (index) so they don't
+// collapse and each shows once.
+export function shootoutGoalPayload(opts: {
+  teamAr: string;
+  player: string;
+  playerAr?: string;
+  line: string; // running shootout tally, e.g. "المغرب 3-2 هولندا"
+  matchId: string;
+  index: number;
+}): PushPayload {
+  const who = opts.playerAr || playerDisplayName(opts.player, "ar");
+  return {
+    title: `⚽ ركلات الترجيح — ${opts.teamAr}`,
+    body: `${who} سجّل — ${opts.line}`,
+    url: `/matches/${opts.matchId}`,
+    tag: `wc26-pk-${opts.matchId}-${opts.index}`,
+  };
+}
+
+/** Push a single penalty-shootout kick to the goal audience. Best-effort. */
+export async function notifyShootoutGoal(opts: {
+  matchId: string;
+  teamAr: string;
+  player: string;
+  playerAr?: string;
+  line: string;
+  index: number;
+}): Promise<number> {
+  if (!pushConfigured) return 0;
+  try {
+    const subs = await goalAudienceSubs(opts.matchId);
+    if (subs.length === 0) return 0;
+    const payload = shootoutGoalPayload(opts);
+    const results = await Promise.all(subs.map((s) => sendPush(s, payload)));
+    return results.filter(Boolean).length;
+  } catch (e) {
+    console.error("notifyShootoutGoal failed:", (e as Error).message);
+    return 0;
+  }
+}
+
 // Audience for goal alerts: users with goal alerts ON; PREDICTED scope is limited
 // to the match's predictors. Falls back to EVERY subscription if the prefs columns
 // aren't migrated. Best-effort.

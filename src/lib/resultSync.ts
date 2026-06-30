@@ -4,7 +4,7 @@ import { fetchAllFixtures, footballApiConfigured, footballProvider, rateLimitRem
 import { deriveMatchResult, orientToMatch, type ParsedFixture } from "./resultSyncCore";
 import { evaluateMapping, teamsEqual } from "./fixtureMapping";
 import { fetchEspnLive, fetchEspnEvents, fetchEspnDates, yyyymmdd, type EspnEvent } from "./espn";
-import { notifyGoal, notifyGoalCancelled } from "./notifications";
+import { notifyGoal, notifyGoalCancelled, notifyShootoutGoal } from "./notifications";
 import { resolveArabic } from "./playerNameResolver";
 import type { Stage } from "@prisma/client";
 
@@ -538,6 +538,13 @@ export async function refreshLiveScores(): Promise<LiveScore[]> {
         console.error(`[live-scores] goal sync failed for ${m.id}:`, (e as Error).message);
       }
 
+      // Penalty shootout: notify each scored kick (separate phase; not a match goal).
+      try {
+        await processShootoutGoals(m, ev, reversed);
+      } catch (e) {
+        console.error(`[live-scores] shootout sync failed for ${m.id}:`, (e as Error).message);
+      }
+
       if (ev.state === "post") {
         // ESPN says full-time — finalize the result NOW (don't wait for the separate
         // cron) so the match leaves the live list the instant the client refreshes.
@@ -696,6 +703,53 @@ async function processMatchGoals(
     const line = `${m.homeTeam.nameAr} ${h}-${a} ${m.awayTeam.nameAr}`;
     const playerAr = (await resolveArabic(g.player).catch(() => null)) ?? undefined;
     await notifyGoal({ matchId: m.id, teamAr, player: g.player, playerAr, minute: g.minute, note: g.note, line });
+  }
+}
+
+/**
+ * Penalty shootout: fire one push per SCORED kick, with the running shootout tally
+ * and no match minute. Shootout kicks are NOT stored as match goals (so they don't
+ * inflate the score or the scorer list); a small Setting counter (`pkn:<matchId>`)
+ * tracks how many we've notified so each kick alerts once. Tags are unique per kick
+ * index, so a duplicate push (cron + live poll) collapses to one on the device.
+ */
+async function processShootoutGoals(
+  m: { id: string; homeTeam: { nameAr: string } | null; awayTeam: { nameAr: string } | null },
+  ev: EspnEvent,
+  reversed: boolean,
+): Promise<void> {
+  if (!m.homeTeam || !m.awayTeam || ev.shootoutGoals.length === 0) return;
+  const sgs = ev.shootoutGoals.map((g) => ({
+    side: reversed ? (g.side === "home" ? "away" : "home") : g.side,
+    player: g.player,
+  }));
+  const key = `pkn:${m.id}`;
+  let notified = 0;
+  try {
+    const row = await prisma.setting.findUnique({ where: { key } });
+    notified = row ? parseInt(row.value, 10) || 0 : 0;
+  } catch {
+    /* treat as 0 */
+  }
+  if (sgs.length <= notified) return;
+  // First time we see 2+ kicks at once (deploy after a shootout) → seed, don't spam.
+  const seed = notified === 0 && sgs.length >= 2;
+  let sh = 0;
+  let sa = 0;
+  for (let i = 0; i < sgs.length; i++) {
+    const g = sgs[i]!;
+    if (g.side === "home") sh++;
+    else sa++;
+    if (i < notified || seed) continue;
+    const teamAr = g.side === "home" ? m.homeTeam.nameAr : m.awayTeam.nameAr;
+    const line = `${m.homeTeam.nameAr} ${sh}-${sa} ${m.awayTeam.nameAr}`;
+    const playerAr = (await resolveArabic(g.player).catch(() => null)) ?? undefined;
+    await notifyShootoutGoal({ matchId: m.id, teamAr, player: g.player, playerAr, line, index: i });
+  }
+  try {
+    await prisma.setting.upsert({ where: { key }, create: { key, value: String(sgs.length) }, update: { value: String(sgs.length) } });
+  } catch {
+    /* best-effort */
   }
 }
 
