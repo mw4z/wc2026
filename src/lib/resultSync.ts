@@ -881,6 +881,25 @@ export async function backfillMatchGoals(
       console.error(`[goal-backfill] reconcile failed for ${m.id}:`, (e as Error).message);
     }
 
+    // Backfill the penalty shootout score (the finalize above skips already-scored
+    // matches whose result is unchanged, so penalties wouldn't be written otherwise).
+    try {
+      if (ev.penalties) {
+        const reversed = teamsEqual(ev.homeName, away) && teamsEqual(ev.awayName, home);
+        const pkH = reversed ? ev.awayShootout : ev.homeShootout;
+        const pkA = reversed ? ev.homeShootout : ev.awayShootout;
+        if (pkH != null && pkA != null && (m.penaltyHomeScore !== pkH || m.penaltyAwayScore !== pkA)) {
+          await prisma.match.update({
+            where: { id: m.id },
+            data: { wentToPenalties: true, penaltyHomeScore: pkH, penaltyAwayScore: pkA },
+          });
+          corrected++;
+        }
+      }
+    } catch (e) {
+      console.error(`[goal-backfill] penalty backfill failed for ${m.id}:`, (e as Error).message);
+    }
+
     try {
       const { inserted, removed: rm, players } = await reconcileGoalsSilent(m, ev);
       removed += rm;
